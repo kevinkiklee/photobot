@@ -1,3 +1,6 @@
+# Local development only. All secrets below are placeholders for local Docker.
+# Do NOT use these values in production.
+
 services:
   # --- Supabase Local Services ---
   db:

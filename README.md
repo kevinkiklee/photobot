@@ -85,4 +85,4 @@ Tests use Vitest with a workspace configuration. Each app/package has its own te
 
 ## License
 
-Private
+MIT

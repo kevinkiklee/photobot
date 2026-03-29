@@ -1,16 +1,30 @@
 node_modules
-.DS_Store
 dist
+.next
 .turbo
-.pnpm-debug.log
+*.tsbuildinfo
 
 # Environment files (contain secrets)
 .env
 .env.local
 .env.*.local
 
-# Next.js
-.next
+# OS files
+.DS_Store
+Thumbs.db
 
-# Build artifacts
-*.tsbuildinfo
+# Debug logs
+.pnpm-debug.log
+npm-debug.log*
+
+# Editor / tool state
+.superpowers
+.todo
+
+# Build cache
+apps/bot/dist
+apps/dashboard/.next
+packages/*/dist
+
+# Auto-generated
+next-env.d.ts
