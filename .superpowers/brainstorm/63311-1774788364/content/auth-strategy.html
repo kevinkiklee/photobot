@@ -1,0 +1,49 @@
+<h2>Unified Auth Strategy: Discord as the Identity Provider</h2>
+<p class="subtitle">Seamless, secure access for both the bot and the admin dashboard.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">1. Web Dashboard (Discord OAuth2)</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>Login with Discord</h3>
+        <p class="subtitle">Admins sign in via Supabase Auth + Discord OAuth2.</p>
+        <div style="background: #1E293B; padding: 10px; border-radius: 4px; border-left: 3px solid #5865F2; display: flex; align-items: center; gap: 10px;">
+            <div style="background: #5865F2; padding: 5px; border-radius: 4px; font-weight: bold; color: white;">DISCORD</div>
+            <p style="margin: 0; font-size: 0.8em; color: #CBD5E1;">Authorization Grant Flow</p>
+        </div>
+        <p class="label" style="margin-top: 10px;">&check; Automatic role check: Only users with <b>MANAGE_GUILD</b> or a specific <b>Admin Role</b> can access the panel.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">2. Internal Bot Auth (JWT & RLS)</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>Secure Data Access</h3>
+        <p class="subtitle">How the Bot and Dashboard talk to Supabase safely.</p>
+        <ul>
+            <li><b>Service Role Key:</b> The Bot (on Railway) uses a protected server-side key to bypass row-level security for high-speed lookups.</li>
+            <li><b>Row Level Security (RLS):</b> The Dashboard API uses user-specific JWTs to ensure Admins can <i>only</i> see settings for their own servers.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons" style="margin-top: 20px;">
+  <div class="pros">
+    <h4>Security Benefits</h4>
+    <ul>
+      <li><b>No Passwords:</b> You never store or manage user passwords—Discord handles all credentials and MFA.</li>
+      <li><b>Instant Revocation:</b> If someone is kicked from the Discord server or loses their Admin role, their Dashboard access is instantly revoked.</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Implementation Detail</h4>
+    <ul>
+      <li><b>Session Management:</b> Supabase handles the JWT rotation and session persistence automatically in the browser.</li>
+    </ul>
+  </div>
+</div>

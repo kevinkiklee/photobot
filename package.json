@@ -1,0 +1,14 @@
+{
+  "name": "photography-bot-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  }
+}

@@ -1,0 +1,62 @@
+<h2>Approaches to Feature Toggling</h2>
+<p class="subtitle">Choose the structure that best fits your server management needs.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Hierarchical Inheritance</h3>
+      <p><b>Global Server Setting</b> &rarr; <b>Channel Overrides</b> &rarr; <b>Role Permissions</b>.</p>
+      <ul>
+        <li>Simple to understand: "Turn it on for the server, then off for specific channels."</li>
+        <li>Role permissions act as the final gate: "Who can actually use it?"</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Configuration Matrix</h3>
+      <p>A single grid view of <b>Features &times; (Servers, Channels, Roles)</b>.</p>
+      <ul>
+        <li>Total visibility: See every permission at once in the dashboard.</li>
+        <li>More complex to manage via Discord commands, but powerful for admins.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Permission Tags</h3>
+      <p>Features are treated like <b>Discord Permissions</b>.</p>
+      <ul>
+        <li>Integrates directly with Discord's native permission system (Manage Channels, etc.).</li>
+        <li>Admins use `/allow [feature] [role/channel]` to build a "whitelist."</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">Example: Hierarchical View</div>
+  <div class="mockup-body">
+    <div class="mock-nav">Dashboard | Features | Permissions</div>
+    <div style="padding: 10px;">
+      <div class="section">
+        <b>Feature: /critique</b> [Enabled &check;]
+      </div>
+      <div class="section">
+        <i>Channel Overrides:</i>
+        <div class="label">#portfolio-review: Enabled</div>
+        <div class="label">#general: Disabled</div>
+      </div>
+      <div class="section">
+        <i>Role Overrides:</i>
+        <div class="label">Professional: Allowed</div>
+        <div class="label">Beginner: Allowed (Cooldown active)</div>
+      </div>
+    </div>
+  </div>
+</div>

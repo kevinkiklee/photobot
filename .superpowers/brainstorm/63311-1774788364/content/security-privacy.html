@@ -1,0 +1,53 @@
+<h2>Security & Privacy: The "Fortress" Model</h2>
+<p class="subtitle">Protecting user copyright and server integrity at scale.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">1. Image Privacy & Zero-Retention</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>Volatile-Only Processing</h3>
+        <p class="subtitle">Images for /palette or /critique are never written to disk.</p>
+        <div style="background: #1E293B; padding: 10px; border-radius: 4px; border-left: 3px solid #06B6D4;">
+            <p style="margin: 0; font-family: monospace; font-size: 0.8em; color: #CBD5E1;">
+                Buffer input = await fetch(url);<br>
+                let result = process(input);<br>
+                input = null; // Purge from RAM immediately
+            </p>
+        </div>
+        <p class="label" style="margin-top: 10px;">&check; Zero-training guarantee: APIs are configured to not use user uploads for model training.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">2. Admin Safety & Scoping</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>Secure /settings Execution</h3>
+        <p class="subtitle">Preventing "Admin Account Hijacking" from wrecking the server.</p>
+        <ul>
+            <li><b>MFA Requirement:</b> Optional toggle requiring Discord 2FA for anyone running <code>/settings</code>.</li>
+            <li><b>Sensitive Command Scoping:</b> Features like "Full Data Export" require owner-level ID verification.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>Data Protection</h4>
+    <ul>
+      <li><b>EXIF Stripping:</b> Automatically strip GPS/Personal data from images before AI analysis.</li>
+      <li><b>GDPR/CCPA:</b> Provide a <code>/my-data delete</code> command for users to purge their critique history.</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>System Security</h4>
+    <ul>
+      <li><b>Token Safety:</b> Use AWS Secrets Manager or Environment Variables (never hardcoded).</li>
+      <li><b>Rate Limiting:</b> Per-user and Per-IP limits to prevent "DDoS-by-API-Calls" which could spike costs.</li>
+    </ul>
+  </div>
+</div>

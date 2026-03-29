@@ -1,0 +1,48 @@
+<h2>Agnostic AI Strategy: Gemini & Local Testing</h2>
+<p class="subtitle">Ensuring high-performance production with Gemini and cost-free local development.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">1. The AI Provider Interface</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>Unified LLM Wrapper</h3>
+        <p class="subtitle">A single <code>analyzeImage()</code> function that doesn't care which model is running.</p>
+        <div style="background: #1E293B; padding: 10px; border-radius: 4px; border-left: 3px solid #06B6D4;">
+            <p style="margin: 0; font-family: monospace; font-size: 0.8em; color: #CBD5E1;">
+                // config.ts<br>
+                AI_PROVIDER: 'gemini' | 'ollama' | 'openai'<br><br>
+                // provider.ts<br>
+                if (AI_PROVIDER === 'gemini') return GeminiSDK;<br>
+                if (AI_PROVIDER === 'ollama') return LocalOllama;
+            </p>
+        </div>
+        <p class="label" style="margin-top: 10px;">&check; Swap models in <code>.env</code> without touching a single line of feature code.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">2. Development & Testing Flow</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>Local LLM (Ollama)</h3>
+        <p class="subtitle">Test complex photography analysis for $0.</p>
+        <ul>
+            <li><b>Ollama Integration:</b> Use <code>llava</code> or <code>moondream</code> locally for vision testing.</li>
+            <li><b>Mock Provider:</b> A "Dry Run" mode that returns static JSON for ultra-fast unit tests.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; background: #111; padding: 15px; border-radius: 8px; border: 1px solid #3B82F6;">
+    <h3 style="color: #3B82F6;">Gemini Optimization</h3>
+    <p style="font-size: 0.9em; color: #94A3B8;">We'll leverage Gemini-specific features while maintaining compatibility:</p>
+    <ul style="font-size: 0.85em;">
+        <li><b>Gemini 1.5 Flash (Bouncer):</b> Extremely fast and cheap for our Layer 1 security check.</li>
+        <li><b>Gemini 1.5 Pro (Analyzer):</b> High-tier vision for Phase 3 "Reverse Engineering" and "Troubleshooting."</li>
+        <li><b>JSON Mode:</b> Forcing Gemini to return structured data for the palette extractor.</li>
+    </ul>
+</div>

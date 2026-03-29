@@ -1,0 +1,60 @@
+<h2>Recommended: Hierarchical Inheritance</h2>
+<p class="subtitle">A "fail-safe" approach that scales from simple to complex configurations.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Dashboard: Feature View</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>/critique</h3>
+        <p class="label">Status: Enabled &check;</p>
+        <p class="subtitle">Global default: This feature is ON by default in all channels.</p>
+        
+        <hr>
+        
+        <h4>Channel Overrides</h4>
+        <div class="label" style="background: #333; padding: 4px; border-radius: 4px;">#portfolio-review: Always Allowed</div>
+        <div class="label" style="background: #333; padding: 4px; border-radius: 4px; margin-top: 4px;">#general: Disabled &cross;</div>
+        
+        <hr>
+        
+        <h4>Role Restrictions</h4>
+        <div class="label" style="background: #333; padding: 4px; border-radius: 4px;">Professional (Level 3): Allowed</div>
+        <div class="label" style="background: #333; padding: 4px; border-radius: 4px; margin-top: 4px;">Newbie: Disallowed &cross;</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Discord: Command Interface</div>
+    <div class="mockup-body">
+      <div class="section" style="font-family: monospace; background: #222; padding: 10px; border-radius: 4px;">
+        <p><span style="color: #5865F2">@Admin</span> /settings feature:<b>critique</b> state:<b>disable</b> channel:<b>#general</b></p>
+        <p style="color: #ccc;">&gt; Feature <b>/critique</b> is now disabled for channel <b>#general</b>.</p>
+        
+        <br>
+        
+        <p><span style="color: #5865F2">@Admin</span> /settings feature:<b>critique</b> allow-role:<b>@Professional</b></p>
+        <p style="color: #ccc;">&gt; Feature <b>/critique</b> is now restricted to <b>@Professional</b> and higher.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>Why it works</h4>
+    <ul>
+      <li><b>Safe by default:</b> Features are either globally ON or OFF.</li>
+      <li><b>Specific:</b> One command fixes one problem (e.g., "stop bot spam in #general").</li>
+      <li><b>Scalable:</b> New servers get the default setup without configuration.</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Trade-offs</h4>
+    <ul>
+      <li><b>Potential conflicts:</b> If a user has two roles (one allowed, one disallowed), we need a clear priority rule.</li>
+      <li><b>Discovery:</b> Admins need a way to see all active overrides (a `/settings list` command).</li>
+    </ul>
+  </div>
+</div>

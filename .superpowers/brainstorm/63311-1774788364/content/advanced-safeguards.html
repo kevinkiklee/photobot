@@ -1,0 +1,49 @@
+<h2>Advanced Multi-Layer Safeguards</h2>
+<p class="subtitle">Deep security for high-traffic, automated community moderation.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">1. Infrastructure & Code Safety</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>Encapsulated Processing (Sandbox)</h3>
+        <p class="subtitle">Processing image uploads in a low-privilege environment.</p>
+        <ul>
+            <li><b>Isolated Containers:</b> Image processing runs in a separate Docker container with no access to the main database credentials.</li>
+            <li><b>Ephemeral Storage:</b> <code>/tmp</code> directories are mounted as <code>tmpfs</code> (RAM-only), ensuring no physical disk trace of user photos.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">2. Behavioral Safeguards</div>
+    <div class="mockup-body">
+      <div class="section">
+        <h3>"Dead Man's Switch" & Kill-Toggles</h3>
+        <p class="subtitle">Automated responses to unusual activity.</p>
+        <ul>
+            <li><b>Emergency Shutdown:</b> A global <code>/panic</code> command (Owner-only) that instantly disables all AI-based features if an exploit is found.</li>
+            <li><b>Anomaly Detection:</b> If <code>/critique</code> usage spikes 500% above the rolling average, the bot auto-throttles the command to protect API budgets.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>External Protection</h4>
+    <ul>
+      <li><b>IP Whitelisting:</b> Database only accepts connections from the bot's fixed IP address.</li>
+      <li><b>Request Signing:</b> All webhooks between the dashboard and the bot are cryptographically signed to prevent spoofing.</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>User Privacy Plus</h4>
+    <ul>
+      <li><b>Zero-Knowledge Metadata:</b> We store the <i>result</i> of an AI analysis, but never the original image or its raw EXIF metadata.</li>
+      <li><b>Audit Immutable:</b> Audit logs are "append-only" and cannot be deleted by mods/admins to prevent hiding malicious activity.</li>
+    </ul>
+  </div>
+</div>
