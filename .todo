@@ -1,8 +1,10 @@
-- [ ] Explore project context
-- [ ] Ask clarifying questions
-- [ ] Propose 2-3 approaches
-- [ ] Present design
-- [ ] Write design doc
-- [ ] Spec self-review
-- [ ] User reviews written spec
-- [ ] Transition to implementation
+# Implementation Todo List
+
+- [x] Task 1: Discord API Integration & Authorization Utility
+- [x] Task 2: Shared Dashboard Layout
+- [x] Task 3: Server Selector Component
+- [x] Task 4: Server Action for Feature Updates
+- [x] Task 5: Interactive Feature Toggle Component
+- [x] Task 6: Refactor Settings Page
+- [x] Task 7: Refactor Audit Page
+- [x] Task 8: Update Tests & Final Verification

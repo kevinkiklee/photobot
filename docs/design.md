@@ -1,11 +1,11 @@
-# 📸 PhotoBot: System Design & Architecture Document
+# 📸 Photobot: System Design & Architecture Document
 **Target Environment:** "Photography Lounge" Discord Server (36k+ Members)
 **Version:** 1.0 (MVP Focus)
 
 ## 1. Executive Summary
-PhotoBot is a custom Discord bot designed to scale moderation, drive high-tier artistic engagement, and provide instant technical mentorship. It is being rolled out in phases. The P0 MVP focuses entirely on automated community engagement (Prompts & Trivia) to establish bot presence and test database load, before scaling up to complex AI-vision mentorship tools. 
+Photobot is a custom Discord bot designed to scale moderation, drive high-tier artistic engagement, and provide instant technical mentorship. It is being rolled out in phases. The P0 MVP focuses entirely on automated community engagement (Prompts & Trivia) to establish bot presence and test database load, before scaling up to complex AI-vision mentorship tools. 
 
-**Core Constraint:** PhotoBot acts strictly as an analytical and educational assistant. It **does not** use generative AI to create images. 
+**Core Constraint:** Photobot acts strictly as an analytical and educational assistant. It **does not** use generative AI to create images. 
 
 ---
 

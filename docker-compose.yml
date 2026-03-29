@@ -1,0 +1,64 @@
+services:
+  # --- Supabase Local Services ---
+  db:
+    container_name: photobot-db
+    image: supabase/postgres:15.1.0.147
+    ports:
+      - "${DB_PORT:-54422}:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    volumes:
+      - supabase_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth:
+    container_name: photobot-auth
+    image: supabase/gotrue:v2.132.3
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:postgres@db:5432/postgres?sslmode=disable
+      GOTRUE_SITE_URL: http://localhost:3100
+      GOTRUE_OPERATOR_TOKEN: super-secret-operator-token
+      GOTRUE_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+      GOTRUE_EXTERNAL_DISCORD_ENABLED: "true"
+      GOTRUE_EXTERNAL_DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-""}
+      GOTRUE_EXTERNAL_DISCORD_SECRET: ${DISCORD_CLIENT_SECRET:-""}
+      GOTRUE_EXTERNAL_DISCORD_REDIRECT_URI: http://localhost:${REST_PORT:-54421}/auth/v1/callback
+    ports:
+      - "${AUTH_PORT:-9998}:9999"
+
+  rest:
+    container_name: photobot-rest
+    image: postgrest/postgrest:v10.1.1
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://postgres:postgres@db:5432/postgres?sslmode=disable
+      PGRST_DB_SCHEMA: public,storage,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+    ports:
+      - "${REST_PORT:-54421}:3000"
+
+  # --- Ollama Service ---
+  ollama:
+    container_name: photography-bot-ollama
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  supabase_db:
+  ollama_data:

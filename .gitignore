@@ -1,1 +1,16 @@
-node_modules\n.DS_Store\ndist\n.turbo\n.pnpm-debug.log
+node_modules
+.DS_Store
+dist
+.turbo
+.pnpm-debug.log
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Next.js
+.next
+
+# Build artifacts
+*.tsbuildinfo

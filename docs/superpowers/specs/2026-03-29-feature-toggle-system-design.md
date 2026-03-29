@@ -1,23 +1,23 @@
-# 📸 PhotoBot: Comprehensive System Design & Architecture
+# 📸 Photobot: Comprehensive System Design & Architecture
 **Date:** Sunday, March 29, 2026
 **Status:** Approved
 
 ## 1. Overview
-This spec outlines the end-to-end architecture for PhotoBot, a photography-focused Discord bot. It covers the hierarchical permission system, security frameworks, production deployment on a hybrid cloud stack, and a robust local development environment.
+This spec outlines the end-to-end architecture for Photobot, a photography-focused Discord bot. It covers the hierarchical permission system, security frameworks, production deployment on a hybrid cloud stack, and a robust local development environment.
 
 ## 2. Hierarchical Inheritance Model (Permissions)
 The system uses a "Specificity Ladder" to resolve configuration and determine command execution.
 
 ### 2.1 The Specificity Ladder (Priority)
 1.  **Channel Override (Highest):** Explicitly disables features in specific channels.
-2.  **Role Allowance:** Grants access to specific features based on internal PhotoBot role settings.
+2.  **Role Allowance:** Grants access to specific features based on internal Photobot role settings.
 3.  **Server Default (Lowest):** The global ON/OFF state for the feature in the current server.
 
 ### 2.2 Conflict Resolution: The "Allow Wins" Rule
 If a user has multiple roles (e.g., both `@Pro` and `@Newbie`), and `@Pro` is allowed while `@Newbie` is not, the user **is allowed** to use the feature.
 
-### 2.3 PhotoBot-First Management
-PhotoBot's internal `/settings` system is the **Single Source of Truth**. Discord's native permissions are used only for broad visibility (hiding commands in the UI), while PhotoBot handles all execution logic.
+### 2.3 Photobot-First Management
+Photobot's internal `/settings` system is the **Single Source of Truth**. Discord's native permissions are used only for broad visibility (hiding commands in the UI), while Photobot handles all execution logic.
 
 ## 3. Security & Privacy "Fortress" Model
 ### 3.1 Zero-Retention & Volatile Processing

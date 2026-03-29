@@ -3,12 +3,21 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "init:local": "./scripts/setup.sh",
     "dev": "pnpm -r dev",
+    "dev:local": "./scripts/dev.sh 2>&1 | tee /tmp/photobot-dev.log",
+    "dev:down": "docker compose down",
     "build": "pnpm -r build",
-    "test": "pnpm -r test"
+    "test": "vitest run",
+    "test:integration": "DATABASE_URL=postgresql://postgres:postgres@localhost:54422/postgres vitest run --workspace vitest.integration.workspace.ts",
+    "test:all": "pnpm test && pnpm test:integration",
+    "status": "./scripts/status.sh",
+    "db": "./scripts/db.sh",
+    "cleanup": "./scripts/cleanup.sh"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "tsx": "^4.0.0"
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0"
   }
 }
