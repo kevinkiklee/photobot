@@ -45,6 +45,19 @@ describe('BouncerService', () => {
       expect(result.allowed).toBe(false);
       expect(result.reason).toBe('Security threat detected.');
     });
+
+    it('denies images with graphic violence', async () => {
+      mockGemini.analyzeImage.mockResolvedValue('VIOLENCE');
+      const result = await bouncer.moderateImage('path/to/violent.jpg');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('Image contains graphic violence.');
+    });
+
+    it('defaults to allowed for unrecognized response', async () => {
+      mockGemini.analyzeImage.mockResolvedValue('SOMETHING_UNKNOWN');
+      const result = await bouncer.moderateImage('path/to/weird.jpg');
+      expect(result.allowed).toBe(true);
+    });
   });
 
   describe('stripMetadata', () => {
@@ -69,6 +82,14 @@ describe('BouncerService', () => {
       }
       const result = await bouncer.checkRateLimit('spammer');
       expect(result.delay).toBeGreaterThan(0);
+    });
+
+    it('isolates rate limits between different users', async () => {
+      for (let i = 0; i < 6; i++) {
+        await bouncer.checkRateLimit('user-a');
+      }
+      const result = await bouncer.checkRateLimit('user-b');
+      expect(result.delay).toBe(0);
     });
   });
 });

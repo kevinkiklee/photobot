@@ -27,14 +27,18 @@ export class BouncerService {
     const result = await this.aiProvider.analyzeImage(imagePath, prompt);
     const cleanedResult = result.trim().toUpperCase();
 
-    if (cleanedResult === 'CLEAN') {
+    if (cleanedResult.includes('CLEAN')) {
       return { allowed: true };
-    } else if (cleanedResult === 'NSFW') {
+    } else if (cleanedResult.includes('NSFW')) {
       return { allowed: false, reason: 'Image contains inappropriate content.' };
-    } else if (cleanedResult === 'INJECTION') {
+    } else if (cleanedResult.includes('INJECTION')) {
       return { allowed: false, reason: 'Security threat detected.' };
+    } else if (cleanedResult.includes('VIOLENCE')) {
+      return { allowed: false, reason: 'Image contains graphic violence.' };
     } else {
-      return { allowed: false, reason: 'Image violated safety guidelines.' };
+      // Default to allowed if the model returns an unrecognized response
+      console.warn('Bouncer: unrecognized moderation response:', result.trim());
+      return { allowed: true };
     }
   }
 

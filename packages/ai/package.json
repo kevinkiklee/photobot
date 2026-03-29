@@ -7,5 +7,9 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "ollama": "^0.6.3"
   }
 }
