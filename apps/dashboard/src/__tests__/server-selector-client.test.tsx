@@ -13,40 +13,42 @@ vi.mock('../lib/discord', () => ({
   DiscordGuild: {},
 }));
 
-import { ServerSelector } from '../components/server-selector';
+import { ServerPopover } from '../components/ServerPopover';
 
 const guilds = [
   { id: '111', name: 'Guild One', permissions: '8' },
   { id: '222', name: 'Guild Two', permissions: '8' },
 ];
 
-describe('ServerSelector (client)', () => {
+describe('ServerPopover (integration)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders guild options in dropdown', () => {
-    render(<ServerSelector guilds={guilds} />);
-    const options = screen.getAllByRole('option');
-    expect(options).toHaveLength(3);
-    expect(options[1]).toHaveTextContent('Guild One');
-    expect(options[2]).toHaveTextContent('Guild Two');
+  it('shows placeholder when no server is selected', () => {
+    render(<ServerPopover guilds={guilds} />);
+    expect(screen.getByText('Select server...')).toBeInTheDocument();
   });
 
-  it('pushes URL with serverId on selection', () => {
-    render(<ServerSelector guilds={guilds} />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: '111' } });
+  it('shows guild list on trigger click', () => {
+    render(<ServerPopover guilds={guilds} />);
+    fireEvent.click(screen.getByRole('button', { name: /select server/i }));
+    expect(screen.getByText('Guild One')).toBeInTheDocument();
+    expect(screen.getByText('Guild Two')).toBeInTheDocument();
+  });
+
+  it('navigates with serverId on selection', () => {
+    render(<ServerPopover guilds={guilds} />);
+    fireEvent.click(screen.getByRole('button', { name: /select server/i }));
+    fireEvent.click(screen.getByText('Guild One'));
     expect(mockPush).toHaveBeenCalledWith('/settings?serverId=111');
   });
 
-  it('removes serverId on empty selection', () => {
-    render(<ServerSelector guilds={guilds} />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
-    expect(mockPush).toHaveBeenCalledWith('/settings?');
-  });
-
-  it('renders placeholder option', () => {
-    render(<ServerSelector guilds={guilds} />);
-    expect(screen.getByText('Select server...')).toBeInTheDocument();
+  it('closes popover on Escape', () => {
+    render(<ServerPopover guilds={guilds} />);
+    fireEvent.click(screen.getByRole('button', { name: /select server/i }));
+    expect(screen.getByText('Guild One')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByText('Guild One')).not.toBeInTheDocument();
   });
 });

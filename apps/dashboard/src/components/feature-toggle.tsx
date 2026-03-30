@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { updateFeatureAction } from '@/lib/actions';
+import { useToast } from '@/components/Toast';
 
 export function FeatureToggle({
   serverId,
@@ -14,6 +15,7 @@ export function FeatureToggle({
 }) {
   const [isEnabled, setIsEnabled] = useState(initialEnabled);
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const handleToggle = async () => {
     const nextState = !isEnabled;
@@ -22,9 +24,16 @@ export function FeatureToggle({
     startTransition(async () => {
       try {
         await updateFeatureAction(serverId, featureKey, nextState);
+        toast({
+          variant: 'success',
+          message: `${featureKey} ${nextState ? 'enabled' : 'disabled'}`,
+        });
       } catch (error) {
         setIsEnabled(!nextState);
-        alert('Failed to update feature');
+        toast({
+          variant: 'error',
+          message: 'Failed to update feature',
+        });
       }
     });
   };
@@ -37,7 +46,6 @@ export function FeatureToggle({
       aria-label={`Toggle ${featureKey}`}
       className={`relative w-11 h-6 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary/40 focus:ring-offset-[var(--bg-card)] ${isEnabled ? 'bg-brand-primary' : 'bg-[var(--toggle-off)]'} ${isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
-      {/* Active glow */}
       {isEnabled && (
         <span className="absolute inset-0 rounded-full bg-brand-primary/30 blur-md" />
       )}

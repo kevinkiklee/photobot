@@ -69,7 +69,7 @@ export default async function SettingsPage({
             return (
               <div
                 key={key}
-                className="animate-fade-up group p-5 rounded-xl border border-subtle bg-card/50 backdrop-blur-sm transition-all hover:border-brand-primary/20"
+                className="animate-fade-up group p-4 sm:p-5 rounded-xl border border-subtle bg-card/50 backdrop-blur-sm transition-all hover:border-brand-primary/20"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">

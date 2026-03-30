@@ -2,7 +2,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getAdminGuilds } from "@/lib/discord";
-import { ServerSelector } from "@/components/server-selector";
+import { ServerPopover } from "@/components/ServerPopover";
+import { MobileNav } from "@/components/MobileNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
 import { LucideCamera, LucideSettings, LucideScrollText } from "lucide-react";
@@ -30,7 +31,7 @@ export default async function DashboardLayout({
               </div>
               <span className="font-display text-lg text-primary">Photobot</span>
             </Link>
-            <nav className="flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1">
               <Link
                 href="/settings"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-secondary hover:text-primary hover:bg-brand-primary/5 transition-all"
@@ -49,12 +50,15 @@ export default async function DashboardLayout({
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <div className="w-px h-5 bg-[var(--border-subtle)]" />
-            <ServerSelector guilds={adminGuilds} />
+            <div className="w-px h-5 bg-[var(--border-subtle)] hidden md:block" />
+            <div className="hidden md:block">
+              <ServerPopover guilds={adminGuilds} />
+            </div>
           </div>
         </div>
       </header>
-      <main className="animate-fade-in">{children}</main>
+      <main className="animate-fade-in pb-20 md:pb-0">{children}</main>
+      <MobileNav guilds={adminGuilds} />
     </div>
   );
 }

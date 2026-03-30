@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ToastProvider } from '../components/Toast';
 
 vi.mock('../lib/actions', () => ({
   updateFeatureAction: vi.fn(),
@@ -8,6 +9,10 @@ vi.mock('../lib/actions', () => ({
 import { updateFeatureAction } from '../lib/actions';
 import { FeatureToggle } from '../components/feature-toggle';
 
+function renderWithToast(ui: React.ReactElement) {
+  return render(<ToastProvider>{ui}</ToastProvider>);
+}
+
 describe('FeatureToggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -15,21 +20,21 @@ describe('FeatureToggle', () => {
   });
 
   it('renders enabled state', () => {
-    render(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={true} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={true} />);
     const button = screen.getByRole('button');
     expect(button).toHaveAttribute('aria-pressed', 'true');
     expect(button.className).toContain('bg-brand-primary');
   });
 
   it('renders disabled state', () => {
-    render(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
     const button = screen.getByRole('button');
     expect(button).toHaveAttribute('aria-pressed', 'false');
     expect(button.className).toContain('bg-[var(--toggle-off)]');
   });
 
   it('calls updateFeatureAction on click', async () => {
-    render(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
     fireEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
@@ -37,20 +42,29 @@ describe('FeatureToggle', () => {
     });
   });
 
-  it('rolls back state on action error', async () => {
-    (updateFeatureAction as any).mockRejectedValue(new Error('fail'));
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
+  it('shows success toast after toggling', async () => {
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
+    fireEvent.click(screen.getByRole('button'));
 
-    render(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
+    await waitFor(() => {
+      expect(screen.getByText(/critique enabled/i)).toBeInTheDocument();
+    });
+  });
+
+  it('rolls back state and shows error toast on failure', async () => {
+    (updateFeatureAction as any).mockRejectedValue(new Error('fail'));
+
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
     fireEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByText(/failed to update/i)).toBeInTheDocument();
     });
   });
 
   it('has correct aria-label', () => {
-    render(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={true} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={true} />);
     expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Toggle critique');
   });
 });

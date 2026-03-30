@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Serif_Display, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
 const display = DM_Serif_Display({
@@ -24,6 +25,17 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Photobot Dashboard",
   description: "Admin panel for Photobot — Photography community management",
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+  },
+  openGraph: {
+    title: 'Photobot Dashboard',
+    description: 'AI-driven mentorship for photography communities',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+  },
 };
 
 export default function RootLayout({
@@ -43,7 +55,7 @@ export default function RootLayout({
       <body
         className={`${display.variable} ${body.variable} ${mono.variable} font-body grain`}
       >
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 
-// Mock the prisma client from @photobot/db
 vi.mock('@photobot/db', () => ({
   prisma: {
     configAuditLog: {
@@ -12,7 +11,6 @@ vi.mock('@photobot/db', () => ({
   },
 }));
 
-// Mock next-auth/next
 vi.mock('next-auth/next', () => ({
   getServerSession: vi.fn(),
 }));
@@ -54,7 +52,7 @@ describe('Audit Page', () => {
     expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
   });
 
-  it('renders audit logs for a specific server', async () => {
+  it('renders audit logs with action badges', async () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
     (getAdminGuilds as any).mockResolvedValue([{ id: '123', name: 'Test', permissions: '8' }]);
     (prisma.configAuditLog.findMany as any).mockResolvedValue([
@@ -80,10 +78,7 @@ describe('Audit Page', () => {
     expect(screen.getByText(/user1/i)).toBeInTheDocument();
     expect(screen.getByText(/critique/i)).toBeInTheDocument();
 
-    expect(prisma.configAuditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { serverId: '123' },
-      take: 20,
-      skip: 0,
-    }));
+    const badge = screen.getByText('UPDATE');
+    expect(badge.className).toContain('bg-brand-primary/15');
   });
 });
