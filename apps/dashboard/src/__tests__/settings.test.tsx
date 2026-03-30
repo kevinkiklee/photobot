@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
+import { ToastProvider } from '../components/Toast';
 
 // Mock the prisma client from @photobot/db
 vi.mock('@photobot/db', () => ({
@@ -38,7 +39,7 @@ describe('Settings Page', () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
 
     const Page = await SettingsPage({ searchParams: {} });
-    render(Page);
+    render(<ToastProvider>{Page}</ToastProvider>);
 
     expect(screen.getByText(/Select a server from the header/i)).toBeInTheDocument();
   });
@@ -48,7 +49,7 @@ describe('Settings Page', () => {
     (getAdminGuilds as any).mockResolvedValue([]);
 
     const Page = await SettingsPage({ searchParams: { serverId: '123' } });
-    render(Page);
+    render(<ToastProvider>{Page}</ToastProvider>);
 
     expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
   });
@@ -61,7 +62,7 @@ describe('Settings Page', () => {
     ]);
 
     const Page = await SettingsPage({ searchParams: { serverId: '123' } });
-    render(Page);
+    render(<ToastProvider>{Page}</ToastProvider>);
 
     expect(screen.getByRole('heading', { level: 1, name: /Settings/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: /critique/i })).toBeInTheDocument();

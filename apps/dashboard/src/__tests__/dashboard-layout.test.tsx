@@ -50,8 +50,8 @@ describe('DashboardLayout', () => {
     render(Page);
 
     expect(screen.getByText('Photobot')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByText('Audit Log')).toBeInTheDocument();
+    expect(screen.getAllByText('Settings').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Audit Log').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('test-child')).toBeInTheDocument();
   });
 });
