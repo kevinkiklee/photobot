@@ -8,6 +8,7 @@ import * as settingsCommand from './commands/settings';
 import * as critiqueCommand from './commands/critique';
 import * as paletteCommand from './commands/palette';
 import * as discussCommand from './commands/discuss';
+import { startScheduler } from './services/scheduler';
 
 // Extend Client type to include commands
 declare module 'discord.js' {
@@ -58,8 +59,10 @@ const rest = new REST({ version: '10' }).setToken(token);
 })();
 
 // Event Handlers
-client.once(Events.ClientReady, readyClient => {
+client.once(Events.ClientReady, async readyClient => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+  await startScheduler(readyClient);
+  console.log('Discussion scheduler started.');
 });
 
 client.on(Events.InteractionCreate, async interaction => {
