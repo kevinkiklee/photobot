@@ -3,7 +3,9 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getAdminGuilds } from "@/lib/discord";
 import { ServerSelector } from "@/components/server-selector";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
+import { LucideCamera, LucideSettings, LucideScrollText } from "lucide-react";
 
 export default async function DashboardLayout({
   children,
@@ -18,20 +20,41 @@ export default async function DashboardLayout({
   const adminGuilds = await getAdminGuilds(session.accessToken as string);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="min-h-screen mesh-dark dark:mesh-dark mesh-light">
+      <header className="glass border-b border-subtle sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="font-bold text-xl text-blue-600">Photobot</Link>
-            <nav className="flex gap-4">
-              <Link href="/settings" className="text-sm font-medium text-gray-600 hover:text-gray-900">Settings</Link>
-              <Link href="/audit" className="text-sm font-medium text-gray-600 hover:text-gray-900">Audit Log</Link>
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="p-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 group-hover:bg-brand-primary/20 transition-colors">
+                <LucideCamera className="w-4 h-4 text-brand-primary" strokeWidth={1.5} />
+              </div>
+              <span className="font-display text-lg text-primary">Photobot</span>
+            </Link>
+            <nav className="flex items-center gap-1">
+              <Link
+                href="/settings"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-secondary hover:text-primary hover:bg-brand-primary/5 transition-all"
+              >
+                <LucideSettings className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Settings
+              </Link>
+              <Link
+                href="/audit"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-secondary hover:text-primary hover:bg-brand-primary/5 transition-all"
+              >
+                <LucideScrollText className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Audit Log
+              </Link>
             </nav>
           </div>
-          <ServerSelector guilds={adminGuilds} />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <div className="w-px h-5 bg-[var(--border-subtle)]" />
+            <ServerSelector guilds={adminGuilds} />
+          </div>
         </div>
       </header>
-      <main>{children}</main>
+      <main className="animate-fade-in">{children}</main>
     </div>
   );
 }

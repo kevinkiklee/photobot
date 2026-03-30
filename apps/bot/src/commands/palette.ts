@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, AttachmentBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, AttachmentBuilder, EmbedBuilder } from 'discord.js';
 import { bouncerService, aiProvider } from '../services/ai';
+import { BRAND_COLOR } from '../constants';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
@@ -47,10 +48,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     }
 
     // AI Color Extraction
-    const prompt = `Extract exactly five dominant colors from this image. 
-    Return them as a comma-separated list of hex codes (e.g., #FFFFFF, #000000, ...). 
+    const prompt = `Extract exactly five dominant colors from this image.
+    Return them as a comma-separated list of hex codes (e.g., #FFFFFF, #000000, ...).
     Do not include any other text.`;
-    
+
     const colorText = await aiProvider.analyzeImage(tempPath, prompt);
     const hexCodes = colorText.match(/#[0-9A-Fa-f]{6}/g);
 
@@ -60,15 +61,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const finalHexCodes = hexCodes.slice(0, 5);
 
-    // Create a 5-color graphic using Sharp
+    // Create a branded 5-color graphic using Sharp
     const width = 500;
-    const height = 100;
-    const colorWidth = width / 5;
+    const height = 120;
+    const borderSize = 4;
+    const colorWidth = (width - borderSize * 2) / 5;
+    const colorHeight = height - borderSize * 2;
 
     const svg = `
       <svg width="${width}" height="${height}">
+        <rect x="0" y="0" width="${width}" height="${height}" rx="8" fill="#74D7EC" />
         ${finalHexCodes.map((color, i) => `
-          <rect x="${i * colorWidth}" y="0" width="${colorWidth}" height="${height}" fill="${color}" />
+          <rect x="${borderSize + i * colorWidth}" y="${borderSize}" width="${colorWidth}" height="${colorHeight}" fill="${color}" ${i === 0 ? 'rx="6"' : ''} ${i === 4 ? 'rx="6"' : ''} />
         `).join('')}
       </svg>
     `;
@@ -79,8 +83,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const attachmentBuilder = new AttachmentBuilder(palettePath, { name: 'palette.png' });
 
+    const embed = new EmbedBuilder()
+      .setColor(BRAND_COLOR)
+      .setTitle('Color Palette')
+      .setDescription(finalHexCodes.join(' • '))
+      .setImage('attachment://palette.png')
+      .setFooter({ text: 'Photobot' })
+      .setTimestamp();
+
     await interaction.editReply({
-      content: `Palette extracted: ${finalHexCodes.join(', ')}`,
+      embeds: [embed],
       files: [attachmentBuilder]
     });
 

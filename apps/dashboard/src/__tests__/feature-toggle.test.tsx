@@ -18,14 +18,14 @@ describe('FeatureToggle', () => {
     render(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={true} />);
     const button = screen.getByRole('button');
     expect(button).toHaveAttribute('aria-pressed', 'true');
-    expect(button.className).toContain('bg-green-500');
+    expect(button.className).toContain('bg-brand-primary');
   });
 
   it('renders disabled state', () => {
     render(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
     const button = screen.getByRole('button');
     expect(button).toHaveAttribute('aria-pressed', 'false');
-    expect(button.className).toContain('bg-gray-300');
+    expect(button.className).toContain('bg-[var(--toggle-off)]');
   });
 
   it('calls updateFeatureAction on click', async () => {

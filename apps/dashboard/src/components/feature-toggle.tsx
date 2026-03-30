@@ -23,7 +23,7 @@ export function FeatureToggle({
       try {
         await updateFeatureAction(serverId, featureKey, nextState);
       } catch (error) {
-        setIsEnabled(!nextState); // Rollback on error
+        setIsEnabled(!nextState);
         alert('Failed to update feature');
       }
     });
@@ -35,9 +35,13 @@ export function FeatureToggle({
       disabled={isPending}
       aria-pressed={isEnabled}
       aria-label={`Toggle ${featureKey}`}
-      className={`w-12 h-6 rounded-full relative transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isEnabled ? 'bg-green-500' : 'bg-gray-300'} ${isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      className={`relative w-11 h-6 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary/40 focus:ring-offset-[var(--bg-card)] ${isEnabled ? 'bg-brand-primary' : 'bg-[var(--toggle-off)]'} ${isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
-      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isEnabled ? 'left-7' : 'left-1'}`} />
+      {/* Active glow */}
+      {isEnabled && (
+        <span className="absolute inset-0 rounded-full bg-brand-primary/30 blur-md" />
+      )}
+      <span className={`relative block w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${isEnabled ? 'translate-x-[22px]' : 'translate-x-[3px]'} top-[4px]`} />
     </button>
   );
 }

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getAdminGuilds } from '@/lib/discord';
 import Link from 'next/link';
+import { LucideInfo, LucideChevronLeft, LucideChevronRight } from 'lucide-react';
 
 export default async function AuditPage({
   searchParams,
@@ -14,10 +15,14 @@ export default async function AuditPage({
 
   if (!serverId) {
     return (
-      <div className="p-8 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Audit Log</h1>
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-          <p className="text-yellow-700">Please select a server to view its audit logs.</p>
+      <div className="p-6 sm:p-8 max-w-5xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl font-display text-primary">Audit Log</h1>
+          <p className="text-sm text-muted mt-1">Track all configuration changes</p>
+        </div>
+        <div className="flex items-start gap-3 p-4 rounded-xl border border-brand-highlight/20 bg-brand-highlight/5 backdrop-blur-sm">
+          <LucideInfo className="w-4 h-4 text-brand-highlight mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+          <p className="text-sm text-primary">Select a server from the header to view its audit logs.</p>
         </div>
       </div>
     );
@@ -25,7 +30,7 @@ export default async function AuditPage({
 
   const adminGuilds = await getAdminGuilds(session?.accessToken as string);
   if (!adminGuilds.some(g => g.id === serverId)) {
-    return <div className="p-8 text-red-500">Access Denied.</div>;
+    return <div className="p-8 text-red-400">Access Denied.</div>;
   }
 
   const page = parseInt(searchParams.page || '1', 10);
@@ -44,42 +49,53 @@ export default async function AuditPage({
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Audit Log</h1>
+    <div className="p-6 sm:p-8 max-w-5xl mx-auto">
+      <div className="mb-8 flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-display text-primary">Audit Log</h1>
+          <p className="text-sm text-muted mt-1">
+            {totalCount} {totalCount === 1 ? 'entry' : 'entries'} recorded
+          </p>
+        </div>
+      </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Feature</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+      <div className="rounded-xl border border-subtle bg-card/50 backdrop-blur-sm overflow-hidden animate-fade-up">
+        <table className="min-w-full">
+          <thead>
+            <tr className="border-b border-subtle">
+              <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">Timestamp</th>
+              <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">User</th>
+              <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">Action</th>
+              <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">Feature</th>
+              <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">Details</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {logs.map((log) => (
-              <tr key={log.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+          <tbody>
+            {logs.map((log, i) => (
+              <tr key={log.id} className="border-b border-subtle last:border-0 hover:bg-brand-primary/[0.02] transition-colors">
+                <td className="px-5 py-3.5 whitespace-nowrap text-xs font-mono text-muted">
                   {new Date(log.createdAt).toLocaleString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-5 py-3.5 whitespace-nowrap text-sm text-primary font-medium">
                   {log.userId}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className={`px-2 py-1 rounded-full text-xs ${log.action === 'UPDATE' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                <td className="px-5 py-3.5 whitespace-nowrap">
+                  <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
+                    log.action === 'UPDATE'
+                      ? 'bg-brand-primary/10 text-brand-primary'
+                      : 'bg-brand-secondary/10 text-secondary'
+                  }`}>
                     {log.action}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                <td className="px-5 py-3.5 whitespace-nowrap text-sm text-secondary capitalize">
                   {log.featureKey}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-gray-400">Target: {log.targetType} ({log.targetId})</span>
-                    <span className="text-xs">
-                      {JSON.stringify(log.oldValue)} &rarr; {JSON.stringify(log.newValue)}
+                <td className="px-5 py-3.5 text-xs text-muted">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-muted">{log.targetType} / {log.targetId}</span>
+                    <span className="font-mono">
+                      {JSON.stringify(log.oldValue)} <span className="text-brand-primary mx-1">&rarr;</span> {JSON.stringify(log.newValue)}
                     </span>
                   </div>
                 </td>
@@ -87,8 +103,9 @@ export default async function AuditPage({
             ))}
             {logs.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  No audit logs found.
+                <td colSpan={5} className="px-5 py-16 text-center text-muted">
+                  <p className="font-display text-lg text-secondary mb-1">No Entries</p>
+                  <p className="text-xs">Configuration changes will appear here.</p>
                 </td>
               </tr>
             )}
@@ -97,24 +114,26 @@ export default async function AuditPage({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex items-center justify-center gap-1 mt-6">
           {page > 1 && (
             <Link
               href={`/audit?serverId=${serverId}&page=${page - 1}`}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs border border-subtle rounded-lg text-secondary hover:text-primary hover:border-brand-primary/30 transition-all"
             >
+              <LucideChevronLeft className="w-3 h-3" />
               Previous
             </Link>
           )}
-          <span className="px-4 py-2">
-            Page {page} of {totalPages}
+          <span className="px-3 py-1.5 text-xs text-muted font-mono">
+            {page} / {totalPages}
           </span>
           {page < totalPages && (
             <Link
               href={`/audit?serverId=${serverId}&page=${page + 1}`}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs border border-subtle rounded-lg text-secondary hover:text-primary hover:border-brand-primary/30 transition-all"
             >
               Next
+              <LucideChevronRight className="w-3 h-3" />
             </Link>
           )}
         </div>

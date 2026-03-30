@@ -13,10 +13,10 @@ vi.mock('../lib/auth', () => ({
 import Home from '../app/page';
 
 describe('Home Page', () => {
-  it('renders the heading "Photobot Dashboard"', async () => {
+  it('renders the heading "Photobot"', async () => {
     const Page = await Home();
     render(Page);
-    const heading = screen.getByRole('heading', { level: 1, name: /Photobot Dashboard/i });
+    const heading = screen.getByRole('heading', { level: 1, name: /Photobot/i });
     expect(heading).toBeInTheDocument();
   });
 
@@ -30,7 +30,7 @@ describe('Home Page', () => {
   it('renders the "Login with Discord" link when not logged in', async () => {
     const Page = await Home();
     render(Page);
-    const loginLink = screen.getByText(/Login with Discord/i);
+    const loginLink = screen.getByText(/Sign in with Discord/i);
     expect(loginLink).toBeInTheDocument();
   });
 

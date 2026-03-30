@@ -109,7 +109,7 @@ describe('Palette Command', () => {
 
     expect(aiProvider.analyzeImage).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('colors'));
     expect(interaction.editReply).toHaveBeenCalledWith(expect.objectContaining({
-      content: expect.stringContaining('#000000'),
+      embeds: expect.arrayContaining([expect.objectContaining({ data: expect.objectContaining({ description: expect.stringContaining('#000000') }) })]),
     }));
   });
 

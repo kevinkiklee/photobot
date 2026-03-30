@@ -1,13 +1,15 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../lib/auth";
 import Link from "next/link";
+import { LucideSettings, LucideScrollText } from "lucide-react";
 
 export async function ServerSelector() {
   const session = await getServerSession(authOptions);
   if (!session || !(session as any).accessToken) {
     return (
-      <div className="text-gray-500 p-8 border border-dashed rounded-xl text-center">
-        Please log in with Discord to view and manage your servers.
+      <div className="text-secondary p-12 border border-dashed border-subtle rounded-2xl text-center">
+        <p className="font-display text-lg text-primary mb-2">No Access</p>
+        <p className="text-sm text-muted">Please log in with Discord to view and manage your servers.</p>
       </div>
     );
   }
@@ -17,20 +19,22 @@ export async function ServerSelector() {
       headers: {
         Authorization: `Bearer ${(session as any).accessToken}`,
       },
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      next: { revalidate: 3600 },
     });
 
     if (!response.ok) {
       if (response.status === 401) {
         return (
-          <div className="text-red-500 p-8 border border-red-200 bg-red-50 rounded-xl text-center">
-            Your Discord session has expired. Please log out and log in again.
+          <div className="text-red-400 p-12 border border-red-500/20 bg-red-500/5 rounded-2xl text-center backdrop-blur-sm">
+            <p className="font-display text-lg mb-2">Session Expired</p>
+            <p className="text-sm opacity-80">Please log out and log in again.</p>
           </div>
         );
       }
       return (
-        <div className="text-red-500 p-8 border border-red-200 bg-red-50 rounded-xl text-center">
-          Failed to fetch servers from Discord ({response.status}). Please try again later.
+        <div className="text-red-400 p-12 border border-red-500/20 bg-red-500/5 rounded-2xl text-center backdrop-blur-sm">
+          <p className="font-display text-lg mb-2">Connection Error</p>
+          <p className="text-sm opacity-80">Failed to fetch servers from Discord ({response.status}).</p>
         </div>
       );
     }
@@ -43,7 +47,6 @@ export async function ServerSelector() {
       owner: boolean;
     }> = await response.json();
 
-    // Check for MANAGE_GUILD (0x20) or ADMINISTRATOR (0x8) permission
     const MANAGE_GUILD = BigInt(0x20);
     const ADMINISTRATOR = BigInt(0x8);
 
@@ -58,47 +61,59 @@ export async function ServerSelector() {
 
     if (manageableGuilds.length === 0) {
       return (
-        <div className="text-gray-500 p-8 border border-dashed rounded-xl text-center">
-          You don't have administrative permissions on any Discord servers where Photobot is active.
+        <div className="text-secondary p-12 border border-dashed border-subtle rounded-2xl text-center">
+          <p className="font-display text-lg text-primary mb-2">No Servers Found</p>
+          <p className="text-sm text-muted">You don&apos;t have administrative permissions on any Discord servers where Photobot is active.</p>
         </div>
       );
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full stagger">
         {manageableGuilds.map((guild) => (
           <div
             key={guild.id}
-            className="flex flex-col p-6 bg-white rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl hover:border-blue-200 transition-all group"
+            className="animate-fade-up group relative flex flex-col p-5 rounded-2xl border border-subtle bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-brand-primary/30 hover:bg-card/70"
           >
-            <div className="flex items-center gap-4 mb-6 overflow-hidden">
+            {/* Hover glow */}
+            <div className="absolute inset-0 rounded-2xl bg-brand-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            <div className="relative flex items-center gap-4 mb-5">
               {guild.icon ? (
                 <img
                   src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}
                   alt={guild.name}
-                  className="w-14 h-14 rounded-2xl flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform"
+                  className="w-12 h-12 rounded-xl flex-shrink-0 ring-1 ring-white/10 group-hover:ring-brand-primary/20 transition-all"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white text-xl flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-primary/20 to-brand-accent/20 flex items-center justify-center font-display text-xl text-primary flex-shrink-0 ring-1 ring-white/10">
                   {guild.name.charAt(0)}
                 </div>
               )}
-              <h3 className="font-bold text-lg text-gray-800 truncate" title={guild.name}>
-                {guild.name}
-              </h3>
+              <div className="min-w-0">
+                <h3 className="font-medium text-primary truncate" title={guild.name}>
+                  {guild.name}
+                </h3>
+                <p className="text-xs text-muted mt-0.5">
+                  {guild.owner ? "Owner" : "Administrator"}
+                </p>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 mt-auto">
+
+            <div className="relative grid grid-cols-2 gap-2 mt-auto">
               <Link
                 href={`/settings?serverId=${guild.id}`}
-                className="flex items-center justify-center py-2 px-4 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-lg font-semibold text-sm transition-colors"
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium border border-subtle text-secondary hover:text-primary hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all"
               >
+                <LucideSettings className="w-3 h-3" strokeWidth={1.5} />
                 Settings
               </Link>
               <Link
                 href={`/audit?serverId=${guild.id}`}
-                className="flex items-center justify-center py-2 px-4 bg-gray-50 text-gray-700 hover:bg-gray-800 hover:text-white rounded-lg font-semibold text-sm transition-colors"
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium border border-subtle text-secondary hover:text-primary hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all"
               >
-                Audit Logs
+                <LucideScrollText className="w-3 h-3" strokeWidth={1.5} />
+                Audit Log
               </Link>
             </div>
           </div>
@@ -108,8 +123,9 @@ export async function ServerSelector() {
   } catch (error) {
     console.error("Error fetching guilds:", error);
     return (
-      <div className="text-red-500 p-8 border border-red-200 bg-red-50 rounded-xl text-center">
-        An error occurred while fetching your servers.
+      <div className="text-red-400 p-12 border border-red-500/20 bg-red-500/5 rounded-2xl text-center backdrop-blur-sm">
+        <p className="font-display text-lg mb-2">Something Went Wrong</p>
+        <p className="text-sm opacity-80">An error occurred while fetching your servers.</p>
       </div>
     );
   }

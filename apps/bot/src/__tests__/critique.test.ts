@@ -89,7 +89,9 @@ describe('Critique Command', () => {
     await execute(interaction);
 
     expect(aiProvider.analyzeImage).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('critique'));
-    expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining('The composition is excellent'));
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.objectContaining({
+      embeds: expect.arrayContaining([expect.objectContaining({ data: expect.objectContaining({ description: expect.stringContaining('The composition is excellent') }) })]),
+    }));
   });
 
   it('returns rate limit message when rate limited', async () => {

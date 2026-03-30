@@ -40,7 +40,7 @@ describe('Settings Page', () => {
     const Page = await SettingsPage({ searchParams: {} });
     render(Page);
 
-    expect(screen.getByText(/Please select a server/i)).toBeInTheDocument();
+    expect(screen.getByText(/Select a server from the header/i)).toBeInTheDocument();
   });
 
   it('shows access denied if user is not admin of server', async () => {
@@ -64,7 +64,7 @@ describe('Settings Page', () => {
     render(Page);
 
     expect(screen.getByRole('heading', { level: 1, name: /Settings/i })).toBeInTheDocument();
-    expect(screen.getByText(/critique/i)).toBeInTheDocument();
-    expect(screen.getByText(/palette/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: /critique/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: /palette/i })).toBeInTheDocument();
   });
 });

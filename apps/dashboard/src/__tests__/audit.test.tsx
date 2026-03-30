@@ -41,7 +41,7 @@ describe('Audit Page', () => {
     const Page = await AuditPage({ searchParams: {} });
     render(Page);
 
-    expect(screen.getByText(/Please select a server/i)).toBeInTheDocument();
+    expect(screen.getByText(/Select a server from the header/i)).toBeInTheDocument();
   });
 
   it('shows access denied if user is not admin of server', async () => {

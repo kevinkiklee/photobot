@@ -47,6 +47,6 @@ describe('ServerSelector (client)', () => {
 
   it('renders placeholder option', () => {
     render(<ServerSelector guilds={guilds} />);
-    expect(screen.getByText('Select a server...')).toBeInTheDocument();
+    expect(screen.getByText('Select server...')).toBeInTheDocument();
   });
 });

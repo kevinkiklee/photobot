@@ -24,9 +24,10 @@ export function ServerSelector({ guilds }: { guilds: DiscordGuild[] }) {
     <select
       value={currentServerId || ''}
       onChange={handleChange}
-      className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+      className="appearance-none pl-3 pr-8 py-1.5 text-sm border border-subtle bg-card/50 text-primary rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-primary/40 focus:border-brand-primary/40 backdrop-blur-sm transition-all cursor-pointer hover:border-brand-primary/30"
+      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238ab4c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
     >
-      <option value="">Select a server...</option>
+      <option value="">Select server...</option>
       {guilds.map((guild) => (
         <option key={guild.id} value={guild.id}>
           {guild.name}
