@@ -58,3 +58,75 @@ export async function updateFeatureAction(
   revalidatePath('/audit');
   return newConfig;
 }
+
+export async function getDiscussionSchedules(serverId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.accessToken) throw new Error('Unauthorized');
+
+  const adminGuilds = await getAdminGuilds(session.accessToken as string);
+  if (!adminGuilds.some(g => g.id === serverId)) throw new Error('Forbidden');
+
+  return prisma.discussionSchedule.findMany({
+    where: { serverId },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+export async function deleteDiscussionSchedule(scheduleId: string, serverId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.accessToken) throw new Error('Unauthorized');
+
+  const adminGuilds = await getAdminGuilds(session.accessToken as string);
+  if (!adminGuilds.some(g => g.id === serverId)) throw new Error('Forbidden');
+
+  const schedule = await prisma.discussionSchedule.findUnique({ where: { id: scheduleId } });
+  if (!schedule || schedule.serverId !== serverId) throw new Error('Not found');
+
+  await prisma.discussionSchedule.delete({ where: { id: scheduleId } });
+
+  await prisma.configAuditLog.create({
+    data: {
+      serverId,
+      userId: (session.user as any)?.id || 'unknown',
+      action: 'DELETE_SCHEDULE',
+      targetType: 'CHANNEL',
+      targetId: schedule.channelId,
+      featureKey: 'discuss',
+      oldValue: { days: schedule.days, timeUtc: schedule.timeUtc },
+    },
+  });
+
+  revalidatePath('/settings');
+  revalidatePath('/audit');
+}
+
+export async function toggleDiscussionSchedule(scheduleId: string, serverId: string, isActive: boolean) {
+  const session = await getServerSession(authOptions);
+  if (!session?.accessToken) throw new Error('Unauthorized');
+
+  const adminGuilds = await getAdminGuilds(session.accessToken as string);
+  if (!adminGuilds.some(g => g.id === serverId)) throw new Error('Forbidden');
+
+  const schedule = await prisma.discussionSchedule.findUnique({ where: { id: scheduleId } });
+  if (!schedule || schedule.serverId !== serverId) throw new Error('Not found');
+
+  await prisma.discussionSchedule.update({
+    where: { id: scheduleId },
+    data: { isActive },
+  });
+
+  await prisma.configAuditLog.create({
+    data: {
+      serverId,
+      userId: (session.user as any)?.id || 'unknown',
+      action: isActive ? 'ENABLE_SCHEDULE' : 'DISABLE_SCHEDULE',
+      targetType: 'CHANNEL',
+      targetId: schedule.channelId,
+      featureKey: 'discuss',
+      newValue: { isActive },
+    },
+  });
+
+  revalidatePath('/settings');
+  revalidatePath('/audit');
+}
