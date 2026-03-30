@@ -69,7 +69,8 @@ case "$CMD" in
       VALUES
         (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'critique',  true,  '{}', now(), now()),
         (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'palette',   true,  '{}', now(), now()),
-        (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'settings',  true,  '{}', now(), now())
+        (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'settings',  true,  '{}', now(), now()),
+        (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'discuss',   true,  '{}', now(), now())
       ON CONFLICT (server_id, target_type, target_id, feature_key) DO NOTHING;
 
       -- Sample audit log entry

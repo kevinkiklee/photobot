@@ -122,8 +122,10 @@ echo ""
 ok "All systems ready!"
 echo ""
 log "Starting apps..."
-log "  Dashboard: http://localhost:3100"
-log "  Bot:       Connecting to Discord..."
+log "  Dashboard:  http://localhost:3100"
+log "  Bot:        Connecting to Discord..."
+log "  Commands:   /critique, /palette, /discuss, /settings"
+log "  Status:     pnpm status"
 echo ""
 
 pnpm dev
