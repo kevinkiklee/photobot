@@ -1,126 +1,126 @@
+<div align="center">
+
 # Photobot
+
+**AI-powered photography community bot for Discord**
+
+Automated image critique, color palette extraction, discussion prompts,
+and server-level feature management through an admin dashboard.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Tests](https://github.com/kevinkiklee/photobot/actions/workflows/ci.yml/badge.svg)](https://github.com/kevinkiklee/photobot/actions/workflows/ci.yml)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Discord.js](https://img.shields.io/badge/discord.js-14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-14-000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 
-AI-powered photography community bot for Discord. Provides automated image critique, color palette extraction, discussion prompts, and server-level feature management through an admin dashboard.
+</div>
 
-## Commands
-
-| Command | Description | Access |
-|---------|-------------|--------|
-| `/critique <image>` | Technical feedback on a photograph (composition, lighting, focus) | AI grant |
-| `/palette <image>` | Extract a 5-color hex palette with a visual swatch | AI grant |
-| `/discuss prompt [category]` | Post a discussion prompt (Creative Process, Inspiration) | Admin |
-| `/discuss schedule` | Set up automatic discussion prompts in a channel | Admin |
-| `/discuss list` | List all discussion schedules for the server | Admin |
-| `/settings list` | List all feature toggles | Admin |
-| `/settings toggle <feature> <enabled>` | Enable/disable a feature | Admin |
-| `/ai grant-role <role>` | Grant AI access to a role (e.g., Moderator, Specialist) | Admin |
-| `/ai revoke-role <role>` | Revoke AI access from a role | Admin |
-| `/ai grant-user <user>` | Grant AI access to an individual user | Admin |
-| `/ai revoke-user <user>` | Revoke AI access from a user | Admin |
-| `/ai list` | List all AI access grants for the server | Admin |
-
-AI commands are hidden by default. Configure per-role visibility in **Server Settings > Integrations > Photobot**.
+---
 
 ## Features
 
-- **AI Image Critique** — Detailed technical feedback on photographs using Gemini (prod) or Ollama (local)
-- **Color Palette Extraction** — 5-color hex palette with branded visual swatch
-- **Discussion Prompts** — 241 curated prompts across Creative Process and Inspiration categories, posted every 6 hours with conversation-aware timing
-- **AI Access Control** — Allowlist model for AI commands: grant access to specific roles or individual users
-- **Admin Dashboard** — Web-based feature management with Discord OAuth, audit logging, and schedule management
-- **Bouncer Security** — Two-layer AI moderation, EXIF metadata stripping, shadow rate limiting
-- **Hierarchical Permissions** — Channel > Role > Server specificity with "Allow Wins" conflict resolution
+- **AI Image Critique** -- Technical feedback on photographs (composition, lighting, focus) powered by Gemini or Ollama
+- **Color Palette Extraction** -- 5-color hex palette with a branded visual swatch image
+- **Discussion Prompts** -- 400 curated prompts across Creative Process and Inspiration, posted on a schedule with conversation-aware timing
+- **AI Access Control** -- Allowlist model: grant AI commands to specific roles or individual users
+- **Admin Dashboard** -- Web-based feature management with Discord OAuth, audit logging, and schedule management
+- **Bouncer Security** -- Two-layer AI moderation, EXIF metadata stripping, shadow rate limiting
+- **Hierarchical Permissions** -- Channel > Role > Server specificity with "Allow Wins" conflict resolution
+
+## Commands
+
+```
+/critique <image>                  Technical feedback on a photograph
+/palette <image>                   Extract a 5-color hex palette with swatch
+
+/discuss prompt [category]         Post a discussion prompt
+/discuss schedule                  Set up automatic discussion prompts
+/discuss list                      List all discussion schedules
+
+/settings list                     List all feature toggles
+/settings toggle <feature> <on>    Enable/disable a feature
+
+/ai grant-role <role>              Grant AI access to a role
+/ai revoke-role <role>             Revoke AI access from a role
+/ai grant-user <user>              Grant AI access to a user
+/ai revoke-user <user>             Revoke AI access from a user
+/ai list                           List all AI access grants
+```
+
+`/critique` and `/palette` require an AI access grant. All other commands require Administrator permission. AI commands are hidden by default -- configure visibility in **Server Settings > Integrations > Photobot**.
+
+## Quick Start
+
+```bash
+git clone https://github.com/kevinkiklee/photobot.git
+cd photobot
+pnpm install
+cp .env.example .env   # Edit with your Discord credentials
+pnpm dev:local         # Starts Docker, runs migrations, launches everything
+```
+
+Dashboard at `http://localhost:3100`. Bot connects to Discord automatically.
+
+> **Prerequisites:** Node.js 20+, pnpm 8+, Docker, and a [Discord Application](https://discord.com/developers/applications) with bot token.
+
+For step-by-step setup including Discord app creation and OAuth2 configuration, see [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md).
 
 ## Project Structure
 
 ```
 photobot/
 ├── apps/
-│   ├── bot/              # Discord.js bot
-│   └── dashboard/        # Next.js 14 admin panel
+│   ├── bot/                 Discord.js bot (commands, bouncer, permissions)
+│   └── dashboard/           Next.js 14 admin panel (NextAuth, feature toggles, audit logs)
 ├── packages/
-│   ├── ai/               # Provider-agnostic AI wrapper (Gemini / Ollama)
-│   └── db/               # Prisma schema and client
-├── scripts/
-│   ├── setup.sh          # Interactive first-time setup (pnpm init:local)
-│   ├── dev.sh            # One-command local dev environment
-│   ├── status.sh         # Health check (pnpm status)
-│   ├── db.sh             # Database operations (pnpm db <cmd>)
-│   ├── cleanup.sh        # Tear down (pnpm cleanup)
-│   └── verify-dev-env.sh # Environment verification
-└── docker-compose.yml    # Local Postgres, Supabase, Ollama
+│   ├── ai/                  Provider-agnostic AI wrapper (Gemini / Ollama)
+│   └── db/                  Prisma schema and client
+├── scripts/                 Setup, dev, status, db, and cleanup scripts
+└── docker-compose.yml       Local Postgres, Supabase Auth, Ollama
 ```
 
-## Getting Started
+## Development
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 20+
-- [pnpm](https://pnpm.io/) 8+
-- [Docker](https://www.docker.com/) (for local development)
-- A [Discord Application](https://discord.com/developers/applications) with bot token
-
-### Quick Start
-
-```bash
-# Clone and install
-git clone https://github.com/kevinkiklee/photobot.git
-cd photobot
-pnpm install
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your Discord credentials and API keys
-
-# One command — starts Docker, runs migrations, builds packages, launches apps
-pnpm dev:local
-```
-
-The dashboard will be at http://localhost:3100 and the bot will connect to Discord.
-
-### Manual Setup
-
-For step-by-step instructions including Discord application creation, OAuth2 configuration, and troubleshooting, see **[docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)**.
-
-## Testing
-
-```bash
-pnpm test              # Run all unit tests across workspaces
-pnpm test:integration  # Run integration tests (requires Docker)
-pnpm test:all          # Run both unit and integration tests
-```
-
-Tests use Vitest with a workspace configuration. Each app/package has its own test setup.
+| Command | Description |
+|---------|-------------|
+| `pnpm dev:local` | One-command local dev (Docker + migrations + builds + apps) |
+| `pnpm dev` | Start apps only (assumes Docker and packages are ready) |
+| `pnpm build` | Build all packages and apps |
+| `pnpm test` | Run all unit tests |
+| `pnpm test:integration` | Run integration tests (requires running database) |
+| `pnpm status` | Health check for all services |
+| `pnpm db <cmd>` | Database ops: `push`, `reset`, `studio`, `seed`, `migrate` |
+| `pnpm dev:down` | Stop Docker services |
+| `pnpm cleanup` | Stop containers and remove build artifacts |
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Bot | discord.js 14, Sharp, node-cron |
-| Dashboard | Next.js 14 (App Router), NextAuth, Tailwind CSS |
-| Database | Prisma on Supabase Postgres |
+| Bot | discord.js 14, Sharp, dotenv |
+| Dashboard | Next.js 14 (App Router), NextAuth 4, Tailwind CSS |
+| Database | Prisma 5 on Supabase Postgres |
 | AI | Google Gemini (prod), Ollama (local dev) |
-| Testing | Vitest, Testing Library |
+| Testing | Vitest |
 | Infrastructure | Docker Compose (local), Railway (bot), Vercel (dashboard) |
 
 ## Deployment
 
-- **Bot** — Deploy to Railway (persistent process)
-- **Dashboard** — Deploy to Vercel (serverless)
-- **Database** — Supabase (managed Postgres)
+| Service | Platform |
+|---------|----------|
+| Bot | [Railway](https://railway.app/) (persistent process) |
+| Dashboard | [Vercel](https://vercel.com/) (serverless) |
+| Database | [Supabase](https://supabase.com/) (managed Postgres) |
 
-See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for detailed deployment instructions.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed instructions.
 
 ## Contributing
 
-Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
+Contributions are welcome. Please read the [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
 
 ## Security
 
-To report a vulnerability, please see our [Security Policy](SECURITY.md).
+To report a vulnerability, see our [Security Policy](SECURITY.md).
 
 ## License
 
