@@ -1,3 +1,7 @@
+// Server Actions for dashboard mutations. Every action re-verifies the user's
+// Discord admin status before executing — we don't trust the session alone
+// because guild permissions can change between page loads.
+
 'use server';
 
 import { prisma } from '@photobot/db';

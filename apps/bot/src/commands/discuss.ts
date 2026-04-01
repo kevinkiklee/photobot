@@ -87,7 +87,8 @@ async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: s
 
   const category = interaction.options.getString('category');
 
-  // Check if server has a schedule with useAi
+  // Inherit the AI setting from the channel's schedule config (if one exists)
+  // so manual /discuss prompt calls use the same source as auto-posts.
   const schedule = await prisma.discussionSchedule.findUnique({
     where: { serverId_channelId: { serverId: guildId, channelId: interaction.channelId } },
   });
@@ -121,6 +122,9 @@ async function handleSchedule(interaction: ChatInputCommandInteraction, guildId:
   const category = interaction.options.getString('category');
   const useAi = interaction.options.getBoolean('use_ai') ?? false;
 
+  // Upsert — re-running /discuss schedule on the same channel updates the
+  // config rather than creating a duplicate. The days/timeUtc fields are
+  // legacy schema columns; the scheduler now uses interval-based timing.
   await prisma.discussionSchedule.upsert({
     where: {
       serverId_channelId: { serverId: guildId, channelId: channel.id },

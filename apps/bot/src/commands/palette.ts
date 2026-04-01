@@ -69,6 +69,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     Do not include any other text.`;
 
     const colorText = await aiProvider.analyzeImage(tempPath, prompt);
+    // Regex-extract hex codes — the model may include extra text despite instructions
     const hexCodes = colorText.match(/#[0-9A-Fa-f]{6}/g);
 
     if (!hexCodes || hexCodes.length < 5) {
@@ -77,7 +78,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const finalHexCodes = hexCodes.slice(0, 5);
 
-    // Create a branded 5-color graphic using Sharp
+    // Render a branded swatch image: 5 color blocks inside a rounded border.
+    // Built as SVG → PNG via Sharp so it works without a canvas dependency.
     const width = 500;
     const height = 120;
     const borderSize = 4;

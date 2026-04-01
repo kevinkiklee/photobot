@@ -18,6 +18,8 @@ declare module 'discord.js' {
   }
 }
 
+// Only the Guilds intent is needed — the bot uses slash commands (not message
+// content) and fetches channel messages on-demand for conversation-pause detection.
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
@@ -37,7 +39,9 @@ if (!token || !clientId) {
   process.exit(1);
 }
 
-// Command Registration
+// Register slash commands globally on startup. This uses the REST API
+// directly rather than guild-specific registration so commands are
+// available in all servers the bot joins without re-deploying.
 const rest = new REST({ version: '10' }).setToken(token);
 
 (async () => {

@@ -1,3 +1,7 @@
+// Prompt selection supports two sources: AI-generated (via Gemini/Ollama) and curated
+// (from discussion-prompts.md). AI always falls back to curated on failure so servers
+// never miss a scheduled post due to an API outage.
+
 import { prisma } from '@photobot/db';
 import { DISCUSSION_PROMPTS, DISCUSSION_CATEGORIES, type DiscussionPrompt } from '../constants';
 import { aiProvider } from './ai';
@@ -26,6 +30,7 @@ export async function selectPrompt(
   if (useAi) {
     try {
       const text = await aiProvider.analyzeText(AI_PROMPT_TEMPLATE(category));
+      // Strip wrapping quotes — models often return "Question here?" with quotes
       const trimmed = text.trim().replace(/^["']|["']$/g, '');
       if (trimmed.length > 0) {
         return {
@@ -46,6 +51,8 @@ async function selectCuratedPrompt(
   serverId: string,
   category: string | null,
 ): Promise<PromptResult> {
+  // Track prompts used in the last 30 days per server so we cycle through
+  // the full pool before repeating. Each server has its own history.
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -63,7 +70,8 @@ async function selectCuratedPrompt(
 
   let available = candidates.filter(p => !recentTexts.has(p.text));
 
-  // Reset if all exhausted
+  // If every prompt was used in the last 30 days, reset the pool and
+  // start fresh rather than skipping the post entirely.
   if (available.length === 0) {
     available = candidates;
   }

@@ -1,3 +1,9 @@
+// The scheduler posts discussion prompts on a fixed interval per channel.
+// Instead of rigid cron times, it checks every 60s whether any channel is
+// due (6+ hours since last post). Before posting, it waits for a conversation
+// lull (2 min of silence) so prompts don't interrupt active discussions.
+// If the channel stays busy for 30 min, it posts anyway to avoid skipping.
+
 import { prisma } from '@photobot/db';
 import { Client, EmbedBuilder, TextChannel, Collection, Message } from 'discord.js';
 import { BRAND_COLOR } from '../constants';
@@ -48,7 +54,7 @@ async function runScheduledPosts(): Promise<void> {
       orderBy: { postedAt: 'desc' },
     });
 
-    // Post if never posted, or if it's been at least 6 hours since last post
+    // Infinity for first-ever post ensures new schedules fire immediately
     const timeSinceLastPost = lastLog ? now.getTime() - lastLog.postedAt.getTime() : Infinity;
     if (timeSinceLastPost < POST_INTERVAL_MS) continue;
 
@@ -94,7 +100,8 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
 
   const s = schedule[0];
 
-  // Check feature is still enabled
+  // Re-check permission at execution time — admins may have disabled the feature
+  // via the dashboard since the schedule was created.
   const allowed = await canUseFeature(s.serverId, s.channelId, [], 'discuss');
   if (!allowed) return;
 

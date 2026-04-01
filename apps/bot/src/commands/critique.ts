@@ -6,6 +6,11 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
 
+// Image processing pipeline: download → rate limit → AI moderation → AI critique.
+// Images are saved to a temp directory and cleaned up in the finally block.
+// The command is hidden by default (permissions 0n) and only visible to users
+// with an AI access grant — Discord hides it from everyone else.
+
 export const data = new SlashCommandBuilder()
   .setName('critique')
   .setDescription('Get technical feedback on an uploaded image')
@@ -21,6 +26,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
   }
 
+  // Extract role IDs — discord.js gives GuildMemberRoleManager (with .cache)
+  // for full members, but a plain string[] for interactions from REST.
   const member = interaction.member;
   const roleIds = member && 'cache' in (member.roles ?? {})
     ? [...(member.roles as any).cache.keys()]

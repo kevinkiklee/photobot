@@ -1,3 +1,7 @@
+// Lazy-initialized AI provider and bouncer. Uses Proxy so the provider isn't
+// created until the first method call — this lets the module be imported in
+// tests without requiring real API keys at import time.
+
 import { GeminiProvider, OllamaProvider, AIProvider } from '@photobot/ai';
 import { BouncerService } from './bouncer';
 

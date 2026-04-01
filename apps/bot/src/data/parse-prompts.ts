@@ -1,3 +1,7 @@
+// Parses discussion-prompts.md into structured prompt objects at startup.
+// The markdown format is: ## headings become categories, - bullets become prompts.
+// This keeps prompt content editable as plain text without touching code.
+
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';

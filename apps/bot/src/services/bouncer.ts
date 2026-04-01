@@ -1,3 +1,11 @@
+// Two-layer security pipeline for user-submitted images:
+//   Layer 1 (moderateImage): AI-based content safety check — rejects NSFW,
+//     violence, and prompt injection attempts before any analysis happens.
+//   Layer 2 (checkRateLimit): Shadow rate limiting — instead of hard-blocking,
+//     progressively delays responses for users exceeding the threshold. This
+//     discourages abuse without revealing the limit exists.
+// EXIF stripping is also available to remove potentially sensitive metadata.
+
 import { AIProvider } from '@photobot/ai';
 import sharp from 'sharp';
 
