@@ -46,7 +46,7 @@ pnpm cleanup --full   # Nuclear option: also removes node_modules + Docker volum
 - **`(dashboard)` route group** — Settings and Audit pages live under `app/(dashboard)/` with a shared layout that handles auth and provides the server selector.
 - **`lib/discord.ts`** — Canonical authorization utility (`getAdminGuilds`). Do not duplicate guild-fetching logic.
 - **`lib/actions.ts`** — Server action for feature toggles with re-verification and audit logging.
-- **Discussion prompts** — 241 curated prompts in `bot/src/data/discussion-prompts.md` across 2 categories (Creative Process, Inspiration). To add/edit prompts, edit the markdown file directly — each line is `- Prompt text here?`. The parser (`bot/src/data/parse-prompts.ts`) loads them at startup. The bot build step copies the `.md` to `dist/`.
+- **Discussion prompts** — 400 curated prompts in `bot/src/data/discussion-prompts.md` across 2 categories (Creative Process, Inspiration). To add/edit prompts, edit the markdown file directly — each line is `- Prompt text here?`. The parser (`bot/src/data/parse-prompts.ts`) loads them at startup. The bot build step copies the `.md` to `dist/`.
 - **Discussion scheduler** — interval-based scheduler in `bot/src/services/scheduler.ts` posts every 6 hours per channel, waiting for a natural conversation pause before posting.
 - **AI access control** — Allowlist model in `bot/src/services/ai-access.ts` and `bot/src/commands/ai-access.ts`. Admins grant AI command access to specific roles or users via `/ai grant-role`, `/ai grant-user`. Uses `AIAccessGrant` model.
 - **Bouncer pipeline** — Two-layer AI moderation (fast + deep) with EXIF stripping and shadow rate limiting.

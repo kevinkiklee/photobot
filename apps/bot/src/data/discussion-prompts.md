@@ -404,3 +404,7 @@ Each section is a category. Each bullet is a prompt.
 - How do the rhythms of your daily commute (the same route, changing light) provide unexpected photographic material?
 - What is a photo series that changed the way you think about what "ordinary" means?
 - How has the idea of "beginner's mind" (shoshin) helped you approach familiar subjects with fresh curiosity?
+- What is a photograph of a crowd that made every individual feel visible?
+- How has the work of a theater set designer or lighting director influenced the way you stage or light your shots?
+- What is a body of work about joy that avoids sentimentality and feels genuinely alive?
+- How do the sounds, smells, and textures of a place shape the photographs you make there, even though the camera only captures light?
