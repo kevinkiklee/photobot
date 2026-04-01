@@ -183,9 +183,9 @@ if [ "$START_DOCKER" != "n" ] && [ "$START_DOCKER" != "N" ]; then
 
   # Pull Ollama model if using Ollama
   if [ "$AI_PROVIDER" = "ollama" ]; then
-    if docker ps --format '{{.Names}}' | grep -q photography-bot-ollama; then
+    if docker ps --format '{{.Names}}' | grep -q photobot-ollama; then
       log "Pulling Ollama llava model (this takes a few minutes on first run)..."
-      docker exec photography-bot-ollama ollama pull llava
+      docker exec photobot-ollama ollama pull llava
       ok "Ollama model ready"
     fi
   fi

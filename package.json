@@ -1,7 +1,32 @@
 {
-  "name": "photography-bot-monorepo",
+  "name": "photobot-monorepo",
   "version": "1.0.0",
   "private": true,
+  "description": "AI-powered photography community Discord bot with admin dashboard",
+  "license": "MIT",
+  "author": "Kevin Lee",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevinkiklee/photobot.git"
+  },
+  "homepage": "https://github.com/kevinkiklee/photobot#readme",
+  "bugs": {
+    "url": "https://github.com/kevinkiklee/photobot/issues"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "photography",
+    "ai",
+    "gemini",
+    "nextjs",
+    "prisma"
+  ],
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
   "scripts": {
     "init:local": "./scripts/setup.sh",
     "dev": "pnpm -r dev",

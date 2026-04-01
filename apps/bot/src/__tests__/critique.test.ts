@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { execute, data } from '../commands/critique';
 import { bouncerService, aiProvider } from '../services/ai';
+import { canUseAI } from '../services/ai-access';
 
 vi.mock('../services/ai', () => ({
   bouncerService: {
@@ -10,6 +11,10 @@ vi.mock('../services/ai', () => ({
   aiProvider: {
     analyzeImage: vi.fn(),
   },
+}));
+
+vi.mock('../services/ai-access', () => ({
+  canUseAI: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock('node:fs/promises', () => ({
@@ -34,6 +39,7 @@ describe('Critique Command', () => {
     vi.clearAllMocks();
 
     // Re-establish default mock return values after clearAllMocks
+    (canUseAI as any).mockResolvedValue(true);
     (bouncerService.moderateImage as any).mockResolvedValue({ allowed: true });
     (bouncerService.checkRateLimit as any).mockResolvedValue({ allowed: true, delay: 0 });
 
@@ -58,6 +64,19 @@ describe('Critique Command', () => {
 
   it('has the correct command name', () => {
     expect(data.name).toBe('critique');
+  });
+
+  it('denies access when user has no AI grant', async () => {
+    (canUseAI as any).mockResolvedValue(false);
+    interaction.options.getAttachment.mockReturnValue({ url: 'http://example.com/image.jpg', name: 'image.jpg', contentType: 'image/jpeg' });
+
+    await execute(interaction);
+
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining('don\'t have access'),
+      ephemeral: true,
+    }));
+    expect(interaction.deferReply).not.toHaveBeenCalled();
   });
 
   it('fails if no image is attached', async () => {
@@ -122,6 +141,59 @@ describe('Critique Command', () => {
     const mockAttachment = { url: 'http://example.com/image.jpg', name: 'image.jpg', contentType: 'image/jpeg' };
     interaction.options.getAttachment.mockReturnValue(mockAttachment);
     (aiProvider.analyzeImage as any).mockRejectedValue(new Error('AI failed'));
+
+    await execute(interaction);
+
+    expect(interaction.editReply).toHaveBeenCalledWith(
+      expect.stringContaining('error')
+    );
+  });
+
+  it('rejects non-image content type', async () => {
+    interaction.options.getAttachment.mockReturnValue({
+      url: 'http://example.com/file.pdf',
+      name: 'file.pdf',
+      contentType: 'application/pdf',
+    });
+
+    await execute(interaction);
+
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining('attach an image'),
+      ephemeral: true,
+    }));
+  });
+
+  it('requires a server context', async () => {
+    interaction.guildId = null;
+
+    await execute(interaction);
+
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining('only be used in a server'),
+      ephemeral: true,
+    }));
+  });
+
+  it('passes role IDs from member cache to canUseAI', async () => {
+    interaction.member.roles.cache = new Map([
+      ['role-mod', { id: 'role-mod' }],
+      ['role-vip', { id: 'role-vip' }],
+    ]);
+    interaction.options.getAttachment.mockReturnValue({
+      url: 'http://example.com/image.jpg', name: 'image.jpg', contentType: 'image/jpeg',
+    });
+    (aiProvider.analyzeImage as any).mockResolvedValue('Good composition.');
+
+    await execute(interaction);
+
+    expect(canUseAI).toHaveBeenCalledWith('123456789', 'user-123', ['role-mod', 'role-vip']);
+  });
+
+  it('handles fetch network error gracefully', async () => {
+    const mockAttachment = { url: 'http://example.com/image.jpg', name: 'image.jpg', contentType: 'image/jpeg' };
+    interaction.options.getAttachment.mockReturnValue(mockAttachment);
+    (global.fetch as any).mockRejectedValue(new Error('Network error'));
 
     await execute(interaction);
 

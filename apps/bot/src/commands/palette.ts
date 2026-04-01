@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, AttachmentBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, AttachmentBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { bouncerService, aiProvider } from '../services/ai';
+import { canUseAI } from '../services/ai-access';
 import { BRAND_COLOR } from '../constants';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -9,6 +10,7 @@ import sharp from 'sharp';
 export const data = new SlashCommandBuilder()
   .setName('palette')
   .setDescription('Extract a 5-color hex code palette from an image')
+  .setDefaultMemberPermissions(0n)
   .addAttachmentOption(option =>
     option.setName('image')
       .setDescription('The image to extract a palette from')
@@ -16,6 +18,20 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+  if (!interaction.guildId) {
+    return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+  }
+
+  const member = interaction.member;
+  const roleIds = member && 'cache' in (member.roles ?? {})
+    ? [...(member.roles as any).cache.keys()]
+    : Array.isArray(member?.roles) ? member.roles : [];
+
+  const allowed = await canUseAI(interaction.guildId, interaction.user.id, roleIds);
+  if (!allowed) {
+    return interaction.reply({ content: 'You don\'t have access to AI features. Ask a server admin to grant you access with `/ai`.', ephemeral: true });
+  }
+
   const attachment = interaction.options.getAttachment('image');
 
   if (!attachment || !attachment.contentType?.startsWith('image/')) {

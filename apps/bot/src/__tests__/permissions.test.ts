@@ -93,4 +93,40 @@ describe('Permission Middleware', () => {
     const result = await canUseFeature(serverId, channelId, roleIds, featureKey);
     expect(result).toBe(true);
   });
+
+  it('handles empty role list with no channel config', async () => {
+    (prisma.featureConfig.findMany as any).mockResolvedValue([
+      { targetType: 'SERVER', targetId: serverId, isEnabled: false },
+    ]);
+
+    const result = await canUseFeature(serverId, channelId, [], featureKey);
+    expect(result).toBe(false);
+  });
+
+  it('falls through to server config when roles list is empty', async () => {
+    (prisma.featureConfig.findMany as any).mockResolvedValue([
+      { targetType: 'SERVER', targetId: serverId, isEnabled: true },
+    ]);
+
+    const result = await canUseFeature(serverId, channelId, [], featureKey);
+    expect(result).toBe(true);
+  });
+
+  it('queries with the correct filter parameters', async () => {
+    (prisma.featureConfig.findMany as any).mockResolvedValue([]);
+
+    await canUseFeature(serverId, channelId, roleIds, featureKey);
+
+    expect(prisma.featureConfig.findMany).toHaveBeenCalledWith({
+      where: {
+        serverId,
+        featureKey,
+        OR: [
+          { targetType: 'CHANNEL', targetId: channelId },
+          { targetType: 'ROLE', targetId: { in: roleIds } },
+          { targetType: 'SERVER', targetId: serverId },
+        ],
+      },
+    });
+  });
 });

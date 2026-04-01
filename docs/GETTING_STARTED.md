@@ -8,7 +8,7 @@ One interactive script handles everything — Discord credentials, environment c
 
 ```bash
 git clone <repo-url>
-cd photography-bot
+cd photobot
 pnpm install
 pnpm init:local
 ```
@@ -141,7 +141,7 @@ The `/discuss` command supports five categories:
 ## Architecture Overview
 
 ```
-photography-bot/
+photobot/
 ├── apps/
 │   ├── bot/              Discord.js bot (commands, bouncer, scheduler)
 │   └── dashboard/        Next.js admin panel (NextAuth + Discord OAuth)

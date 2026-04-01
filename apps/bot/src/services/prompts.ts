@@ -6,7 +6,6 @@ interface PromptResult {
   text: string;
   category: string;
   source: 'curated' | 'ai';
-  reactions: string[];
 }
 
 const AI_PROMPT_TEMPLATE = (category: string | null) => `Generate a single engaging discussion question for a photography Discord community.
@@ -18,8 +17,6 @@ Requirements:
 - Encourage members to share experiences, opinions, or photos
 - Keep it to 1-2 sentences
 - Do not include any preamble, numbering, or formatting — just the question`;
-
-const DEFAULT_REACTIONS = ['📸', '💬', '💡'];
 
 export async function selectPrompt(
   serverId: string,
@@ -35,7 +32,6 @@ export async function selectPrompt(
           text: trimmed,
           category: category ?? 'mixed',
           source: 'ai',
-          reactions: DEFAULT_REACTIONS,
         };
       }
     } catch (error) {
@@ -77,6 +73,5 @@ async function selectCuratedPrompt(
     text: pick.text,
     category: pick.category,
     source: 'curated',
-    reactions: pick.reactions,
   };
 }

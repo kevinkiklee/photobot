@@ -49,7 +49,7 @@ You also need a **Discord Application** with a bot user. See [Step 1](#step-1-cr
 
 ```bash
 git clone <repo-url>
-cd photography-bot
+cd photobot
 pnpm install
 ```
 
@@ -108,7 +108,7 @@ This starts four services:
 | Postgres | photobot-db | 54422 | Database |
 | GoTrue | photobot-auth | 9998 | Supabase Auth |
 | PostgREST | photobot-rest | 54421 | REST API |
-| Ollama | photography-bot-ollama | 11434 | Local AI inference |
+| Ollama | photobot-ollama | 11434 | Local AI inference |
 
 Wait for the database to be healthy:
 
@@ -124,7 +124,7 @@ docker inspect -f '{{.State.Health.Status}}' photobot-db
 If using Ollama for local AI (recommended for development):
 
 ```bash
-docker exec photography-bot-ollama ollama pull llava
+docker exec photobot-ollama ollama pull llava
 ```
 
 This downloads the `llava` vision model (~4.7 GB). Only needed once — data persists in a Docker volume.

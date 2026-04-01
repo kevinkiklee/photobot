@@ -115,7 +115,7 @@ check_container() {
 check_container "photobot-db"              "54422" "Postgres"
 check_container "photobot-auth"            "9998"  "GoTrue Auth"
 check_container "photobot-rest"            "54421" "PostgREST"
-check_container "photography-bot-ollama"   "11434" "Ollama"
+check_container "photobot-ollama"   "11434" "Ollama"
 
 echo ""
 
@@ -124,12 +124,12 @@ echo ""
 # -----------------------------------------------
 echo -e "${BOLD}AI Model${NC}"
 
-if docker ps --format '{{.Names}}' 2>/dev/null | grep -q photography-bot-ollama; then
-  if docker exec photography-bot-ollama ollama list 2>/dev/null | grep -q llava; then
-    MODEL_SIZE=$(docker exec photography-bot-ollama ollama list 2>/dev/null | grep llava | awk '{print $3, $4}')
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q photobot-ollama; then
+  if docker exec photobot-ollama ollama list 2>/dev/null | grep -q llava; then
+    MODEL_SIZE=$(docker exec photobot-ollama ollama list 2>/dev/null | grep llava | awk '{print $3, $4}')
     pass "llava model loaded ${DIM}(${MODEL_SIZE})${NC}"
   else
-    warn "llava model not pulled — run: docker exec photography-bot-ollama ollama pull llava"
+    warn "llava model not pulled — run: docker exec photobot-ollama ollama pull llava"
   fi
 else
   warn "Ollama container not running"

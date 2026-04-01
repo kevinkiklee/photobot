@@ -1,79 +1,87 @@
-import cron, { type ScheduledTask } from 'node-cron';
 import { prisma } from '@photobot/db';
-import { Client, EmbedBuilder, TextChannel } from 'discord.js';
+import { Client, EmbedBuilder, TextChannel, Collection, Message } from 'discord.js';
 import { BRAND_COLOR } from '../constants';
 import { selectPrompt } from './prompts';
 import { canUseFeature } from '../middleware/permissions';
 
-const activeJobs = new Map<string, ScheduledTask>();
-let syncInterval: ReturnType<typeof setInterval> | null = null;
-let clientRef: Client | null = null;
+const POST_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const QUIET_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes of silence = safe to post
+const MAX_DEFER_MS = 30 * 60 * 1000; // give up waiting after 30 minutes
+const DEFER_CHECK_MS = 60 * 1000; // re-check every 60 seconds while waiting
 
-export function buildCronExpression(days: number[], timeUtc: string): string {
-  const [h, m] = timeUtc.split(':').map(Number);
-  return `${m} ${h} * * ${days.join(',')}`;
-}
+let postInterval: ReturnType<typeof setInterval> | null = null;
+let clientRef: Client | null = null;
 
 export async function startScheduler(client: Client): Promise<void> {
   clientRef = client;
-  await loadAndRegisterJobs();
 
-  // Sync every 5 minutes to pick up dashboard changes
-  syncInterval = setInterval(async () => {
+  // Run immediately on startup for any overdue schedules
+  await runScheduledPosts();
+
+  // Check every 60 seconds for schedules that are due
+  postInterval = setInterval(async () => {
     try {
-      await loadAndRegisterJobs();
+      await runScheduledPosts();
     } catch (err) {
-      console.error('Schedule sync error:', err);
+      console.error('Schedule check error:', err);
     }
-  }, 5 * 60 * 1000);
-
-  // Check for missed prompts
-  await recoverMissedPrompts();
+  }, DEFER_CHECK_MS);
 }
 
 export function stopScheduler(): void {
-  for (const [id, job] of activeJobs) {
-    job.stop();
-    activeJobs.delete(id);
-  }
-  if (syncInterval) {
-    clearInterval(syncInterval);
-    syncInterval = null;
+  if (postInterval) {
+    clearInterval(postInterval);
+    postInterval = null;
   }
 }
 
-async function loadAndRegisterJobs(): Promise<void> {
+async function runScheduledPosts(): Promise<void> {
   const schedules = await prisma.discussionSchedule.findMany({
     where: { isActive: true },
   });
 
-  const activeIds = new Set(schedules.map(s => s.id));
+  const now = new Date();
 
-  // Remove jobs for deleted/deactivated schedules
-  for (const [id, job] of activeJobs) {
-    if (!activeIds.has(id)) {
-      job.stop();
-      activeJobs.delete(id);
-    }
+  for (const s of schedules) {
+    const lastLog = await prisma.discussionPromptLog.findFirst({
+      where: { serverId: s.serverId, channelId: s.channelId },
+      orderBy: { postedAt: 'desc' },
+    });
+
+    // Post if never posted, or if it's been at least 6 hours since last post
+    const timeSinceLastPost = lastLog ? now.getTime() - lastLog.postedAt.getTime() : Infinity;
+    if (timeSinceLastPost < POST_INTERVAL_MS) continue;
+
+    await executeScheduledPrompt(s.id);
+  }
+}
+
+async function isChannelQuiet(channel: TextChannel): Promise<boolean> {
+  try {
+    const messages: Collection<string, Message> = await channel.messages.fetch({ limit: 1 });
+    if (messages.size === 0) return true;
+
+    const lastMessage = messages.first()!;
+    const timeSinceLastMessage = Date.now() - lastMessage.createdTimestamp;
+    return timeSinceLastMessage >= QUIET_THRESHOLD_MS;
+  } catch {
+    // If we can't fetch messages, assume quiet and post anyway
+    return true;
+  }
+}
+
+async function waitForQuiet(channel: TextChannel): Promise<boolean> {
+  const deadline = Date.now() + MAX_DEFER_MS;
+
+  while (Date.now() < deadline) {
+    if (await isChannelQuiet(channel)) return true;
+
+    // Wait before checking again
+    await new Promise(resolve => setTimeout(resolve, DEFER_CHECK_MS));
   }
 
-  // Register new/updated schedules
-  for (const schedule of schedules.filter(s => s.isActive)) {
-    const cronExpr = buildCronExpression(schedule.days as number[], schedule.timeUtc);
-
-    if (activeJobs.has(schedule.id)) {
-      // Already registered — skip (schedule changes require stop+re-register)
-      continue;
-    }
-
-    const job = cron.schedule(
-      cronExpr,
-      () => { executeScheduledPrompt(schedule.id).catch(err => console.error('Scheduled prompt error:', err)); },
-      { timezone: 'UTC' },
-    );
-
-    activeJobs.set(schedule.id, job);
-  }
+  // Timed out waiting — post anyway rather than skipping entirely
+  return true;
 }
 
 async function executeScheduledPrompt(scheduleId: string): Promise<void> {
@@ -90,35 +98,23 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
   const allowed = await canUseFeature(s.serverId, s.channelId, [], 'discuss');
   if (!allowed) return;
 
-  const prompt = await selectPrompt(s.serverId, s.useAi, s.categoryFilter);
-
   try {
     const channel = await clientRef.channels.fetch(s.channelId);
     if (!channel || !(channel instanceof TextChannel)) return;
 
+    // Wait for a natural pause in conversation before posting
+    await waitForQuiet(channel);
+
+    const prompt = await selectPrompt(s.serverId, s.useAi, s.categoryFilter);
+
     const embed = new EmbedBuilder()
       .setColor(BRAND_COLOR)
       .setTitle('Discussion of the Day')
-      .setDescription(`${prompt.text}\n\n*Jump into the thread below to share your thoughts!*`)
+      .setDescription(prompt.text)
       .setFooter({ text: `Photobot • ${prompt.category}` })
       .setTimestamp();
 
-    const msg = await channel.send({ embeds: [embed] });
-
-    // Create thread
-    const threadName = `Discuss: ${prompt.text.slice(0, 90)}`;
-    let threadId: string | null = null;
-    try {
-      const thread = await msg.startThread({ name: threadName });
-      threadId = thread.id;
-    } catch (err) {
-      console.error('Failed to create thread for scheduled prompt:', err);
-    }
-
-    // Add reactions
-    for (const emoji of prompt.reactions) {
-      try { await msg.react(emoji); } catch {}
-    }
+    await channel.send({ embeds: [embed] });
 
     // Log
     await prisma.discussionPromptLog.create({
@@ -128,55 +124,9 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
         promptText: prompt.text,
         category: prompt.category,
         source: prompt.source,
-        threadId,
       },
     });
   } catch (err) {
     console.error(`Failed to post scheduled prompt to ${s.channelId}:`, err);
-  }
-}
-
-async function recoverMissedPrompts(): Promise<void> {
-  if (!clientRef) return;
-
-  const schedules = await prisma.discussionSchedule.findMany({
-    where: { isActive: true },
-  });
-
-  const now = new Date();
-  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-  for (const s of schedules) {
-    const lastLog = await prisma.discussionPromptLog.findFirst({
-      where: { serverId: s.serverId, channelId: s.channelId },
-      orderBy: { postedAt: 'desc' },
-    });
-
-    // Find the most recent scheduled time
-    const [hour, minute] = s.timeUtc.split(':').map(Number);
-    const days = s.days as number[];
-
-    // Check backwards from now to find the last scheduled slot
-    let expectedTime: Date | null = null;
-    for (let daysBack = 0; daysBack < 7; daysBack++) {
-      const candidate = new Date(now);
-      candidate.setDate(candidate.getDate() - daysBack);
-      candidate.setUTCHours(hour, minute, 0, 0);
-
-      if (candidate > now) continue;
-      if (!days.includes(candidate.getUTCDay())) continue;
-
-      expectedTime = candidate;
-      break;
-    }
-
-    if (!expectedTime) continue;
-    if (expectedTime < twentyFourHoursAgo) continue;
-
-    // If no log exists or last log is before expected time, fire recovery
-    if (!lastLog || lastLog.postedAt < expectedTime) {
-      console.log(`Recovering missed prompt for ${s.serverId}/${s.channelId}`);
-      await executeScheduledPrompt(s.id);
-    }
   }
 }

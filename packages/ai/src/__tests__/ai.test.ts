@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { GeminiProvider } from '../providers/gemini';
 import { OllamaProvider } from '../providers/ollama';
+import { AIProviderError } from '../index';
 
 // We mock the external dependencies
 vi.mock('@google/generative-ai', () => {
@@ -112,6 +113,142 @@ describe('AI Providers', () => {
 
       await expect(provider.analyzeText('Hello'))
         .rejects.toThrow('Ollama text analysis failed');
+    });
+  });
+
+  describe('GeminiProvider - HEIC/HEIF support', () => {
+    it('maps .heic extension to image/heic MIME type', () => {
+      const provider = new GeminiProvider('fake-api-key');
+      const getMimeType = (provider as any).getMimeType.bind(provider);
+      expect(getMimeType('photo.heic')).toBe('image/heic');
+    });
+
+    it('maps .heif extension to image/heif MIME type', () => {
+      const provider = new GeminiProvider('fake-api-key');
+      const getMimeType = (provider as any).getMimeType.bind(provider);
+      expect(getMimeType('photo.heif')).toBe('image/heif');
+    });
+
+    it('analyzes a HEIC image successfully', async () => {
+      const provider = new GeminiProvider('fake-api-key');
+      const response = await provider.analyzeImage('photo.heic', 'Describe this photo');
+      expect(response).toBe('Mock Gemini response');
+    });
+
+    it('analyzes a HEIF image successfully', async () => {
+      const provider = new GeminiProvider('fake-api-key');
+      const response = await provider.analyzeImage('photo.heif', 'Describe this photo');
+      expect(response).toBe('Mock Gemini response');
+    });
+  });
+
+  describe('GeminiProvider - unsupported format fallback', () => {
+    it('falls back to image/jpeg for .bmp files', () => {
+      const provider = new GeminiProvider('fake-api-key');
+      const getMimeType = (provider as any).getMimeType.bind(provider);
+      expect(getMimeType('photo.bmp')).toBe('image/jpeg');
+    });
+
+    it('falls back to image/jpeg for .gif files', () => {
+      const provider = new GeminiProvider('fake-api-key');
+      const getMimeType = (provider as any).getMimeType.bind(provider);
+      expect(getMimeType('animation.gif')).toBe('image/jpeg');
+    });
+
+    it('falls back to image/jpeg for unknown extensions', () => {
+      const provider = new GeminiProvider('fake-api-key');
+      const getMimeType = (provider as any).getMimeType.bind(provider);
+      expect(getMimeType('image.tiff')).toBe('image/jpeg');
+    });
+  });
+
+  describe('OllamaProvider - custom model', () => {
+    it('uses the custom model name passed to the constructor', async () => {
+      const provider = new OllamaProvider('custom-vision-model');
+      expect((provider as any).model).toBe('custom-vision-model');
+    });
+
+    it('passes the custom model to generate calls', async () => {
+      const provider = new OllamaProvider('my-custom-llava');
+      await provider.analyzeText('Hello');
+
+      const ollama = await import('ollama');
+      expect(ollama.default.generate).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'my-custom-llava' })
+      );
+    });
+
+    it('defaults to llava when no model is specified', () => {
+      const provider = new OllamaProvider();
+      expect((provider as any).model).toBe('llava');
+    });
+  });
+
+  describe('OllamaProvider - custom host', () => {
+    it('respects OLLAMA_HOST environment variable', async () => {
+      const originalHost = process.env.OLLAMA_HOST;
+      process.env.OLLAMA_HOST = 'http://custom-host:11434';
+
+      const provider = new OllamaProvider('llava');
+      // Force client creation by calling getClient
+      (provider as any).client = null;
+      (provider as any).getClient();
+
+      const ollama = await import('ollama');
+      expect(ollama.Ollama).toHaveBeenCalledWith({ host: 'http://custom-host:11434' });
+
+      // Restore
+      if (originalHost === undefined) {
+        delete process.env.OLLAMA_HOST;
+      } else {
+        process.env.OLLAMA_HOST = originalHost;
+      }
+    });
+
+    it('falls back to localhost when OLLAMA_HOST is not set', async () => {
+      const originalHost = process.env.OLLAMA_HOST;
+      delete process.env.OLLAMA_HOST;
+
+      const provider = new OllamaProvider('llava');
+      (provider as any).client = null;
+      (provider as any).getClient();
+
+      const ollama = await import('ollama');
+      expect(ollama.Ollama).toHaveBeenCalledWith({ host: 'http://127.0.0.1:11434' });
+
+      // Restore
+      if (originalHost !== undefined) {
+        process.env.OLLAMA_HOST = originalHost;
+      }
+    });
+  });
+
+  describe('AIProviderError', () => {
+    it('stores the cause when provided', () => {
+      const originalError = new Error('original failure');
+      const error = new AIProviderError('Something failed', originalError);
+
+      expect(error.message).toBe('Something failed');
+      expect(error.cause).toBe(originalError);
+      expect(error.name).toBe('AIProviderError');
+    });
+
+    it('has undefined cause when not provided', () => {
+      const error = new AIProviderError('Something failed');
+
+      expect(error.message).toBe('Something failed');
+      expect(error.cause).toBeUndefined();
+      expect(error.name).toBe('AIProviderError');
+    });
+
+    it('is an instance of Error', () => {
+      const error = new AIProviderError('test');
+      expect(error).toBeInstanceOf(Error);
+    });
+
+    it('accepts non-Error objects as cause', () => {
+      const error = new AIProviderError('Something failed', { code: 'NETWORK_ERROR' });
+      expect(error.cause).toEqual({ code: 'NETWORK_ERROR' });
     });
   });
 });

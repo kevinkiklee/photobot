@@ -37,10 +37,9 @@ describe('Discuss Command', () => {
 
     (canUseFeature as any).mockResolvedValue(true);
     (selectPrompt as any).mockResolvedValue({
-      text: 'What is your favorite lens?',
-      category: 'gear',
+      text: 'How do you push through a creative rut when nothing feels inspiring?',
+      category: 'creative',
       source: 'curated',
-      reactions: ['🔭', '📏', '🤔'],
     });
     (prisma.discussionPromptLog.create as any).mockResolvedValue({});
     (prisma.discussionSchedule.upsert as any).mockResolvedValue({});
@@ -60,11 +59,7 @@ describe('Discuss Command', () => {
       },
       deferReply: vi.fn().mockResolvedValue(undefined),
       editReply: vi.fn().mockResolvedValue(undefined),
-      reply: vi.fn().mockResolvedValue({
-        id: 'msg-123',
-        startThread: vi.fn().mockResolvedValue({ id: 'thread-123' }),
-        react: vi.fn().mockResolvedValue(undefined),
-      }),
+      reply: vi.fn().mockResolvedValue({ id: 'msg-123' }),
     };
   });
 
@@ -78,7 +73,7 @@ describe('Discuss Command', () => {
       interaction.options.getString.mockReturnValue(null);
     });
 
-    it('posts a discussion prompt embed with thread and reactions', async () => {
+    it('posts a discussion prompt embed as a regular message', async () => {
       await execute(interaction);
 
       expect(selectPrompt).toHaveBeenCalledWith('guild-123', false, null);
@@ -88,7 +83,7 @@ describe('Discuss Command', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 title: 'Discussion Prompt',
-                description: expect.stringContaining('What is your favorite lens?'),
+                description: expect.stringContaining('How do you push through a creative rut when nothing feels inspiring?'),
               }),
             }),
           ]),
@@ -96,22 +91,9 @@ describe('Discuss Command', () => {
       );
     });
 
-    it('creates a thread on the reply message', async () => {
-      await execute(interaction);
-
-      const replyMsg = await interaction.reply.mock.results[0].value;
-      expect(replyMsg.startThread).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: expect.stringContaining('Discuss:'),
-        })
-      );
-    });
-
-    it('adds reactions to the reply message', async () => {
-      await execute(interaction);
-
-      const replyMsg = await interaction.reply.mock.results[0].value;
-      expect(replyMsg.react).toHaveBeenCalledTimes(3);
+    it('does not create a thread', async () => {
+      const replyMsg = await interaction.reply.mock.results?.[0]?.value;
+      expect(replyMsg?.startThread).toBeUndefined();
     });
 
     it('logs the prompt to DiscussionPromptLog', async () => {
@@ -120,8 +102,8 @@ describe('Discuss Command', () => {
       expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           serverId: 'guild-123',
-          promptText: 'What is your favorite lens?',
-          category: 'gear',
+          promptText: 'How do you push through a creative rut when nothing feels inspiring?',
+          category: 'creative',
           source: 'curated',
         }),
       });
@@ -142,11 +124,11 @@ describe('Discuss Command', () => {
     });
 
     it('passes category filter when provided', async () => {
-      interaction.options.getString.mockReturnValue('technique');
+      interaction.options.getString.mockReturnValue('creative');
 
       await execute(interaction);
 
-      expect(selectPrompt).toHaveBeenCalledWith('guild-123', false, 'technique');
+      expect(selectPrompt).toHaveBeenCalledWith('guild-123', false, 'creative');
     });
   });
 
@@ -154,13 +136,7 @@ describe('Discuss Command', () => {
     beforeEach(() => {
       interaction.options.getSubcommand.mockReturnValue('schedule');
       interaction.options.getChannel.mockReturnValue({ id: 'channel-456', name: 'photo-talk' });
-      interaction.options.getString.mockImplementation((name: string) => {
-        if (name === 'days') return 'mon,wed,fri';
-        if (name === 'time') return '9:00';
-        if (name === 'timezone') return null;
-        if (name === 'category') return null;
-        return null;
-      });
+      interaction.options.getString.mockReturnValue(null);
       interaction.options.getBoolean.mockReturnValue(false);
     });
 
@@ -175,8 +151,6 @@ describe('Discuss Command', () => {
           create: expect.objectContaining({
             serverId: 'guild-123',
             channelId: 'channel-456',
-            days: [1, 3, 5],
-            timeUtc: '09:00',
           }),
         })
       );
@@ -209,8 +183,8 @@ describe('Discuss Command', () => {
       (prisma.discussionSchedule.findMany as any).mockResolvedValue([
         {
           channelId: 'channel-456',
-          days: [1, 3, 5],
-          timeUtc: '09:00',
+          days: [0, 1, 2, 3, 4, 5, 6],
+          timeUtc: '00:00',
           timezone: 'UTC',
           categoryFilter: null,
           useAi: false,

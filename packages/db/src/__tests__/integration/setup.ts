@@ -16,6 +16,9 @@ export async function cleanupTestData() {
   await prisma.userUsageMetric.deleteMany({
     where: { userId: { startsWith: TEST_PREFIX } },
   });
+  await prisma.aIAccessGrant.deleteMany({
+    where: { serverId: { startsWith: TEST_PREFIX } },
+  });
 }
 
 export async function connectDb() {

@@ -55,7 +55,7 @@ Admins can link bot engagement metrics (e.g., trivia success, critique count) to
 
 ## 7. Monorepo Package Structure
 ```text
-/photography-bot
+/photobot
 ├── apps/
 │   ├── bot/                # Railway: Discord.js bot logic
 │   └── dashboard/          # Vercel: Next.js frontend + Serverless APIs

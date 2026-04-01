@@ -10,10 +10,9 @@ describe('Curated Prompt Bank', () => {
     }
   });
 
-  it('every prompt has a non-empty text and 3 reactions', () => {
+  it('every prompt has a non-empty text', () => {
     for (const prompt of DISCUSSION_PROMPTS) {
       expect(prompt.text.length).toBeGreaterThan(0);
-      expect(prompt.reactions).toHaveLength(3);
     }
   });
 

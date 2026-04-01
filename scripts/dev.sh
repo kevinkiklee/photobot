@@ -64,6 +64,9 @@ fi
 # 3. Start Docker services
 # -----------------------------------------------
 log "Starting Docker services..."
+docker compose down --remove-orphans 2>/dev/null
+# Remove stale containers that may linger from a previous run
+docker rm -f photobot-db photobot-auth photobot-rest photobot-ollama 2>/dev/null || true
 docker compose up -d
 
 # Wait for Postgres to be healthy
@@ -84,10 +87,10 @@ ok "Database is healthy"
 # -----------------------------------------------
 # 4. Pull Ollama model (if using Ollama)
 # -----------------------------------------------
-if docker ps --format '{{.Names}}' | grep -q photography-bot-ollama; then
-  if ! docker exec photography-bot-ollama ollama list 2>/dev/null | grep -q llava; then
+if docker ps --format '{{.Names}}' | grep -q photobot-ollama; then
+  if ! docker exec photobot-ollama ollama list 2>/dev/null | grep -q llava; then
     log "Pulling Ollama llava model (first time only, ~4.7 GB)..."
-    docker exec photography-bot-ollama ollama pull llava
+    docker exec photobot-ollama ollama pull llava
     ok "Ollama model ready"
   else
     ok "Ollama llava model already available"

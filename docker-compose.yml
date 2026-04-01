@@ -55,7 +55,7 @@ services:
 
   # --- Ollama Service ---
   ollama:
-    container_name: photography-bot-ollama
+    container_name: photobot-ollama
     image: ollama/ollama:latest
     ports:
       - "11434:11434"

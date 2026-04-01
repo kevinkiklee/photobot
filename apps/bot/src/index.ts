@@ -8,6 +8,7 @@ import * as settingsCommand from './commands/settings';
 import * as critiqueCommand from './commands/critique';
 import * as paletteCommand from './commands/palette';
 import * as discussCommand from './commands/discuss';
+import * as aiAccessCommand from './commands/ai-access';
 import { startScheduler } from './services/scheduler';
 
 // Extend Client type to include commands
@@ -26,6 +27,7 @@ client.commands.set(settingsCommand.data.name, settingsCommand);
 client.commands.set(critiqueCommand.data.name, critiqueCommand);
 client.commands.set(paletteCommand.data.name, paletteCommand);
 client.commands.set(discussCommand.data.name, discussCommand);
+client.commands.set(aiAccessCommand.data.name, aiAccessCommand);
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -49,6 +51,7 @@ const rest = new REST({ version: '10' }).setToken(token);
         critiqueCommand.data.toJSON(),
         paletteCommand.data.toJSON(),
         discussCommand.data.toJSON(),
+        aiAccessCommand.data.toJSON(),
       ] },
     );
 

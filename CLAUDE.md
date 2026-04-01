@@ -30,11 +30,11 @@ pnpm cleanup --full   # Nuclear option: also removes node_modules + Docker volum
 
 ## Tech Stack
 
-- **Bot:** discord.js 14, Sharp (image processing), dotenv
+- **Bot:** discord.js 14, Sharp (image processing), node-cron (scheduler), dotenv
 - **Dashboard:** Next.js 14 (App Router), NextAuth 4 (Discord OAuth with `guilds` scope), Tailwind CSS
-- **Database:** Prisma 5 on Supabase Postgres
+- **Database:** Prisma 5 on Supabase Postgres (FeatureConfig, ConfigAuditLog, UserUsageMetric, DiscussionSchedule, DiscussionPromptLog)
 - **AI:** @google/generative-ai (Gemini) in prod, ollama package for local dev
-- **Testing:** Vitest across all workspaces (vitest.workspace.ts at root)
+- **Testing:** Vitest across all workspaces (vitest.workspace.ts at root, vitest.integration.workspace.ts for integration tests)
 
 ## Important Patterns
 
@@ -43,6 +43,8 @@ pnpm cleanup --full   # Nuclear option: also removes node_modules + Docker volum
 - **`(dashboard)` route group** — Settings and Audit pages live under `app/(dashboard)/` with a shared layout that handles auth and provides the server selector.
 - **`lib/discord.ts`** — Canonical authorization utility (`getAdminGuilds`). Do not duplicate guild-fetching logic.
 - **`lib/actions.ts`** — Server action for feature toggles with re-verification and audit logging.
+- **Discussion scheduler** — interval-based scheduler in `bot/src/services/scheduler.ts` posts every 6 hours per channel, waiting for a natural conversation pause (5 min quiet) before posting. 241 curated prompts in `bot/src/data/discussion-prompts.md` across 2 categories (Creative Process, Inspiration). Posts are regular messages, not threads.
+- **Dashboard components** — Toast notifications, ServerPopover, MobileNav, Skeleton loading states, ErrorCard, ErrorBoundary, and 404 page.
 - **Bouncer pipeline** — Two-layer AI moderation (fast + deep) with EXIF stripping and shadow rate limiting.
 - **Hierarchical permissions** — `canUseFeature()` in `bot/src/middleware/permissions.ts` implements Channel > Role > Server specificity with "Allow Wins" conflict resolution.
 - **Tests use `vi.clearAllMocks()` in `beforeEach`** — mock return values must be re-established after clearing, not just in `vi.mock()`.

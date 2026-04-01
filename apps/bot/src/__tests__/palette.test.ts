@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { execute, data } from '../commands/palette';
 import { bouncerService, aiProvider } from '../services/ai';
+import { canUseAI } from '../services/ai-access';
 
 vi.mock('../services/ai', () => ({
   bouncerService: {
@@ -10,6 +11,10 @@ vi.mock('../services/ai', () => ({
   aiProvider: {
     analyzeImage: vi.fn(),
   },
+}));
+
+vi.mock('../services/ai-access', () => ({
+  canUseAI: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock('node:fs/promises', () => ({
@@ -53,6 +58,7 @@ describe('Palette Command', () => {
     vi.clearAllMocks();
 
     // Re-establish default mock return values after clearAllMocks
+    (canUseAI as any).mockResolvedValue(true);
     (bouncerService.moderateImage as any).mockResolvedValue({ allowed: true });
     (bouncerService.checkRateLimit as any).mockResolvedValue({ allowed: true, delay: 0 });
 
@@ -77,6 +83,19 @@ describe('Palette Command', () => {
 
   it('has the correct command name', () => {
     expect(data.name).toBe('palette');
+  });
+
+  it('denies access when user has no AI grant', async () => {
+    (canUseAI as any).mockResolvedValue(false);
+    interaction.options.getAttachment.mockReturnValue({ url: 'http://example.com/image.jpg', name: 'image.jpg', contentType: 'image/jpeg' });
+
+    await execute(interaction);
+
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining('don\'t have access'),
+      ephemeral: true,
+    }));
+    expect(interaction.deferReply).not.toHaveBeenCalled();
   });
 
   it('fails if no image is attached', async () => {
@@ -147,5 +166,80 @@ describe('Palette Command', () => {
     expect(interaction.editReply).toHaveBeenCalledWith(
       expect.stringContaining('error')
     );
+  });
+
+  it('extracts hex codes from verbose AI response with extra text', async () => {
+    const mockAttachment = { url: 'http://example.com/image.jpg', name: 'image.jpg', contentType: 'image/jpeg' };
+    interaction.options.getAttachment.mockReturnValue(mockAttachment);
+    (aiProvider.analyzeImage as any).mockResolvedValue(
+      'Here are the dominant colors I found:\n1. #1A2B3C (dark blue)\n2. #FFFFFF (white)\n3. #FF5733 (orange)\n4. #2ECC71 (green)\n5. #8E44AD (purple)\nThese represent the main tones.'
+    );
+
+    await execute(interaction);
+
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.objectContaining({
+      embeds: expect.arrayContaining([expect.objectContaining({
+        data: expect.objectContaining({
+          description: expect.stringContaining('#1A2B3C'),
+        }),
+      })]),
+    }));
+  });
+
+  it('uses only the first 5 hex codes when AI returns more than 5', async () => {
+    const mockAttachment = { url: 'http://example.com/image.jpg', name: 'image.jpg', contentType: 'image/jpeg' };
+    interaction.options.getAttachment.mockReturnValue(mockAttachment);
+    (aiProvider.analyzeImage as any).mockResolvedValue('#111111, #222222, #333333, #444444, #555555, #666666, #777777');
+
+    await execute(interaction);
+
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.objectContaining({
+      embeds: expect.arrayContaining([expect.objectContaining({
+        data: expect.objectContaining({
+          description: expect.stringContaining('#555555'),
+        }),
+      })]),
+    }));
+    // Should NOT contain the 6th color
+    const call = (interaction.editReply as any).mock.calls[0][0];
+    expect(call.embeds[0].data.description).not.toContain('#666666');
+  });
+
+  it('fails when AI returns no hex codes at all', async () => {
+    const mockAttachment = { url: 'http://example.com/image.jpg', name: 'image.jpg', contentType: 'image/jpeg' };
+    interaction.options.getAttachment.mockReturnValue(mockAttachment);
+    (aiProvider.analyzeImage as any).mockResolvedValue('I cannot determine the colors in this image.');
+
+    await execute(interaction);
+
+    expect(interaction.editReply).toHaveBeenCalledWith(
+      expect.stringContaining('Could not extract')
+    );
+  });
+
+  it('rejects non-image content type', async () => {
+    interaction.options.getAttachment.mockReturnValue({
+      url: 'http://example.com/file.pdf',
+      name: 'file.pdf',
+      contentType: 'application/pdf',
+    });
+
+    await execute(interaction);
+
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining('attach an image'),
+      ephemeral: true,
+    }));
+  });
+
+  it('requires a server context', async () => {
+    interaction.guildId = null;
+
+    await execute(interaction);
+
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining('only be used in a server'),
+      ephemeral: true,
+    }));
   });
 });

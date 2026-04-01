@@ -126,6 +126,23 @@ model DiscussionSchedule {
   @@map("discussion_schedules")
 }
 
+enum AIGrantType {
+  ROLE
+  USER
+}
+
+model AIAccessGrant {
+  id        String      @id @default(uuid())
+  serverId  String      @map("server_id")
+  grantType AIGrantType @map("grant_type")
+  targetId  String      @map("target_id") // Discord role ID or user ID
+  grantedBy String      @map("granted_by") // Discord user ID of the admin who granted
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@unique([serverId, grantType, targetId])
+  @@map("ai_access_grants")
+}
+
 model DiscussionPromptLog {
   id         String   @id @default(cuid())
   serverId   String   @map("server_id")
