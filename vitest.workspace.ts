@@ -19,7 +19,7 @@ export default defineWorkspace([
     test: {
       name: '@photobot/db',
       root: 'packages/db',
-      exclude: ['**/*.integration.test.*', '**/dist/**'],
+      exclude: ['**/*.integration.test.*', '**/node_modules/**', '**/dist/**'],
     },
   },
 ])

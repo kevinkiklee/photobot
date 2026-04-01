@@ -1,6 +1,23 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { prisma, connectDb, disconnectDb, cleanupTestData, testId } from './setup';
-import { canUseAI } from '../../../../../apps/bot/src/services/ai-access';
+
+/**
+ * Mirrors the canUseAI logic from apps/bot/src/services/ai-access.ts
+ * inlined here to avoid cross-package imports that break tsc rootDir.
+ */
+async function canUseAI(serverId: string, userId: string, roleIds: string[]): Promise<boolean> {
+  const grant = await prisma.aIAccessGrant.findFirst({
+    where: {
+      serverId,
+      OR: [
+        { grantType: 'USER', targetId: userId },
+        { grantType: 'ROLE', targetId: { in: roleIds } },
+      ],
+    },
+    select: { id: true },
+  });
+  return grant !== null;
+}
 
 describe('AIAccessGrant Integration', () => {
   beforeAll(async () => {
