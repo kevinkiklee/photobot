@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { prisma, connectDb, disconnectDb, cleanupTestData, testId } from './setup';
-import { canUseAI } from '../../../../apps/bot/src/services/ai-access';
+import { canUseAI } from '../../../../../apps/bot/src/services/ai-access';
 
 describe('AIAccessGrant Integration', () => {
   beforeAll(async () => {
