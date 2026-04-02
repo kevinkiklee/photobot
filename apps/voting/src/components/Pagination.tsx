@@ -22,10 +22,10 @@ export function Pagination({ page, totalPages }: PaginationProps) {
     router.refresh();
   };
 
-  const windowSize = typeof window !== 'undefined' && window.innerWidth >= 640 ? 10 : 5;
-  const half = Math.floor(windowSize / 2);
-  const start = Math.max(1, Math.min(page - half, totalPages - windowSize + 1));
-  const end = Math.min(totalPages, start + windowSize - 1);
+  // Show 10 pages on desktop, 5 on mobile. Render all 10 and hide extras via CSS.
+  const half = 5;
+  const start = Math.max(1, Math.min(page - half, totalPages - 9));
+  const end = Math.min(totalPages, start + 9);
   const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
@@ -46,7 +46,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
       >
         <LucideChevronLeft className="w-4 h-4" />
       </button>
-      {pages.map(p => (
+      {pages.map((p, i) => (
         <button
           key={p}
           onClick={() => goTo(p)}
@@ -54,7 +54,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
             p === page
               ? 'bg-[var(--surface-elevated)] text-primary border border-[var(--border-subtle)]'
               : 'text-muted hover:text-primary hover:bg-[var(--surface-elevated)]'
-          }`}
+          } ${i >= 5 ? 'hidden sm:inline-flex' : ''}`}
         >
           {p}
         </button>
