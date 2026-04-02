@@ -23,7 +23,7 @@ export function SubmitPromptButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20 hover:bg-brand-accent/25 transition-all whitespace-nowrap"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20 hover:bg-brand-accent/25 transition-all whitespace-nowrap"
     >
       <LucidePlus className="w-3.5 h-3.5" strokeWidth={1.5} />
       <span className="hidden sm:inline">Submit a Prompt</span>

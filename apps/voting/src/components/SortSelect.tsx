@@ -21,7 +21,7 @@ export function SortSelect() {
       value={current}
       onChange={handleChange}
       aria-label="Sort by"
-      className="px-3 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] text-sm text-primary focus:outline-none focus:border-[var(--border-default)] transition-colors"
+      className="px-2 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-primary focus:outline-none focus:border-[var(--border-default)] transition-colors"
     >
       <option value="default">Default</option>
       <option value="approval">Approval %</option>

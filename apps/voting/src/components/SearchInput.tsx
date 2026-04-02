@@ -35,7 +35,7 @@ export function SearchInput() {
         onChange={e => setValue(e.target.value)}
         aria-label="Search prompts"
         placeholder="Search prompts..."
-        className="w-full pl-9 pr-4 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] text-sm text-primary placeholder:text-muted focus:outline-none focus:border-[var(--border-default)] transition-colors"
+        className="w-full pl-9 pr-4 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs text-primary placeholder:text-muted focus:outline-none focus:border-[var(--border-default)] transition-colors"
       />
     </div>
   );
