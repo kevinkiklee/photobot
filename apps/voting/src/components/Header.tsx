@@ -7,11 +7,15 @@ import { prisma } from '@photobot/db';
 import Link from 'next/link';
 
 async function getHeaderStats() {
-  const [promptCount, voteCount] = await Promise.all([
-    prisma.prompt.count(),
-    prisma.promptVote.count(),
-  ]);
-  return { promptCount, voteCount };
+  try {
+    const [promptCount, voteCount] = await Promise.all([
+      prisma.prompt.count(),
+      prisma.promptVote.count(),
+    ]);
+    return { promptCount, voteCount };
+  } catch {
+    return { promptCount: 0, voteCount: 0 };
+  }
 }
 
 export async function Header() {
