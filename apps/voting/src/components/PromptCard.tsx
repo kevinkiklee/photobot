@@ -139,7 +139,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
         {total > 0 && (
           <span className="text-xs text-muted font-medium tabular-nums">{approvalPct}%</span>
         )}
-        {isAuthenticated && (
+        {isAuthenticated && !isOwner && (
           <button
             onClick={() => onFlagDuplicate(id)}
             className={`px-1.5 py-0.5 rounded text-[11px] font-medium border transition-all ${
