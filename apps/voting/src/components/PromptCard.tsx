@@ -6,6 +6,7 @@ import { Spinner } from './Spinner';
 import { TAG_COLORS } from './TagFilter';
 import { VoteButton } from './VoteButton';
 import { VoterDetail } from './AdminView';
+import { TagVotes } from './TagVotes';
 
 interface PromptCardProps {
   id: string;
@@ -22,13 +23,16 @@ interface PromptCardProps {
   currentUserId: string | null;
   duplicateCount: number;
   userFlaggedDuplicate: boolean;
+  tagVotes: Record<string, { addCount: number; removeCount: number; userAction: string | null }>;
+  suggestedTags: string[];
   onVote: (promptId: string, direction: 'UP' | 'DOWN') => Promise<void>;
   onEdit: (promptId: string, newText: string, newTags: string[]) => Promise<void>;
   onDelete: (promptId: string) => Promise<void>;
   onFlagDuplicate: (promptId: string) => Promise<void>;
+  onTagVote: (promptId: string, tag: string, action: 'ADD' | 'REMOVE') => Promise<void>;
 }
 
-export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, userVote, isAuthenticated, isAdmin, submittedBy, submittedByUsername, currentUserId, duplicateCount, userFlaggedDuplicate, onVote, onEdit, onDelete, onFlagDuplicate }: PromptCardProps) {
+export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, userVote, isAuthenticated, isAdmin, submittedBy, submittedByUsername, currentUserId, duplicateCount, userFlaggedDuplicate, tagVotes, suggestedTags, onVote, onEdit, onDelete, onFlagDuplicate, onTagVote }: PromptCardProps) {
   const total = upvotes + downvotes;
   const isUserSubmitted = !!submittedBy;
   const isOwner = !!currentUserId && submittedBy === currentUserId;
@@ -118,32 +122,22 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
                   {deleting ? <Spinner /> : <LucideTrash2 className="w-3 h-3" />}
                 </button>
               )}
-              {/* Tags inline on desktop */}
-              <div className="hidden sm:flex flex-wrap items-center gap-1 shrink-0">
-                {isUserSubmitted && (
-                  <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
-                    User submission
-                  </span>
-                )}
-                {tags.map(tag => (
-                  <span key={tag} className={`px-1.5 py-0.5 rounded text-[11px] font-medium border ${TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'}`}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
             </div>
-            {/* Tags on separate row on mobile */}
-            <div className="flex flex-wrap items-center gap-1 mt-1.5 sm:hidden">
+            {/* Tags with voting */}
+            <div className="flex flex-wrap items-center gap-1 mt-1.5">
               {isUserSubmitted && (
                 <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
                   User submission
                 </span>
               )}
-              {tags.map(tag => (
-                <span key={tag} className={`px-1.5 py-0.5 rounded text-[11px] font-medium border ${TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'}`}>
-                  {tag}
-                </span>
-              ))}
+              <TagVotes
+                promptId={id}
+                tags={tags}
+                suggestedTags={suggestedTags}
+                tagVotes={tagVotes}
+                isAuthenticated={isAuthenticated}
+                onTagVote={onTagVote}
+              />
             </div>
           </div>
         )}

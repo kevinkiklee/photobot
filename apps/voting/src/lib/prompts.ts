@@ -23,6 +23,8 @@ export interface PromptWithVotes {
   submittedByUsername: string | null;
   duplicateCount: number;
   userFlaggedDuplicate: boolean;
+  tagVotes: Record<string, { addCount: number; removeCount: number; userAction: string | null }>;
+  suggestedTags: string[]; // tags suggested by users that aren't yet on the prompt
 }
 
 export interface PromptPage {
@@ -30,6 +32,32 @@ export interface PromptPage {
   page: number;
   totalPages: number;
   totalCount: number;
+}
+
+function buildTagVotes(
+  suggestions: Array<{ tag: string; action: string; discordUserId: string }>,
+  discordUserId?: string,
+): Record<string, { addCount: number; removeCount: number; userAction: string | null }> {
+  const result: Record<string, { addCount: number; removeCount: number; userAction: string | null }> = {};
+  for (const s of suggestions) {
+    if (!result[s.tag]) result[s.tag] = { addCount: 0, removeCount: 0, userAction: null };
+    if (s.action === 'ADD') result[s.tag].addCount++;
+    else result[s.tag].removeCount++;
+    if (discordUserId && s.discordUserId === discordUserId) result[s.tag].userAction = s.action;
+  }
+  return result;
+}
+
+function buildSuggestedTags(
+  existingTags: string[],
+  suggestions: Array<{ tag: string; action: string }>,
+): string[] {
+  const existing = new Set(existingTags);
+  const suggested = new Set<string>();
+  for (const s of suggestions) {
+    if (s.action === 'ADD' && !existing.has(s.tag)) suggested.add(s.tag);
+  }
+  return Array.from(suggested);
 }
 
 export async function fetchPrompts(
@@ -62,6 +90,7 @@ export async function fetchPrompts(
         tags: { select: { tag: true } },
         votes: { select: { vote: true, discordUserId: true } },
         duplicateFlags: { select: { discordUserId: true } },
+        tagSuggestions: { select: { tag: true, action: true, discordUserId: true } },
       },
       take: PAGE_SIZE,
       skip,
@@ -95,6 +124,8 @@ export async function fetchPrompts(
       submittedByUsername: isAdmin ? (p.submittedByUsername || null) : null,
       duplicateCount: p.duplicateFlags.length,
       userFlaggedDuplicate: discordUserId ? p.duplicateFlags.some((f: any) => f.discordUserId === discordUserId) : false,
+      tagVotes: buildTagVotes(p.tagSuggestions, discordUserId),
+      suggestedTags: buildSuggestedTags(p.tags.map((t: any) => t.tag), p.tagSuggestions),
     };
   });
 

@@ -237,6 +237,77 @@ describe('PATCH /api/prompt', () => {
       data: { text: 'Updated prompt text here' },
     });
   });
+
+  it('updates prompt with tags', async () => {
+    (prisma.prompt.findUnique as any).mockResolvedValue({
+      id: 'p1',
+      submittedBy: 'patch-user',
+    });
+    (prisma.prompt.update as any).mockResolvedValue({
+      id: 'p1',
+      text: 'Updated prompt with tags',
+    });
+
+    const res = await PATCH(makeRequest({
+      id: 'p1',
+      text: 'Updated prompt with tags',
+      tags: ['motivation', 'workflow'],
+    }));
+
+    expect(res.status).toBe(200);
+    expect(prisma.prompt.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: {
+        text: 'Updated prompt with tags',
+        tags: {
+          deleteMany: {},
+          create: [{ tag: 'motivation' }, { tag: 'workflow' }],
+        },
+      },
+    });
+  });
+
+  it('filters out invalid tags on PATCH', async () => {
+    (prisma.prompt.findUnique as any).mockResolvedValue({
+      id: 'p1',
+      submittedBy: 'patch-user',
+    });
+    (prisma.prompt.update as any).mockResolvedValue({ id: 'p1', text: 'Updated text here' });
+
+    await PATCH(makeRequest({
+      id: 'p1',
+      text: 'Updated text here',
+      tags: ['motivation', 'INVALID', 'workflow'],
+    }));
+
+    expect(prisma.prompt.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: expect.objectContaining({
+        tags: {
+          deleteMany: {},
+          create: [{ tag: 'motivation' }, { tag: 'workflow' }],
+        },
+      }),
+    });
+  });
+
+  it('allows admin to edit another user\'s prompt', async () => {
+    (getServerSession as any).mockResolvedValue({
+      ...patchSession,
+      isAdmin: true,
+    });
+    (prisma.prompt.findUnique as any).mockResolvedValue({
+      id: 'p1',
+      submittedBy: 'other-user',
+    });
+    (prisma.prompt.update as any).mockResolvedValue({
+      id: 'p1',
+      text: 'Admin edited this',
+    });
+
+    const res = await PATCH(makeRequest({ id: 'p1', text: 'Admin edited this' }));
+    expect(res.status).toBe(200);
+  });
 });
 
 describe('DELETE /api/prompt', () => {

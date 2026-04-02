@@ -32,6 +32,8 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
         submittedByUsername: detail.submittedByUsername || null,
         duplicateCount: 0,
         userFlaggedDuplicate: false,
+        tagVotes: {},
+        suggestedTags: [],
       };
       setPrompts(prev => [newPrompt, ...prev]);
     };
@@ -99,6 +101,28 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
     ));
   };
 
+  const handleTagVote = async (promptId: string, tag: string, action: 'ADD' | 'REMOVE') => {
+    const res = await fetch('/api/tag-vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ promptId, tag, action }),
+    });
+
+    if (!res.ok) throw new Error('Tag vote failed');
+
+    const result = await res.json();
+
+    setPrompts(prev => prev.map(p => {
+      if (p.id !== promptId) return p;
+      // Rebuild suggested tags from the updated tagVotes
+      const existingTags = new Set(p.tags);
+      const newSuggested = Object.entries(result.tagVotes as Record<string, { addCount: number }>)
+        .filter(([t, v]) => !existingTags.has(t) && v.addCount > 0)
+        .map(([t]) => t);
+      return { ...p, tagVotes: result.tagVotes, suggestedTags: newSuggested };
+    }));
+  };
+
   const handleDelete = async (promptId: string) => {
     const res = await fetch('/api/prompt', {
       method: 'DELETE',
@@ -130,10 +154,13 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
           currentUserId={currentUserId}
           duplicateCount={p.duplicateCount}
           userFlaggedDuplicate={p.userFlaggedDuplicate}
+          tagVotes={p.tagVotes}
+          suggestedTags={p.suggestedTags}
           onVote={handleVote}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onFlagDuplicate={handleFlagDuplicate}
+          onTagVote={handleTagVote}
         />
       ))}
       {prompts.length === 0 && (

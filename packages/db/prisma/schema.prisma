@@ -173,6 +173,7 @@ model Prompt {
   tags                PromptTag[]
   votes               PromptVote[]
   duplicateFlags      PromptDuplicateFlag[]
+  tagSuggestions      PromptTagSuggestion[]
 
   @@map("prompts")
 }
@@ -212,4 +213,23 @@ model PromptDuplicateFlag {
 
   @@unique([promptId, discordUserId])
   @@map("prompt_duplicate_flags")
+}
+
+enum TagSuggestionAction {
+  ADD
+  REMOVE
+}
+
+model PromptTagSuggestion {
+  id            String              @id @default(cuid())
+  promptId      String              @map("prompt_id")
+  tag           String
+  action        TagSuggestionAction
+  discordUserId String              @map("discord_user_id")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  prompt        Prompt              @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, tag, discordUserId])
+  @@index([promptId, tag])
+  @@map("prompt_tag_suggestions")
 }
