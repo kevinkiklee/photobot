@@ -38,7 +38,8 @@
     "test:all": "pnpm test && pnpm test:integration",
     "status": "./scripts/status.sh",
     "db": "./scripts/db.sh",
-    "cleanup": "./scripts/cleanup.sh"
+    "cleanup": "./scripts/cleanup.sh",
+    "seed:prompts": "tsx scripts/seed-prompts.ts"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
