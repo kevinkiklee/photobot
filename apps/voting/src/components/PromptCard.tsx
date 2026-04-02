@@ -108,8 +108,8 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
           </div>
         ) : (
           <div>
-            <div className="flex items-start gap-1.5">
-              <p className="text-sm text-primary leading-snug flex-1 min-w-0">{text}</p>
+            <div className="flex items-start gap-1.5 flex-wrap">
+              <p className="text-sm text-primary leading-snug">{text}</p>
               {(isOwner || (isAdmin && isUserSubmitted)) && (
                 <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-primary transition-all shrink-0 mt-0.5" title="Edit prompt">
                   <LucidePencil className="w-3 h-3" />
