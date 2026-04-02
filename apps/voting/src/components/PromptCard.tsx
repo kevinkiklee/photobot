@@ -108,7 +108,8 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
           </div>
         ) : (
           <div>
-            <div className="flex items-start gap-1.5 flex-wrap">
+            {/* Row 1: Prompt text + edit/delete + author/voters */}
+            <div className="flex items-start gap-1.5">
               <p className="text-sm text-primary leading-snug">{text}</p>
               {(isOwner || (isAdmin && isUserSubmitted)) && (
                 <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-primary transition-all shrink-0 mt-0.5" title="Edit prompt">
@@ -122,9 +123,36 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
                   {deleting ? <Spinner /> : <LucideTrash2 className="w-3 h-3" />}
                 </button>
               )}
+              <div className="flex-1" />
+              <div className="flex items-center gap-2 shrink-0">
+                {isUserSubmitted && isAdmin && (
+                  <span className="text-xs text-brand-accent/70">by {submittedByUsername}</span>
+                )}
+                {isAdmin && <VoterDetail promptId={id} voteVersion={upvotes + downvotes + (userVote === 'UP' ? 1 : userVote === 'DOWN' ? 2 : 0)} />}
+              </div>
             </div>
-            {/* Tags with voting */}
-            <div className="flex flex-wrap items-center gap-1 mt-1.5">
+
+            {/* Row 2: Votes + mark duplicate + tags */}
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <VoteButton promptId={id} direction="UP" count={upvotes} active={userVote === 'UP'} disabled={!isAuthenticated || isOwner} onVote={onVote} />
+              <VoteButton promptId={id} direction="DOWN" count={downvotes} active={userVote === 'DOWN'} disabled={!isAuthenticated || isOwner} onVote={onVote} />
+              {total > 0 && (
+                <span className="text-xs text-muted font-medium tabular-nums">{approvalPct}%</span>
+              )}
+              {isAuthenticated && !isOwner && (
+                <button
+                  onClick={async () => { setFlagging(true); try { await onFlagDuplicate(id); } finally { setFlagging(false); } }}
+                  disabled={flagging}
+                  className={`px-1.5 py-0.5 rounded text-[11px] font-medium border transition-all inline-flex items-center gap-1 ${
+                    userFlaggedDuplicate
+                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
+                      : 'text-muted border-[var(--border-subtle)] hover:text-amber-400 hover:border-amber-500/20'
+                  } ${flagging ? 'opacity-60' : ''}`}
+                >
+                  {flagging && <Spinner />}
+                  {userFlaggedDuplicate ? 'Marked duplicate' : 'Mark duplicate'}
+                </button>
+              )}
               {isUserSubmitted && (
                 <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
                   User submission
@@ -142,36 +170,6 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
           </div>
         )}
       </div>
-
-      {/* Row 2: Votes, actions (hidden while editing) */}
-      {!editing && <div className="flex flex-wrap items-center gap-2 mt-1">
-        <VoteButton promptId={id} direction="UP" count={upvotes} active={userVote === 'UP'} disabled={!isAuthenticated || isOwner} onVote={onVote} />
-        <VoteButton promptId={id} direction="DOWN" count={downvotes} active={userVote === 'DOWN'} disabled={!isAuthenticated || isOwner} onVote={onVote} />
-        {total > 0 && (
-          <span className="text-xs text-muted font-medium tabular-nums">{approvalPct}%</span>
-        )}
-        {isAuthenticated && !isOwner && (
-          <button
-            onClick={async () => { setFlagging(true); try { await onFlagDuplicate(id); } finally { setFlagging(false); } }}
-            disabled={flagging}
-            className={`px-1.5 py-0.5 rounded text-[11px] font-medium border transition-all inline-flex items-center gap-1 ${
-              userFlaggedDuplicate
-                ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
-                : 'text-muted border-[var(--border-subtle)] hover:text-amber-400 hover:border-amber-500/20'
-            } ${flagging ? 'opacity-60' : ''}`}
-          >
-            {flagging && <Spinner />}
-            {userFlaggedDuplicate ? 'Marked duplicate' : 'Mark duplicate'}
-          </button>
-        )}
-
-        <div className="flex-1" />
-
-        {isUserSubmitted && isAdmin && (
-          <span className="text-xs text-brand-accent/70">by {submittedByUsername}</span>
-        )}
-        {isAdmin && <VoterDetail promptId={id} voteVersion={upvotes + downvotes + (userVote === 'UP' ? 1 : userVote === 'DOWN' ? 2 : 0)} />}
-      </div>}
     </div>
   );
 }
