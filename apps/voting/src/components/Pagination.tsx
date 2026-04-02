@@ -22,8 +22,10 @@ export function Pagination({ page, totalPages }: PaginationProps) {
     router.refresh();
   };
 
-  const start = Math.max(1, page - 2);
-  const end = Math.min(totalPages, start + 4);
+  const windowSize = typeof window !== 'undefined' && window.innerWidth >= 640 ? 10 : 5;
+  const half = Math.floor(windowSize / 2);
+  const start = Math.max(1, Math.min(page - half, totalPages - windowSize + 1));
+  const end = Math.min(totalPages, start + windowSize - 1);
   const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
