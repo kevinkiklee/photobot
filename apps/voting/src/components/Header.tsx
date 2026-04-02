@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { ThemeToggle } from './ThemeToggle';
 import { LoginButton } from './LoginButton';
 import { SignOutButton } from './SignOutButton';
+import { AdminMenu } from './AdminMenu';
 import { prisma } from '@photobot/db';
 import Link from 'next/link';
 
@@ -61,15 +62,16 @@ export async function Header() {
                 <span className="text-xs text-muted hidden sm:block">{session.discordUsername}</span>
                 {session.isAdmin && (
                   <>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20">
+                    <span className="hidden sm:inline px-1.5 py-0.5 rounded text-[9px] font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20">
                       Admin
                     </span>
                     <a
                       href="/api/admin/export"
-                      className="px-1.5 py-0.5 rounded text-[9px] font-medium text-muted border border-[var(--border-subtle)] hover:text-primary hover:border-[var(--border-default)] transition-all"
+                      className="hidden sm:inline px-1.5 py-0.5 rounded text-[9px] font-medium text-muted border border-[var(--border-subtle)] hover:text-primary hover:border-[var(--border-default)] transition-all"
                     >
                       Export JSON
                     </a>
+                    <AdminMenu username={session.discordUsername || 'User'} />
                   </>
                 )}
                 <SignOutButton />

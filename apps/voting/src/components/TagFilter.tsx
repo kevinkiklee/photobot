@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const ALL_TAGS = [
@@ -34,6 +35,7 @@ export function TagFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeTags = searchParams.get('tags')?.split(',').filter(Boolean) || [];
+  const [expanded, setExpanded] = useState(false);
 
   const toggle = (tag: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -54,15 +56,21 @@ export function TagFilter() {
     router.refresh();
   };
 
+  // On mobile, show first 8 tags + expand button; on desktop show all
+  const MOBILE_VISIBLE = 8;
+  const visibleTags = expanded ? ALL_TAGS : ALL_TAGS.slice(0, MOBILE_VISIBLE);
+  const hiddenCount = ALL_TAGS.length - MOBILE_VISIBLE;
+
   return (
     <div className="flex flex-wrap gap-1">
-      {ALL_TAGS.map(tag => {
+      {/* Mobile: show limited tags */}
+      {visibleTags.map(tag => {
         const active = activeTags.includes(tag);
         return (
           <button
             key={tag}
             onClick={() => toggle(tag)}
-            className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-all ${
+            className={`px-2 py-1 sm:py-0.5 rounded text-[11px] sm:text-[10px] font-medium border transition-all sm:inline-flex ${
               active
                 ? TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/80 border-brand-primary/15'
                 : 'bg-transparent text-muted border-[var(--border-subtle)] hover:text-secondary hover:border-[var(--border-default)]'
@@ -72,6 +80,40 @@ export function TagFilter() {
           </button>
         );
       })}
+      {/* Hidden tags on desktop are always shown */}
+      {!expanded && ALL_TAGS.slice(MOBILE_VISIBLE).map(tag => {
+        const active = activeTags.includes(tag);
+        return (
+          <button
+            key={tag}
+            onClick={() => toggle(tag)}
+            className={`hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-medium border transition-all ${
+              active
+                ? TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/80 border-brand-primary/15'
+                : 'bg-transparent text-muted border-[var(--border-subtle)] hover:text-secondary hover:border-[var(--border-default)]'
+            }`}
+          >
+            {tag}
+          </button>
+        );
+      })}
+      {/* Mobile expand/collapse toggle */}
+      {!expanded && hiddenCount > 0 && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="sm:hidden px-2 py-1 rounded text-[11px] font-medium text-muted border border-[var(--border-subtle)] hover:text-secondary transition-all"
+        >
+          +{hiddenCount} more
+        </button>
+      )}
+      {expanded && (
+        <button
+          onClick={() => setExpanded(false)}
+          className="sm:hidden px-2 py-1 rounded text-[11px] font-medium text-muted border border-[var(--border-subtle)] hover:text-secondary transition-all"
+        >
+          Show less
+        </button>
+      )}
     </div>
   );
 }
