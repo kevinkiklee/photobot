@@ -34,3 +34,4 @@ coverage
 
 # Auto-generated
 next-env.d.ts
+.vercel
