@@ -14,9 +14,9 @@
   --bg-page: #f8fffe;
   --bg-card: #ffffff;
   --bg-header: rgba(255, 255, 255, 0.85);
-  --text-primary: #1E3A5F;
-  --text-secondary: #1E3A5Faa;
-  --text-muted: #1E3A5F55;
+  --text-primary: #0f2a40;
+  --text-secondary: #3a5a72;
+  --text-muted: #6b8a9e;
   --border-default: #A8EDEA;
   --border-subtle: #A8EDEA40;
   --surface-elevated: rgba(255, 255, 255, 0.7);
@@ -26,9 +26,9 @@
   --bg-page: #09090b;
   --bg-card: rgba(255, 255, 255, 0.025);
   --bg-header: rgba(9, 9, 11, 0.8);
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
+  --text-primary: #f5f5f5;
+  --text-secondary: #b4b4bc;
+  --text-muted: #71717a;
   --border-default: rgba(255, 255, 255, 0.1);
   --border-subtle: rgba(255, 255, 255, 0.06);
   --surface-elevated: rgba(255, 255, 255, 0.03);

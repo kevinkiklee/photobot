@@ -77,32 +77,32 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
             <div className="flex flex-wrap gap-1">
               {Object.keys(TAG_COLORS).map(tag => (
                 <button key={tag} type="button" onClick={() => toggleEditTag(tag)}
-                  className={`px-1.5 py-0.5 rounded text-[9px] font-medium border transition-all ${
+                  className={`px-1.5 py-0.5 rounded text-[11px] font-medium border transition-all ${
                     editTags.includes(tag)
                       ? TAG_COLORS[tag]
                       : 'bg-transparent text-muted border-[var(--border-subtle)] hover:text-secondary'
                   }`}
                 >{tag}</button>
               ))}
-              <span className="text-[9px] text-muted self-center ml-1">{editTags.length}/3</span>
+              <span className="text-[11px] text-muted self-center ml-1">{editTags.length}/3</span>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={handleSave} disabled={saving || editText.trim().length < 10}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                 <LucideCheck className="w-3 h-3" />{saving ? 'Saving...' : 'Save'}
               </button>
               <button onClick={handleCancel}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-muted hover:text-primary transition-colors">
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-muted hover:text-primary transition-colors">
                 <LucideX className="w-3 h-3" />Cancel
               </button>
-              {error && <span className="text-[10px] text-red-400">{error}</span>}
-              <span className="text-[10px] text-muted ml-auto">{editText.length}/500</span>
+              {error && <span className="text-xs text-red-400">{error}</span>}
+              <span className="text-xs text-muted ml-auto">{editText.length}/500</span>
             </div>
           </div>
         ) : (
           <div className="sm:flex sm:items-center sm:gap-1.5">
             <div className="flex items-center gap-1.5 sm:flex-1 min-w-0">
-              <p className="text-[13px] text-primary leading-snug">{text}</p>
+              <p className="text-sm text-primary leading-snug">{text}</p>
               {isOwner && (
                 <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-primary transition-all shrink-0" title="Edit your prompt">
                   <LucidePencil className="w-3 h-3" />
@@ -118,12 +118,12 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
             </div>
             <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-0 sm:shrink-0">
               {isUserSubmitted && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-brand-accent/10 text-brand-accent/70 border border-brand-accent/15">
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-brand-accent/10 text-brand-accent/70 border border-brand-accent/15">
                   community
                 </span>
               )}
               {tags.map(tag => (
-                <span key={tag} className={`px-1.5 py-0.5 rounded text-[9px] font-medium border ${TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'}`}>
+                <span key={tag} className={`px-1.5 py-0.5 rounded text-[11px] font-medium border ${TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'}`}>
                   {tag}
                 </span>
               ))}
@@ -137,12 +137,12 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
         <VoteButton promptId={id} direction="UP" count={upvotes} active={userVote === 'UP'} disabled={!isAuthenticated} onVote={onVote} />
         <VoteButton promptId={id} direction="DOWN" count={downvotes} active={userVote === 'DOWN'} disabled={!isAuthenticated} onVote={onVote} />
         {total > 0 && (
-          <span className="text-[10px] text-muted font-medium tabular-nums">{approvalPct}%</span>
+          <span className="text-xs text-muted font-medium tabular-nums">{approvalPct}%</span>
         )}
         {isAuthenticated && (
           <button
             onClick={() => onFlagDuplicate(id)}
-            className={`px-1.5 py-0.5 rounded text-[9px] font-medium border transition-all ${
+            className={`px-1.5 py-0.5 rounded text-[11px] font-medium border transition-all ${
               userFlaggedDuplicate
                 ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
                 : 'text-muted border-[var(--border-subtle)] hover:text-amber-400 hover:border-amber-500/20'
@@ -155,7 +155,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
         <div className="flex-1" />
 
         {isUserSubmitted && isAdmin && (
-          <span className="text-[10px] text-brand-accent/70">by {submittedByUsername}</span>
+          <span className="text-xs text-brand-accent/70">by {submittedByUsername}</span>
         )}
         {isAdmin && <VoterDetail promptId={id} voteVersion={upvotes + downvotes + (userVote === 'UP' ? 1 : userVote === 'DOWN' ? 2 : 0)} />}
       </div>
