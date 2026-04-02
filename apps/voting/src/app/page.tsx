@@ -9,6 +9,7 @@ import { SortSelect } from '@/components/SortSelect';
 import { Pagination } from '@/components/Pagination';
 import { AnonymityBanner } from '@/components/AnonymityBanner';
 import { AdminStatsBar } from '@/components/AdminView';
+import { SubmitPrompt } from '@/components/SubmitPrompt';
 import { getAdminStats } from '@/lib/admin';
 
 export default async function HomePage({
@@ -40,6 +41,7 @@ export default async function HomePage({
             <SearchInput />
           </div>
           <SortSelect />
+          <SubmitPrompt isAuthenticated={!!session} />
         </div>
 
         <TagFilter />

@@ -163,12 +163,14 @@ enum VoteDirection {
 }
 
 model Prompt {
-  id               String       @id @default(cuid())
-  text             String       @db.Text
-  originalCategory String       @map("original_category")
-  createdAt        DateTime     @default(now()) @map("created_at")
-  tags             PromptTag[]
-  votes            PromptVote[]
+  id                  String       @id @default(cuid())
+  text                String       @db.Text
+  originalCategory    String       @map("original_category")
+  submittedBy         String?      @map("submitted_by")         // Discord user ID, null for seeded prompts
+  submittedByUsername  String?      @map("submitted_by_username")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  tags                PromptTag[]
+  votes               PromptVote[]
 
   @@map("prompts")
 }

@@ -44,7 +44,7 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
   };
 
   return (
-    <div className="space-y-3 stagger">
+    <div className="space-y-1.5 stagger">
       {prompts.map(p => (
         <PromptCard
           key={p.id}
@@ -57,6 +57,7 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
           userVote={userVotes[p.id] || null}
           isAuthenticated={isAuthenticated}
           isAdmin={isAdmin}
+          submittedByUsername={p.submittedByUsername}
           onVote={handleVote}
         />
       ))}

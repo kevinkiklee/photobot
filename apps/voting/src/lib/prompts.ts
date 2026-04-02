@@ -19,6 +19,7 @@ export interface PromptWithVotes {
   upvotes: number;
   downvotes: number;
   approvalPct: number;
+  submittedByUsername: string | null;
 }
 
 export interface PromptPage {
@@ -85,6 +86,7 @@ export async function fetchPrompts(
       upvotes,
       downvotes,
       approvalPct,
+      submittedByUsername: p.submittedByUsername || null,
     };
   });
 
