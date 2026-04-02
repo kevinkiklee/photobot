@@ -34,9 +34,6 @@
   --surface-elevated: rgba(255, 255, 255, 0.03);
 }
 
-@media (min-width: 640px) {
-  html { font-size: 120%; }
-}
 
 body {
   color: var(--text-primary);
