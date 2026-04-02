@@ -118,8 +118,8 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
             </div>
             <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-0 sm:shrink-0">
               {isUserSubmitted && (
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-brand-accent/10 text-brand-accent/70 border border-brand-accent/15">
-                  community
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
+                  User submission
                 </span>
               )}
               {tags.map(tag => (
