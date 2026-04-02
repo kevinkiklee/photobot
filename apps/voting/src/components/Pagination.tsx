@@ -22,18 +22,22 @@ export function Pagination({ page, totalPages }: PaginationProps) {
     router.refresh();
   };
 
-  // Show 10 pages on desktop, 5 on mobile. Render all 10 and hide extras via CSS.
+  // Show 10 pages on desktop, 3 on mobile
   const half = 5;
   const start = Math.max(1, Math.min(page - half, totalPages - 9));
   const end = Math.min(totalPages, start + 9);
   const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+
+  // Mobile: show current page +/- 1
+  const mobileStart = Math.max(1, page - 1);
+  const mobileEnd = Math.min(totalPages, page + 1);
 
   return (
     <div className="flex items-center justify-center gap-1">
       <button
         onClick={() => goTo(1)}
         disabled={page <= 1}
-        className="p-1.5 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+        className="p-2 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
         title="First page"
       >
         <LucideChevronsLeft className="w-4 h-4" />
@@ -41,28 +45,33 @@ export function Pagination({ page, totalPages }: PaginationProps) {
       <button
         onClick={() => goTo(page - 1)}
         disabled={page <= 1}
-        className="p-1.5 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+        className="p-2 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
         title="Previous page"
       >
         <LucideChevronLeft className="w-4 h-4" />
       </button>
-      {pages.map((p, i) => (
+      {/* Desktop: full page range */}
+      {pages.map((p) => (
         <button
           key={p}
           onClick={() => goTo(p)}
-          className={`w-7 h-7 rounded-md text-xs font-medium transition-all inline-flex items-center justify-center ${
+          className={`hidden sm:inline-flex w-7 h-7 rounded-md text-xs font-medium transition-all items-center justify-center ${
             p === page
               ? 'bg-[var(--surface-elevated)] text-primary border border-[var(--border-subtle)]'
               : 'text-muted hover:text-primary hover:bg-[var(--surface-elevated)]'
-          } ${i >= 5 ? 'hidden sm:inline-flex' : ''}`}
+          }`}
         >
           {p}
         </button>
       ))}
+      {/* Mobile: compact page indicator */}
+      <span className="sm:hidden text-xs text-muted tabular-nums px-1">
+        {page} / {totalPages}
+      </span>
       <button
         onClick={() => goTo(page + 1)}
         disabled={page >= totalPages}
-        className="p-1.5 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+        className="p-2 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
         title="Next page"
       >
         <LucideChevronRight className="w-4 h-4" />
@@ -70,7 +79,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
       <button
         onClick={() => goTo(totalPages)}
         disabled={page >= totalPages}
-        className="p-1.5 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+        className="p-2 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
         title="Last page"
       >
         <LucideChevronsRight className="w-4 h-4" />

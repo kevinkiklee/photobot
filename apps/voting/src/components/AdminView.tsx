@@ -73,7 +73,7 @@ export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
 
   return (
     <div>
-      <button onClick={toggle} className="flex items-center gap-1 text-[10px] text-muted hover:text-secondary transition-colors">
+      <button onClick={toggle} aria-expanded={open} className="flex items-center gap-1 text-[10px] text-muted hover:text-secondary transition-colors">
         <Icon className="w-3 h-3" />
         {loading ? 'Loading...' : open ? 'Hide voters' : 'Show voters'}
       </button>

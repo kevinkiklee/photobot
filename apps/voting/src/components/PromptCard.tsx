@@ -74,6 +74,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
               onChange={e => setEditText(e.target.value)}
               maxLength={500}
               rows={2}
+              aria-label="Edit prompt text"
               className="w-full px-2 py-1 rounded-md bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[13px] text-primary focus:outline-none focus:border-brand-accent/30 transition-colors resize-none"
             />
             <div className="flex flex-wrap gap-1">
@@ -102,23 +103,37 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
             </div>
           </div>
         ) : (
-          <div className="sm:flex sm:items-center sm:gap-1.5">
-            <div className="flex items-center gap-1.5 sm:flex-1 min-w-0">
-              <p className="text-sm text-primary leading-snug">{text}</p>
+          <div>
+            <div className="flex items-start gap-1.5">
+              <p className="text-sm text-primary leading-snug flex-1 min-w-0">{text}</p>
               {(isOwner || (isAdmin && isUserSubmitted)) && (
-                <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-primary transition-all shrink-0" title="Edit prompt">
+                <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-primary transition-all shrink-0 mt-0.5" title="Edit prompt">
                   <LucidePencil className="w-3 h-3" />
                 </button>
               )}
               {canDelete && (
                 <button
                   onClick={async () => { if (!confirm('Delete this prompt? This cannot be undone.')) return; setDeleting(true); try { await onDelete(id); } catch {} finally { setDeleting(false); } }}
-                  disabled={deleting} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-red-400 transition-all disabled:opacity-40 shrink-0" title="Delete this prompt">
+                  disabled={deleting} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-red-400 transition-all disabled:opacity-40 shrink-0 mt-0.5" title="Delete this prompt">
                   {deleting ? <Spinner /> : <LucideTrash2 className="w-3 h-3" />}
                 </button>
               )}
+              {/* Tags inline on desktop */}
+              <div className="hidden sm:flex flex-wrap items-center gap-1 shrink-0">
+                {isUserSubmitted && (
+                  <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
+                    User submission
+                  </span>
+                )}
+                {tags.map(tag => (
+                  <span key={tag} className={`px-1.5 py-0.5 rounded text-[11px] font-medium border ${TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-0 sm:shrink-0">
+            {/* Tags on separate row on mobile */}
+            <div className="flex flex-wrap items-center gap-1 mt-1.5 sm:hidden">
               {isUserSubmitted && (
                 <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
                   User submission

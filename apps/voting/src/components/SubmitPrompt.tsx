@@ -23,10 +23,11 @@ export function SubmitPromptButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20 hover:bg-brand-accent/25 transition-all"
+      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20 hover:bg-brand-accent/25 transition-all whitespace-nowrap"
     >
       <LucidePlus className="w-3.5 h-3.5" strokeWidth={1.5} />
-      Submit a Prompt
+      <span className="hidden sm:inline">Submit a Prompt</span>
+      <span className="sm:hidden">Submit</span>
     </button>
   );
 }
@@ -94,6 +95,7 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
         placeholder="Write a thought-provoking question for the community..."
         maxLength={150}
         rows={3}
+        aria-label="New prompt text"
         className="w-full px-3 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] text-sm text-primary placeholder:text-muted focus:outline-none focus:border-brand-accent/30 transition-colors resize-none"
       />
 

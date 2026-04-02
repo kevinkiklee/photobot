@@ -39,7 +39,7 @@ export function VoteButton({ promptId, direction, count, active, disabled, onVot
       title={disabled ? 'Sign in to vote' : direction === 'UP' ? 'Upvote' : 'Downvote'}
       className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-all ${
         active ? colorActive : colorInactive
-      } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
     >
       {loading ? <Spinner /> : <Icon className="w-3 h-3" strokeWidth={1.5} />}
       <span className="tabular-nums">{count}</span>
