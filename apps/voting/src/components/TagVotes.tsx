@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LucideX, LucidePlus } from 'lucide-react';
 import { TAG_COLORS } from './TagFilter';
 import { Spinner } from './Spinner';
@@ -23,6 +23,25 @@ interface TagVotesProps {
 export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthenticated, onTagVote }: TagVotesProps) {
   const [loadingTag, setLoadingTag] = useState<string | null>(null);
   const [showSuggest, setShowSuggest] = useState(false);
+  const suggestRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showSuggest) return;
+    const handleClick = (e: MouseEvent) => {
+      if (suggestRef.current && !suggestRef.current.contains(e.target as Node)) {
+        setShowSuggest(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowSuggest(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [showSuggest]);
 
   const handleVote = async (tag: string, action: 'ADD' | 'REMOVE') => {
     if (!isAuthenticated || loadingTag) return;
@@ -97,7 +116,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
 
       {/* Suggest a new tag button */}
       {isAuthenticated && availableToSuggest.length > 0 && (
-        <div className="relative">
+        <div className="relative" ref={suggestRef}>
           <button
             onClick={() => setShowSuggest(!showSuggest)}
             className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] text-muted border border-dashed border-[var(--border-subtle)] hover:text-secondary hover:border-[var(--border-default)] transition-all"
@@ -107,9 +126,9 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
           </button>
 
           {showSuggest && (
-            <div className="absolute left-0 top-full mt-1 z-40 w-48 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-page)] shadow-lg shadow-black/20 animate-scale-in p-2 space-y-1">
+            <div className="absolute left-0 top-full mt-1 z-40 w-56 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-page)] shadow-lg shadow-black/20 animate-scale-in p-2 space-y-1">
               <p className="text-[10px] text-muted px-1 mb-1">Suggest a tag:</p>
-              <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+              <div className="flex flex-wrap gap-1">
                 {availableToSuggest.map(tag => (
                   <button
                     key={tag}
