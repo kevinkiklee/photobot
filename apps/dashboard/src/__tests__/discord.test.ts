@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getAdminGuilds } from '../lib/discord';
+import { getAdminGuilds, DiscordTokenExpiredError } from '../lib/discord';
 
 global.fetch = vi.fn();
 
@@ -18,18 +18,20 @@ describe('Discord Lib', () => {
     expect(guilds[0].id).toBe('1');
   });
 
-  it('returns empty array on API failure', async () => {
+  it('throws DiscordTokenExpiredError on 401', async () => {
     (fetch as any).mockResolvedValue({
       ok: false,
       status: 401,
     });
 
-    const guilds = await getAdminGuilds('bad-token');
-    expect(guilds).toHaveLength(0);
+    await expect(getAdminGuilds('bad-token')).rejects.toThrow(DiscordTokenExpiredError);
   });
 
-  it('returns empty array on network error', async () => {
-    (fetch as any).mockRejectedValue(new TypeError('Network error'));
+  it('returns empty array on non-401 API failure', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
 
     const guilds = await getAdminGuilds('fake-token');
     expect(guilds).toHaveLength(0);

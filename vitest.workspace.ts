@@ -9,6 +9,7 @@ export default defineWorkspace([
     },
   },
   'apps/dashboard/vitest.config.ts',
+  'apps/voting/vitest.config.ts',
   {
     test: {
       name: '@photobot/ai',
