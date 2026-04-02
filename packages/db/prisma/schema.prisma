@@ -156,3 +156,45 @@ model DiscussionPromptLog {
   @@index([serverId, postedAt])
   @@map("discussion_prompt_logs")
 }
+
+enum VoteDirection {
+  UP
+  DOWN
+}
+
+model Prompt {
+  id               String       @id @default(cuid())
+  text             String       @db.Text
+  originalCategory String       @map("original_category")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  tags             PromptTag[]
+  votes            PromptVote[]
+
+  @@map("prompts")
+}
+
+model PromptTag {
+  id       String @id @default(cuid())
+  promptId String @map("prompt_id")
+  tag      String
+  prompt   Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, tag])
+  @@index([tag])
+  @@map("prompt_tags")
+}
+
+model PromptVote {
+  id              String        @id @default(cuid())
+  promptId        String        @map("prompt_id")
+  discordUserId   String        @map("discord_user_id")
+  discordUsername  String        @map("discord_username")
+  vote            VoteDirection
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  prompt          Prompt        @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, discordUserId])
+  @@index([discordUserId])
+  @@map("prompt_votes")
+}
