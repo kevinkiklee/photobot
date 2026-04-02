@@ -100,7 +100,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt not found' }, { status: 404 });
     }
 
-    if (prompt.submittedBy !== session.discordUserId) {
+    const isOwner = prompt.submittedBy === session.discordUserId;
+    if (!isOwner && !session.isAdmin) {
       return NextResponse.json({ error: 'You can only edit your own prompts' }, { status: 403 });
     }
 
