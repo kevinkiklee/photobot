@@ -125,6 +125,11 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
               )}
               <div className="flex-1" />
               <div className="flex items-center gap-2 shrink-0">
+                {isUserSubmitted && (
+                  <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
+                    User submission
+                  </span>
+                )}
                 {isUserSubmitted && isAdmin && (
                   <span className="text-xs text-brand-accent/70">by {submittedByUsername}</span>
                 )}
@@ -154,11 +159,6 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
                 </button>
               )}
               <div className="flex-1" />
-              {isUserSubmitted && (
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
-                  User submission
-                </span>
-              )}
               <TagVotes
                 promptId={id}
                 tags={tags}
