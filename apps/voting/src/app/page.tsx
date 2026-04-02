@@ -8,6 +8,8 @@ import { SearchInput } from '@/components/SearchInput';
 import { SortSelect } from '@/components/SortSelect';
 import { Pagination } from '@/components/Pagination';
 import { AnonymityBanner } from '@/components/AnonymityBanner';
+import { AdminStatsBar } from '@/components/AdminView';
+import { getAdminStats } from '@/lib/admin';
 
 export default async function HomePage({
   searchParams,
@@ -24,12 +26,14 @@ export default async function HomePage({
   };
 
   const data = await fetchPrompts(params, session?.discordUserId || undefined);
+  const adminStats = session?.isAdmin ? await getAdminStats() : null;
 
   return (
     <div className="min-h-screen mesh-dark dark:mesh-dark mesh-light">
       <Header />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
         <AnonymityBanner />
+        {adminStats && <AdminStatsBar stats={adminStats} />}
 
         <div className="flex flex-col sm:flex-row sm:items-end gap-4">
           <div className="flex-1">

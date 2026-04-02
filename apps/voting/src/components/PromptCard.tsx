@@ -2,6 +2,7 @@
 
 import { TAG_COLORS } from './TagFilter';
 import { VoteButton } from './VoteButton';
+import { VoterDetail } from './AdminView';
 
 interface PromptCardProps {
   id: string;
@@ -47,6 +48,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
           </>
         )}
       </div>
+      {isAdmin && <div className="mt-3 pt-3 border-t border-subtle"><VoterDetail promptId={id} /></div>}
     </div>
   );
 }
