@@ -1,0 +1,216 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  output        = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth Models
+model Account {
+  id                String  @id @default(uuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+enum TargetType {
+  SERVER
+  ROLE
+  CHANNEL
+}
+
+model FeatureConfig {
+  id         String     @id @default(uuid())
+  serverId   String     @map("server_id")
+  targetType TargetType @map("target_type")
+  targetId   String     @map("target_id") // Discord ID of server, role, or channel
+  featureKey String     @map("feature_key")
+  isEnabled  Boolean    @default(true) @map("is_enabled")
+  settings   Json?      @default("{}")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@unique([serverId, targetType, targetId, featureKey])
+  @@map("feature_configs")
+}
+
+model ConfigAuditLog {
+  id         String     @id @default(uuid())
+  serverId   String     @map("server_id")
+  userId     String     @map("user_id")
+  action     String
+  targetType TargetType @map("target_type")
+  targetId   String     @map("target_id")
+  featureKey String     @map("feature_key")
+  oldValue   Json?      @map("old_value")
+  newValue   Json?      @map("new_value")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@map("config_audit_logs")
+}
+
+model UserUsageMetric {
+  userId        String   @id @map("user_id")
+  lastActive    DateTime @default(now()) @map("last_active")
+  totalCommands Int      @default(0) @map("total_commands")
+  rateLimitHits Int      @default(0) @map("rate_limit_hits")
+  securityFlags Json     @default("{}") @map("security_flags")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("user_usage_metrics")
+}
+
+model DiscussionSchedule {
+  id             String   @id @default(cuid())
+  serverId       String   @map("server_id")
+  channelId      String   @map("channel_id")
+  days           Json // Array of day numbers: 0=Sun..6=Sat
+  timeUtc        String   @map("time_utc") // e.g. "14:00"
+  timezone       String   @default("UTC") // IANA timezone for display
+  categoryFilter String?  @map("category_filter")
+  useAi          Boolean  @default(false) @map("use_ai")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdBy      String   @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([serverId, channelId])
+  @@map("discussion_schedules")
+}
+
+enum AIGrantType {
+  ROLE
+  USER
+}
+
+model AIAccessGrant {
+  id        String      @id @default(uuid())
+  serverId  String      @map("server_id")
+  grantType AIGrantType @map("grant_type")
+  targetId  String      @map("target_id") // Discord role ID or user ID
+  grantedBy String      @map("granted_by") // Discord user ID of the admin who granted
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@unique([serverId, grantType, targetId])
+  @@map("ai_access_grants")
+}
+
+model DiscussionPromptLog {
+  id         String   @id @default(cuid())
+  serverId   String   @map("server_id")
+  channelId  String   @map("channel_id")
+  promptText String   @map("prompt_text")
+  category   String
+  source     String // "curated" or "ai"
+  threadId   String?  @map("thread_id")
+  postedAt   DateTime @default(now()) @map("posted_at")
+
+  @@index([serverId, postedAt])
+  @@map("discussion_prompt_logs")
+}
+
+enum VoteDirection {
+  UP
+  DOWN
+}
+
+model Prompt {
+  id                  String                @id @default(cuid())
+  text                String                @db.Text
+  originalCategory    String                @map("original_category")
+  submittedBy         String?               @map("submitted_by") // Discord user ID, null for seeded prompts
+  submittedByUsername String?               @map("submitted_by_username")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  tags                PromptTag[]
+  votes               PromptVote[]
+  duplicateFlags      PromptDuplicateFlag[]
+
+  @@map("prompts")
+}
+
+model PromptTag {
+  id       String @id @default(cuid())
+  promptId String @map("prompt_id")
+  tag      String
+  prompt   Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, tag])
+  @@index([tag])
+  @@map("prompt_tags")
+}
+
+model PromptVote {
+  id              String        @id @default(cuid())
+  promptId        String        @map("prompt_id")
+  discordUserId   String        @map("discord_user_id")
+  discordUsername String        @map("discord_username")
+  vote            VoteDirection
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  prompt          Prompt        @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, discordUserId])
+  @@index([discordUserId])
+  @@map("prompt_votes")
+}
+
+model PromptDuplicateFlag {
+  id            String   @id @default(cuid())
+  promptId      String   @map("prompt_id")
+  discordUserId String   @map("discord_user_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  prompt        Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, discordUserId])
+  @@map("prompt_duplicate_flags")
+}
