@@ -60,7 +60,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
   return (
     <div className={`group px-3 py-1.5 rounded-lg border transition-all hover:bg-[var(--surface-elevated)] ${
       isUserSubmitted
-        ? 'border-brand-accent/15 bg-brand-accent/[0.02]'
+        ? 'border-brand-accent/30 bg-brand-accent/[0.06] border-l-[3px] border-l-brand-accent/60'
         : 'border-[var(--border-subtle)] bg-[var(--bg-card)]'
     }`}>
       {/* Row 1: Prompt text */}
