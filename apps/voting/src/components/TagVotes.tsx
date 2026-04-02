@@ -111,7 +111,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
               <button
                 onClick={() => handleVote(tag, 'REMOVE')}
                 disabled={loadingTag === tag}
-                className="ml-0.5 hidden group-hover:inline-flex opacity-60 hover:opacity-100 transition-opacity"
+                className="ml-0.5 opacity-40 hover:opacity-100 transition-opacity"
                 title={userVotedRemove ? 'Undo remove vote' : 'Vote to remove this tag'}
               >
                 {loadingTag === tag ? <Spinner className="w-2.5 h-2.5" /> : <LucideX className="w-2.5 h-2.5" />}
