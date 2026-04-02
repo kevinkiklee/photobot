@@ -2,40 +2,78 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { ThemeToggle } from './ThemeToggle';
 import { LoginButton } from './LoginButton';
-import { LucideCamera } from 'lucide-react';
+import { SignOutButton } from './SignOutButton';
+import { prisma } from '@photobot/db';
 import Link from 'next/link';
 
+async function getHeaderStats() {
+  const [promptCount, voteCount] = await Promise.all([
+    prisma.prompt.count(),
+    prisma.promptVote.count(),
+  ]);
+  return { promptCount, voteCount };
+}
+
 export async function Header() {
-  const session = await getServerSession(authOptions);
+  const [session, stats] = await Promise.all([
+    getServerSession(authOptions),
+    getHeaderStats(),
+  ]);
 
   return (
-    <header className="glass border-b border-subtle sticky top-0 z-30">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+    <header className="glass border-b border-subtle sticky top-0 z-30 animate-slide-down">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="p-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 group-hover:bg-brand-primary/20 transition-colors">
-              <LucideCamera className="w-4 h-4 text-brand-primary" strokeWidth={1.5} />
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center text-xs font-bold text-[#0a0a0a] glow-logo transition-transform group-hover:scale-105">
+              P
             </div>
-            <span className="font-display text-lg text-primary">Prompt Voting</span>
+            <div className="hidden sm:block">
+              <div className="text-sm font-semibold text-primary leading-none tracking-tight">Prompt Voting</div>
+              <div className="text-[10px] text-muted leading-tight">Photography Lounge</div>
+            </div>
           </Link>
-          {session?.isAdmin && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20">
-              Admin
-            </span>
-          )}
         </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          {session ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted hidden sm:block">{session.discordUsername}</span>
-              <div className="w-7 h-7 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-xs font-medium text-brand-primary">
-                {(session.discordUsername || '?')[0].toUpperCase()}
-              </div>
+
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:flex items-center gap-3 text-center">
+            <div>
+              <div className="text-sm font-semibold text-primary tabular-nums">{stats.promptCount}</div>
+              <div className="text-[9px] text-muted uppercase tracking-widest">prompts</div>
             </div>
-          ) : (
-            <LoginButton />
-          )}
+            <div className="w-px h-5 bg-[var(--border-subtle)]" />
+            <div>
+              <div className="text-sm font-semibold text-primary tabular-nums">{stats.voteCount}</div>
+              <div className="text-[9px] text-muted uppercase tracking-widest">votes</div>
+            </div>
+          </div>
+
+          <div className="w-px h-5 bg-[var(--border-subtle)] hidden sm:block" />
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {session ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted hidden sm:block">{session.discordUsername}</span>
+                {session.isAdmin && (
+                  <>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20">
+                      Admin
+                    </span>
+                    <a
+                      href="/api/admin/export"
+                      className="px-1.5 py-0.5 rounded text-[9px] font-medium text-muted border border-[var(--border-subtle)] hover:text-primary hover:border-[var(--border-default)] transition-all"
+                    >
+                      Export JSON
+                    </a>
+                  </>
+                )}
+                <SignOutButton />
+              </div>
+            ) : (
+              <LoginButton />
+            )}
+          </div>
         </div>
       </div>
     </header>

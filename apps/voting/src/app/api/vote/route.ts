@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { handleVote } from '@/lib/vote';
 
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 60;
+const RATE_LIMIT = 20;
 
 function checkRateLimit(userId: string): boolean {
   const now = Date.now();
@@ -32,16 +32,23 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { promptId, direction } = body;
 
-  if (!promptId || !['UP', 'DOWN'].includes(direction)) {
+  if (!promptId || typeof promptId !== 'string' || promptId.length > 50) {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  }
+  if (!['UP', 'DOWN'].includes(direction)) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 
-  const result = await handleVote(
-    promptId,
-    session.discordUserId,
-    session.discordUsername || 'Unknown',
-    direction,
-  );
+  try {
+    const result = await handleVote(
+      promptId,
+      session.discordUserId,
+      session.discordUsername || 'Unknown',
+      direction,
+    );
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch {
+    return NextResponse.json({ error: 'Vote failed' }, { status: 500 });
+  }
 }

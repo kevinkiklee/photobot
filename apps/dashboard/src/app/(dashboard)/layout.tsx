@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getAdminGuilds } from "@/lib/discord";
+import { getAdminGuilds, DiscordTokenExpiredError } from "@/lib/discord";
 import { ServerPopover } from "@/components/ServerPopover";
 import { MobileNav } from "@/components/MobileNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -18,7 +18,15 @@ export default async function DashboardLayout({
     redirect("/");
   }
 
-  const adminGuilds = await getAdminGuilds(session.accessToken as string);
+  let adminGuilds;
+  try {
+    adminGuilds = await getAdminGuilds(session.accessToken as string);
+  } catch (e) {
+    if (e instanceof DiscordTokenExpiredError) {
+      redirect("/api/auth/signin");
+    }
+    throw e;
+  }
 
   return (
     <div className="min-h-screen mesh-dark dark:mesh-dark mesh-light">

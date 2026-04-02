@@ -1,5 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../lib/auth";
+import { getBotAdminGuilds, DiscordTokenExpiredError } from "../lib/discord";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { LucideSettings, LucideScrollText } from "lucide-react";
 
@@ -15,49 +17,7 @@ export async function ServerSelector() {
   }
 
   try {
-    const response = await fetch("https://discord.com/api/users/@me/guilds", {
-      headers: {
-        Authorization: `Bearer ${(session as any).accessToken}`,
-      },
-      next: { revalidate: 3600 },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return (
-          <div className="text-red-400 p-12 border border-red-500/20 bg-red-500/5 rounded-2xl text-center backdrop-blur-sm">
-            <p className="font-display text-lg mb-2">Session Expired</p>
-            <p className="text-sm opacity-80">Please log out and log in again.</p>
-          </div>
-        );
-      }
-      return (
-        <div className="text-red-400 p-12 border border-red-500/20 bg-red-500/5 rounded-2xl text-center backdrop-blur-sm">
-          <p className="font-display text-lg mb-2">Connection Error</p>
-          <p className="text-sm opacity-80">Failed to fetch servers from Discord ({response.status}).</p>
-        </div>
-      );
-    }
-
-    const guilds: Array<{
-      id: string;
-      name: string;
-      icon: string | null;
-      permissions: string;
-      owner: boolean;
-    }> = await response.json();
-
-    const MANAGE_GUILD = BigInt(0x20);
-    const ADMINISTRATOR = BigInt(0x8);
-
-    const manageableGuilds = guilds.filter((guild) => {
-      const permissions = BigInt(guild.permissions);
-      return (
-        guild.owner ||
-        (permissions & MANAGE_GUILD) === MANAGE_GUILD ||
-        (permissions & ADMINISTRATOR) === ADMINISTRATOR
-      );
-    });
+    const manageableGuilds = await getBotAdminGuilds((session as any).accessToken);
 
     if (manageableGuilds.length === 0) {
       return (
@@ -95,7 +55,7 @@ export async function ServerSelector() {
                   {guild.name}
                 </h3>
                 <p className="text-xs text-muted mt-0.5">
-                  {guild.owner ? "Owner" : "Administrator"}
+                  {guild.owner ? 'Owner' : 'Administrator'}
                 </p>
               </div>
             </div>
@@ -121,7 +81,9 @@ export async function ServerSelector() {
       </div>
     );
   } catch (error) {
-    console.error("Error fetching guilds:", error);
+    if (error instanceof DiscordTokenExpiredError) {
+      redirect("/api/auth/signin");
+    }
     return (
       <div className="text-red-400 p-12 border border-red-500/20 bg-red-500/5 rounded-2xl text-center backdrop-blur-sm">
         <p className="font-display text-lg mb-2">Something Went Wrong</p>

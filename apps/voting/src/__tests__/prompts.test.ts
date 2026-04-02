@@ -60,7 +60,7 @@ describe('fetchPrompts', () => {
 
     expect(prisma.prompt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: { text: 'asc' },
+        orderBy: [{ submittedBy: { sort: 'desc', nulls: 'last' } }, { text: 'asc' }],
       })
     );
   });

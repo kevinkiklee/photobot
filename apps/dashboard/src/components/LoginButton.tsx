@@ -1,14 +1,35 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 
 export function LoginButton() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     setIsLoading(true);
-    signIn('discord');
+    // Fetch the CSRF token, then POST to initiate the Discord OAuth flow.
+    // NextAuth requires a POST with the CSRF token to start the sign-in.
+    const res = await fetch('/api/auth/csrf');
+    const { csrfToken } = await res.json();
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api/auth/signin/discord';
+
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfToken';
+    csrfInput.value = csrfToken;
+    form.appendChild(csrfInput);
+
+    const callbackInput = document.createElement('input');
+    callbackInput.type = 'hidden';
+    callbackInput.name = 'callbackUrl';
+    callbackInput.value = '/';
+    form.appendChild(callbackInput);
+
+    document.body.appendChild(form);
+    form.submit();
   };
 
   return (

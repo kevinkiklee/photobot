@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, JetBrains_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
-const display = DM_Serif_Display({ weight: "400", subsets: ["latin"], variable: "--font-display" });
-const body = DM_Sans({ subsets: ["latin"], variable: "--font-body" });
+const body = Inter({ subsets: ["latin"], variable: "--font-body" });
+const display = DM_Sans({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-display" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "Photobot — Prompt Voting",
-  description: "Vote on discussion prompts for the Photography Lounge community",
+  description: "Vote on discussion prompts for the Photobot community",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

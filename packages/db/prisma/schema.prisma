@@ -171,6 +171,7 @@ model Prompt {
   createdAt           DateTime     @default(now()) @map("created_at")
   tags                PromptTag[]
   votes               PromptVote[]
+  duplicateFlags      PromptDuplicateFlag[]
 
   @@map("prompts")
 }
@@ -199,4 +200,15 @@ model PromptVote {
   @@unique([promptId, discordUserId])
   @@index([discordUserId])
   @@map("prompt_votes")
+}
+
+model PromptDuplicateFlag {
+  id            String   @id @default(cuid())
+  promptId      String   @map("prompt_id")
+  discordUserId String   @map("discord_user_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  prompt        Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, discordUserId])
+  @@map("prompt_duplicate_flags")
 }

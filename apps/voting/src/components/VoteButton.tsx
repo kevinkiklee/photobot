@@ -14,28 +14,18 @@ interface VoteButtonProps {
 
 export function VoteButton({ promptId, direction, count, active, disabled, onVote }: VoteButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [optimisticCount, setOptimisticCount] = useState(count);
-  const [optimisticActive, setOptimisticActive] = useState(active);
 
   const Icon = direction === 'UP' ? LucideThumbsUp : LucideThumbsDown;
   const colorActive = direction === 'UP'
-    ? 'bg-green-500/15 border-green-500/30 text-green-400'
-    : 'bg-red-500/15 border-red-500/30 text-red-400';
-  const colorInactive = 'bg-transparent border-subtle text-muted hover:text-secondary hover:border-brand-primary/20';
+    ? 'bg-green-500/15 border-green-500/25 text-green-400'
+    : 'bg-red-500/15 border-red-500/25 text-red-400';
+  const colorInactive = 'bg-transparent border-[var(--border-subtle)] text-muted hover:text-secondary hover:border-[var(--border-default)]';
 
   const handleClick = async () => {
     if (disabled || loading) return;
     setLoading(true);
-
-    const wasActive = optimisticActive;
-    setOptimisticActive(!wasActive);
-    setOptimisticCount(wasActive ? optimisticCount - 1 : optimisticCount + 1);
-
     try {
       await onVote(promptId, direction);
-    } catch {
-      setOptimisticActive(wasActive);
-      setOptimisticCount(count);
     } finally {
       setLoading(false);
     }
@@ -46,12 +36,12 @@ export function VoteButton({ promptId, direction, count, active, disabled, onVot
       onClick={handleClick}
       disabled={disabled || loading}
       title={disabled ? 'Sign in to vote' : direction === 'UP' ? 'Upvote' : 'Downvote'}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 justify-center ${
-        optimisticActive ? colorActive : colorInactive
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border transition-all ${
+        active ? colorActive : colorInactive
+      } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
     >
-      <Icon className="w-3.5 h-3.5" strokeWidth={1.5} />
-      <span>{optimisticCount}</span>
+      <Icon className="w-3 h-3" strokeWidth={1.5} />
+      <span className="tabular-nums">{count}</span>
     </button>
   );
 }

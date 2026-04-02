@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { fetchPrompts } from '@/lib/prompts';
@@ -8,9 +9,9 @@ import { SearchInput } from '@/components/SearchInput';
 import { SortSelect } from '@/components/SortSelect';
 import { Pagination } from '@/components/Pagination';
 import { AnonymityBanner } from '@/components/AnonymityBanner';
-import { AdminStatsBar } from '@/components/AdminView';
-import { SubmitPrompt } from '@/components/SubmitPrompt';
-import { getAdminStats } from '@/lib/admin';
+import { SubmitPromptProvider, SubmitButton, SubmitPanel } from '@/components/SubmitPromptWrapper';
+
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage({
   searchParams,
@@ -21,43 +22,60 @@ export default async function HomePage({
 
   const params = {
     page: parseInt(searchParams.page || '1', 10),
-    sort: (searchParams.sort || 'approval') as 'approval' | 'votes' | 'alphabetical',
+    sort: (searchParams.sort || 'default') as 'default' | 'approval' | 'votes' | 'alphabetical',
     tags: searchParams.tags?.split(',').filter(Boolean),
     q: searchParams.q,
   };
 
-  const data = await fetchPrompts(params, session?.discordUserId || undefined);
-  const adminStats = session?.isAdmin ? await getAdminStats() : null;
+  const data = await fetchPrompts(params, session?.discordUserId || undefined, !!session?.isAdmin);
 
   return (
-    <div className="min-h-screen mesh-dark dark:mesh-dark mesh-light">
+    <div className="min-h-screen">
       <Header />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-5 space-y-4 page-enter">
         <AnonymityBanner />
-        {adminStats && <AdminStatsBar stats={adminStats} />}
 
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-          <div className="flex-1">
-            <SearchInput />
-          </div>
-          <SortSelect />
-          <SubmitPrompt isAuthenticated={!!session} />
-        </div>
+        <SubmitPromptProvider isAuthenticated={!!session}>
+          <Suspense>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1">
+                <SearchInput />
+              </div>
+              <SortSelect />
+              <SubmitButton />
+            </div>
+          </Suspense>
 
-        <TagFilter />
+          <SubmitPanel />
 
-        <div className="text-xs text-muted">
-          {data.totalCount} prompt{data.totalCount !== 1 ? 's' : ''} found
+          <Suspense>
+            <TagFilter />
+          </Suspense>
+        </SubmitPromptProvider>
+
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted">
+            {data.totalCount} prompt{data.totalCount !== 1 ? 's' : ''}
+          </span>
+          <Suspense>
+            <Pagination page={data.page} totalPages={data.totalPages} />
+          </Suspense>
         </div>
 
         <PromptList
+          key={`${searchParams.q ?? ''}-${searchParams.sort ?? ''}-${searchParams.tags ?? ''}-${searchParams.page ?? ''}`}
           prompts={data.prompts}
           userVotes={data.userVotes}
           isAuthenticated={!!session}
           isAdmin={!!session?.isAdmin}
+          currentUserId={session?.discordUserId || null}
         />
 
-        <Pagination page={data.page} totalPages={data.totalPages} />
+        <div className="flex justify-end">
+          <Suspense>
+            <Pagination page={data.page} totalPages={data.totalPages} />
+          </Suspense>
+        </div>
       </main>
     </div>
   );

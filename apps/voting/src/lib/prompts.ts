@@ -2,7 +2,7 @@ import { prisma } from '@photobot/db';
 
 const PAGE_SIZE = 20;
 
-export type SortOption = 'approval' | 'votes' | 'alphabetical';
+export type SortOption = 'default' | 'approval' | 'votes' | 'alphabetical';
 
 export interface PromptQueryParams {
   page?: number;
@@ -19,7 +19,10 @@ export interface PromptWithVotes {
   upvotes: number;
   downvotes: number;
   approvalPct: number;
+  submittedBy: string | null;
   submittedByUsername: string | null;
+  duplicateCount: number;
+  userFlaggedDuplicate: boolean;
 }
 
 export interface PromptPage {
@@ -32,6 +35,7 @@ export interface PromptPage {
 export async function fetchPrompts(
   params: PromptQueryParams,
   discordUserId?: string,
+  isAdmin?: boolean,
 ): Promise<PromptPage & { userVotes: Record<string, 'UP' | 'DOWN'> }> {
   const page = Math.max(1, params.page || 1);
   const skip = (page - 1) * PAGE_SIZE;
@@ -42,13 +46,13 @@ export async function fetchPrompts(
     where.tags = { some: { tag: { in: params.tags } } };
   }
 
-  if (params.q) {
+  if (params.q && params.q.length <= 200) {
     where.text = { contains: params.q, mode: 'insensitive' };
   }
 
-  let orderBy: any = { createdAt: 'asc' };
+  let orderBy: any = [{ submittedBy: { sort: 'desc', nulls: 'last' } }, { createdAt: 'asc' }];
   if (params.sort === 'alphabetical') {
-    orderBy = { text: 'asc' };
+    orderBy = [{ submittedBy: { sort: 'desc', nulls: 'last' } }, { text: 'asc' }];
   }
 
   const [prompts, totalCount] = await Promise.all([
@@ -57,6 +61,7 @@ export async function fetchPrompts(
       include: {
         tags: { select: { tag: true } },
         votes: { select: { vote: true, discordUserId: true } },
+        duplicateFlags: { select: { discordUserId: true } },
       },
       take: PAGE_SIZE,
       skip,
@@ -86,7 +91,10 @@ export async function fetchPrompts(
       upvotes,
       downvotes,
       approvalPct,
-      submittedByUsername: p.submittedByUsername || null,
+      submittedBy: isAdmin ? (p.submittedBy || null) : (p.submittedBy ? 'community' : null),
+      submittedByUsername: isAdmin ? (p.submittedByUsername || null) : null,
+      duplicateCount: p.duplicateFlags.length,
+      userFlaggedDuplicate: discordUserId ? p.duplicateFlags.some((f: any) => f.discordUserId === discordUserId) : false,
     };
   });
 

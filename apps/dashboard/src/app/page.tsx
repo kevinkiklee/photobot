@@ -1,32 +1,8 @@
-import { Suspense } from 'react';
 import { LucideCamera, LucideSparkles, LucidePalette, LucideShield } from "lucide-react";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../lib/auth";
 import { ServerSelector } from "../components/ServerSelector";
 import { LoginButton } from "../components/LoginButton";
-import { Skeleton } from "../components/Skeleton";
-
-function ServerCardsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 w-full stagger">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="animate-fade-up p-5 rounded-2xl border border-subtle bg-card/50">
-          <div className="flex items-center gap-4 mb-5">
-            <Skeleton className="w-12 h-12 rounded-xl" />
-            <div>
-              <Skeleton className="h-4 w-28 mb-2" />
-              <Skeleton className="h-3 w-16" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Skeleton className="h-8 rounded-lg" />
-            <Skeleton className="h-8 rounded-lg" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
@@ -108,9 +84,7 @@ export default async function Home() {
                 )}
               </div>
             </div>
-            <Suspense fallback={<ServerCardsSkeleton />}>
-              <ServerSelector />
-            </Suspense>
+            <ServerSelector />
           </div>
         )}
       </div>

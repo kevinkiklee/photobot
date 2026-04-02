@@ -26,6 +26,7 @@ and server-level feature management through an admin dashboard.
 - **Admin Dashboard** -- Web-based feature management with Discord OAuth, audit logging, and schedule management
 - **Bouncer Security** -- Two-layer AI moderation, EXIF metadata stripping, shadow rate limiting
 - **Hierarchical Permissions** -- Channel > Role > Server specificity with "Allow Wins" conflict resolution
+- **Prompt Voting Site** -- Community tool for members to upvote/downvote discussion prompts, with admin oversight
 
 ## Commands
 
@@ -59,7 +60,7 @@ cp .env.example .env   # Edit with your Discord credentials
 pnpm dev:local         # Starts Docker, runs migrations, launches everything
 ```
 
-Dashboard at `http://localhost:3100`. Bot connects to Discord automatically.
+Dashboard at `http://localhost:3100`. Voting site at `http://localhost:3200`. Bot connects to Discord automatically.
 
 > **Prerequisites:** Node.js 20+, pnpm 8+, Docker, and a [Discord Application](https://discord.com/developers/applications) with bot token.
 
@@ -71,7 +72,8 @@ For step-by-step setup including Discord app creation and OAuth2 configuration, 
 photobot/
 ├── apps/
 │   ├── bot/                 Discord.js bot (commands, bouncer, permissions)
-│   └── dashboard/           Next.js 14 admin panel (NextAuth, feature toggles, audit logs)
+│   ├── dashboard/           Next.js 14 admin panel (NextAuth, feature toggles, audit logs)
+│   └── voting/              Next.js 14 community prompt voting site
 ├── packages/
 │   ├── ai/                  Provider-agnostic AI wrapper (Gemini / Ollama)
 │   └── db/                  Prisma schema and client
@@ -92,6 +94,7 @@ photobot/
 | `pnpm db <cmd>` | Database ops: `push`, `reset`, `studio`, `seed`, `migrate` |
 | `pnpm dev:down` | Stop Docker services |
 | `pnpm cleanup` | Stop containers and remove build artifacts |
+| `pnpm seed:prompts` | Seed discussion prompts into DB (requires `DATABASE_URL`) |
 
 ## Tech Stack
 
@@ -99,6 +102,7 @@ photobot/
 |-------|-----------|
 | Bot | discord.js 14, Sharp, dotenv |
 | Dashboard | Next.js 14 (App Router), NextAuth 4, Tailwind CSS |
+| Voting | Next.js 14 (App Router), NextAuth 4, Tailwind CSS |
 | Database | Prisma 5 on Supabase Postgres |
 | AI | Google Gemini (prod), Ollama (local dev) |
 | Testing | Vitest |
@@ -110,6 +114,7 @@ photobot/
 |---------|----------|
 | Bot | [Railway](https://railway.app/) (persistent process) |
 | Dashboard | [Vercel](https://vercel.com/) (serverless) |
+| Voting Site | [Vercel](https://vercel.com/) (serverless, separate project) |
 | Database | [Supabase](https://supabase.com/) (managed Postgres) |
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed instructions.

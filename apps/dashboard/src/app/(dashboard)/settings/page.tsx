@@ -1,7 +1,7 @@
 import { prisma } from '@photobot/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { getAdminGuilds } from '@/lib/discord';
+import { getAdminGuilds, DiscordTokenExpiredError } from '@/lib/discord';
 import { FeatureToggle } from '@/components/feature-toggle';
 import { LucideSparkles, LucidePalette, LucideSettings, LucideInfo, LucideMessageSquare } from 'lucide-react';
 
@@ -33,7 +33,16 @@ export default async function SettingsPage({
   const serverId = searchParams.serverId;
 
   if (serverId) {
-    const adminGuilds = await getAdminGuilds(session?.accessToken as string);
+    let adminGuilds;
+    try {
+      adminGuilds = await getAdminGuilds(session?.accessToken as string);
+    } catch (e) {
+      if (e instanceof DiscordTokenExpiredError) {
+        const { redirect } = await import('next/navigation');
+        redirect('/api/auth/signin');
+      }
+      throw e;
+    }
     if (!adminGuilds.some(g => g.id === serverId)) {
       return <div className="p-8 text-red-400">Access Denied: You are not an admin of this server.</div>;
     }
