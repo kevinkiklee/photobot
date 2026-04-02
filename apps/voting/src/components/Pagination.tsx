@@ -50,7 +50,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
         <button
           key={p}
           onClick={() => goTo(p)}
-          className={`w-7 h-7 rounded-md text-xs font-medium transition-all ${
+          className={`w-7 h-7 rounded-md text-xs font-medium transition-all inline-flex items-center justify-center ${
             p === page
               ? 'bg-[var(--surface-elevated)] text-primary border border-[var(--border-subtle)]'
               : 'text-muted hover:text-primary hover:bg-[var(--surface-elevated)]'
