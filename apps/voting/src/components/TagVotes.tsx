@@ -105,7 +105,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
           >
             {tag}
             {removeCount > 0 && (
-              <span className="text-[9px] opacity-60 ml-0.5">-{removeCount}</span>
+              <span className="text-[10px] text-red-400/80 ml-0.5 font-semibold">-{removeCount}</span>
             )}
             {isAuthenticated && (
               <button
