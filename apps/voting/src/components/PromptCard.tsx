@@ -153,6 +153,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
                   {userFlaggedDuplicate ? 'Marked duplicate' : 'Mark duplicate'}
                 </button>
               )}
+              <div className="flex-1" />
               {isUserSubmitted && (
                 <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
                   User submission

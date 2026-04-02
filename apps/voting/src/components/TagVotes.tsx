@@ -58,6 +58,38 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
 
   return (
     <div className="flex flex-wrap items-center gap-1">
+      {/* Suggest a new tag button */}
+      {isAuthenticated && availableToSuggest.length > 0 && (
+        <div className="relative" ref={suggestRef}>
+          <button
+            onClick={() => setShowSuggest(!showSuggest)}
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] text-muted border border-dashed border-[var(--border-subtle)] hover:text-secondary hover:border-[var(--border-default)] transition-all"
+            title="Suggest a tag"
+          >
+            <LucidePlus className="w-2.5 h-2.5" />
+          </button>
+
+          {showSuggest && (
+            <div className="absolute left-0 top-full mt-1 z-40 w-56 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-page)] shadow-lg shadow-black/20 animate-scale-in p-2 space-y-1">
+              <p className="text-[10px] text-muted px-1 mb-1">Suggest a tag:</p>
+              <div className="flex flex-wrap gap-1">
+                {availableToSuggest.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => { handleVote(tag, 'ADD'); setShowSuggest(false); }}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all ${
+                      TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'
+                    } hover:opacity-80`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Existing tags with remove vote */}
       {tags.map(tag => {
         const votes = tagVotes[tag];
@@ -114,37 +146,6 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
         );
       })}
 
-      {/* Suggest a new tag button */}
-      {isAuthenticated && availableToSuggest.length > 0 && (
-        <div className="relative" ref={suggestRef}>
-          <button
-            onClick={() => setShowSuggest(!showSuggest)}
-            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] text-muted border border-dashed border-[var(--border-subtle)] hover:text-secondary hover:border-[var(--border-default)] transition-all"
-            title="Suggest a tag"
-          >
-            <LucidePlus className="w-2.5 h-2.5" />
-          </button>
-
-          {showSuggest && (
-            <div className="absolute left-0 top-full mt-1 z-40 w-56 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-page)] shadow-lg shadow-black/20 animate-scale-in p-2 space-y-1">
-              <p className="text-[10px] text-muted px-1 mb-1">Suggest a tag:</p>
-              <div className="flex flex-wrap gap-1">
-                {availableToSuggest.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => { handleVote(tag, 'ADD'); setShowSuggest(false); }}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all ${
-                      TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'
-                    } hover:opacity-80`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
