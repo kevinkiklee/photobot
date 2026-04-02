@@ -4,14 +4,15 @@ How to deploy Photobot to production and manage releases.
 
 ## Architecture Overview
 
-| Component | Platform | Purpose |
-|-----------|----------|---------|
-| **Bot** | Railway | Persistent Discord.js process |
-| **Dashboard** | Vercel | Next.js admin panel (serverless) |
-| **Database** | Supabase | Managed Postgres |
-| **AI** | Google Gemini API | Image analysis (production) |
+| Component | Platform | Purpose | URL |
+|-----------|----------|---------|-----|
+| **Bot** | Railway | Persistent Discord.js process | — |
+| **Dashboard** | Vercel | Next.js admin panel (serverless) | `bot-dashboard.pl.iser.io` |
+| **Voting Site** | Vercel | Next.js prompt voting (serverless) | `discussion-prompts.pl.iser.io` |
+| **Database** | Supabase | Managed Postgres (PgBouncer pooling) | — |
+| **AI** | Google Gemini API | Image analysis (production) | — |
 
-All three services share a single Supabase Postgres database via `DATABASE_URL`.
+All services share a single Supabase Postgres database via `DATABASE_URL` (pooled connection on port 6543).
 
 ```
                     ┌──────────────┐
@@ -19,12 +20,12 @@ All three services share a single Supabase Postgres database via `DATABASE_URL`.
                     │  (Postgres)  │
                     └──────┬───────┘
                            │
-              ┌────────────┼────────────┐
-              │            │            │
-     ┌────────▼───┐  ┌────▼─────┐  ┌──▼───────────┐
-     │  Railway   │  │  Vercel  │  │  Gemini API  │
-     │   (Bot)    │  │(Dashboard│  │  (AI Vision) │
-     └────────────┘  └──────────┘  └──────────────┘
+         ┌─────────────────┼─────────────────┐
+         │                 │                 │
+┌────────▼───┐  ┌─────────▼──────────┐  ┌──▼───────────┐
+│  Railway   │  │      Vercel        │  │  Gemini API  │
+│   (Bot)    │  │ Dashboard + Voting │  │  (AI Vision) │
+└────────────┘  └────────────────────┘  └──────────────┘
 ```
 
 ---
@@ -73,21 +74,23 @@ DATABASE_URL="postgresql://postgres:PASSWORD@db.YOURPROJECT.supabase.co:5432/pos
 
 ## 2. Dashboard (Vercel)
 
+**Vercel project:** `pl-bot-dashboard` | **Domain:** `bot-dashboard.pl.iser.io`
+
 ### Initial Setup
 
-1. Import the repo in Vercel.
-2. Set the **Root Directory** to `apps/dashboard`.
-3. Set **Framework Preset** to Next.js.
-4. Set the **Build Command** to:
-   ```
-   cd ../.. && pnpm install && pnpm --filter @photobot/db build && pnpm --filter @photobot/dashboard build
-   ```
-   This builds the shared `@photobot/db` package before the dashboard.
-5. Set the **Output Directory** to `.next` (default).
-6. Set the **Install Command** to:
-   ```
-   cd ../.. && pnpm install
-   ```
+Both the dashboard and voting site use the same monorepo deployment pattern:
+
+1. Create a Vercel project with `vercel link --project pl-bot-dashboard`.
+2. Set the **Root Directory** to `apps/dashboard` in project settings.
+3. Each app has a `vercel.json` that configures:
+   - `installCommand`: `cd ../.. && pnpm install`
+   - `buildCommand`: `bash scripts/build.sh`
+   - `framework`: `nextjs`
+4. The `scripts/build.sh` in each app:
+   - Builds the Prisma client (`@photobot/db`)
+   - Builds the Next.js app
+   - Patches `.nft.json` trace files to include the Prisma engine binary for serverless
+5. `next.config.mjs` sets `outputFileTracingRoot` to the monorepo root for proper file tracing.
 
 ### Environment Variables
 
@@ -95,14 +98,12 @@ Set these in Vercel project settings (**Settings > Environment Variables**):
 
 | Variable | Value | Environments |
 |----------|-------|-------------|
-| `DISCORD_CLIENT_ID` | Your production Discord app ID | All |
-| `DISCORD_CLIENT_SECRET` | Your production Discord secret | All |
-| `NEXTAUTH_SECRET` | Random 32-byte string | All |
-| `NEXTAUTH_URL` | `https://your-domain.com` | Production |
-| `DATABASE_URL` | Supabase connection string | All |
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://YOURPROJECT.supabase.co` | All |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | From Supabase Settings > API | All |
-| `SUPABASE_SERVICE_ROLE_KEY` | From Supabase Settings > API | All |
+| `DISCORD_CLIENT_ID` | Main Discord app ID (needs `guilds` scope) | Production |
+| `DISCORD_CLIENT_SECRET` | Main Discord app secret | Production |
+| `DISCORD_TOKEN` | Bot token (for guild member lookup) | Production |
+| `NEXTAUTH_SECRET` | Random 32-byte string | Production |
+| `NEXTAUTH_URL` | `https://bot-dashboard.pl.iser.io` | Production |
+| `DATABASE_URL` | Supabase pooled connection string (port 6543) | Production |
 
 Generate `NEXTAUTH_SECRET`:
 ```bash
@@ -111,31 +112,61 @@ openssl rand -base64 32
 
 ### Deploy
 
-Vercel deploys automatically on push to `main`. To deploy manually:
+Deploy from the monorepo root (after linking to the dashboard project):
 
 ```bash
-# Preview deployment (from repo root)
-vercel
-
-# Production deployment
+vercel link --project pl-bot-dashboard
 vercel --prod
 ```
 
 ### Discord OAuth Redirect
 
-In the Discord Developer Portal, add the OAuth2 redirect URL:
+In the Discord Developer Portal (main bot app), add the OAuth2 redirect URL:
 ```
-https://your-domain.com/api/auth/callback/discord
-```
-
-For Vercel preview deployments, also add:
-```
-https://your-project-name.vercel.app/api/auth/callback/discord
+https://bot-dashboard.pl.iser.io/api/auth/callback/discord
 ```
 
 ---
 
-## 3. Bot (Railway)
+## 3. Voting Site (Vercel)
+
+**Vercel project:** `pl-discussion-voting` | **Domain:** `discussion-prompts.pl.iser.io`
+
+### Initial Setup
+
+Same monorepo pattern as the dashboard (see above). The voting app uses a separate Discord app with `identify email` scope (not `guilds`).
+
+### Environment Variables
+
+| Variable | Value | Environments |
+|----------|-------|-------------|
+| `DISCORD_CLIENT_ID` | Voting Discord app ID | Production |
+| `DISCORD_CLIENT_SECRET` | Voting Discord app secret | Production |
+| `NEXTAUTH_SECRET` | Random 32-byte string | Production |
+| `NEXTAUTH_URL` | `https://discussion-prompts.pl.iser.io` | Production |
+| `VOTING_NEXTAUTH_SECRET` | Random 32-byte string (fallback) | Production |
+| `DATABASE_URL` | Supabase pooled connection string (port 6543) | Production |
+| `VOTING_ADMIN_USER_IDS` | Comma-separated Discord user IDs | Production |
+| `VOTING_ADMIN_ROLE_IDS` | Comma-separated Discord role IDs (optional) | Production |
+| `VOTING_GUILD_ID` | Discord server ID (for role-based admin) | Production |
+
+### Deploy
+
+```bash
+vercel link --project pl-discussion-voting
+vercel --prod
+```
+
+### Discord OAuth Redirect
+
+In the Discord Developer Portal (voting app), add:
+```
+https://discussion-prompts.pl.iser.io/api/auth/callback/discord
+```
+
+---
+
+## 4. Bot (Railway)
 
 ### Initial Setup
 
@@ -180,7 +211,7 @@ The bot logs `Ready! Logged in as <tag>` on startup. Check Railway logs to confi
 
 ---
 
-## 4. Release Process
+## 5. Release Process
 
 ### Standard Release (Feature/Fix)
 
@@ -200,7 +231,8 @@ The bot logs `Ready! Logged in as <tag>` on startup. Check Railway logs to confi
    └─ Railway: check logs in dashboard
 
 5. Smoke test
-   └─ Dashboard: sign in, check feature toggles
+   └─ Dashboard: sign in at bot-dashboard.pl.iser.io, check feature toggles
+   └─ Voting: sign in at discussion-prompts.pl.iser.io, cast a vote
    └─ Bot: run a command in Discord (e.g., /discuss prompt)
 ```
 
@@ -243,13 +275,13 @@ git branch -d hotfix/description
 
 ---
 
-## 5. Environment Variable Reference
+## 6. Environment Variable Reference
 
 ### Full Production Variable List
 
 ```bash
 # ─── Shared ───
-DATABASE_URL=postgresql://postgres:PASSWORD@db.PROJECT.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres.PROJECT:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
 
 # ─── Bot (Railway) ───
 DISCORD_TOKEN=<bot-token>
@@ -257,14 +289,22 @@ DISCORD_CLIENT_ID=<app-id>
 AI_PROVIDER=gemini
 GEMINI_API_KEY=<gemini-key>
 
-# ─── Dashboard (Vercel) ───
-DISCORD_CLIENT_ID=<app-id>
-DISCORD_CLIENT_SECRET=<client-secret>
+# ─── Dashboard (Vercel: pl-bot-dashboard) ───
+DISCORD_CLIENT_ID=<main-app-id>
+DISCORD_CLIENT_SECRET=<main-app-secret>
+DISCORD_TOKEN=<bot-token>
 NEXTAUTH_SECRET=<random-32-byte-base64>
-NEXTAUTH_URL=https://your-domain.com
-NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+NEXTAUTH_URL=https://bot-dashboard.pl.iser.io
+
+# ─── Voting Site (Vercel: pl-discussion-voting) ───
+DISCORD_CLIENT_ID=<voting-app-id>
+DISCORD_CLIENT_SECRET=<voting-app-secret>
+NEXTAUTH_SECRET=<random-32-byte-base64>
+VOTING_NEXTAUTH_SECRET=<random-32-byte-base64>
+NEXTAUTH_URL=https://discussion-prompts.pl.iser.io
+VOTING_ADMIN_USER_IDS=<comma-separated-discord-user-ids>
+VOTING_ADMIN_ROLE_IDS=<comma-separated-role-ids>
+VOTING_GUILD_ID=<discord-server-id>
 ```
 
 ### Where to Find Each Value
@@ -283,7 +323,7 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 
 ---
 
-## 6. Rollback
+## 7. Rollback
 
 ### Dashboard (Vercel)
 
@@ -323,7 +363,7 @@ DATABASE_URL=<prod> npx prisma db push
 
 ---
 
-## 7. Monitoring & Troubleshooting
+## 8. Monitoring & Troubleshooting
 
 ### Dashboard
 
@@ -350,8 +390,10 @@ DATABASE_URL=<prod> npx prisma db push
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| Dashboard 500 on login | Missing or wrong `NEXTAUTH_SECRET` | Regenerate and redeploy |
-| Dashboard "Access Denied" | OAuth redirect URL not configured | Add URL in Discord Developer Portal |
+| Dashboard/Voting 500 on login | Missing or wrong `NEXTAUTH_SECRET` | Regenerate and redeploy |
+| Dashboard/Voting "Access Denied" | OAuth redirect URL not configured | Add URL in Discord Developer Portal |
+| Prisma engine not found on Vercel | NFT trace files missing engine | Check `scripts/build.sh` runs after `next build` |
+| Supabase `MaxClientsInSessionMode` | Using direct connection (port 5432) | Switch to pooled connection (port 6543 with `?pgbouncer=true`) |
 | Bot offline | Railway service stopped or crashed | Check Railway logs, redeploy |
 | Bot commands missing | `DISCORD_CLIENT_ID` mismatch | Verify env var matches Discord app |
 | "Can't reach database" | Wrong `DATABASE_URL` or Supabase paused | Check connection string; unpause project |
@@ -359,7 +401,7 @@ DATABASE_URL=<prod> npx prisma db push
 
 ---
 
-## 8. Pre-Deploy Checklist
+## 9. Pre-Deploy Checklist
 
 Use this before every production deploy:
 
@@ -367,9 +409,9 @@ Use this before every production deploy:
 - [ ] Build succeeds: `pnpm build`
 - [ ] Schema changes applied to production Supabase (if any)
 - [ ] Environment variables updated in Vercel/Railway (if any new ones)
-- [ ] Discord OAuth redirect URLs configured (if domain changed)
+- [ ] Discord OAuth redirect URLs configured for both apps (if domain changed)
 - [ ] AI access grants configured for production server (`/ai-access list`)
 - [ ] Push to `main`
-- [ ] Verify Vercel deployment succeeded
+- [ ] Verify Vercel deployments succeeded (both dashboard and voting)
 - [ ] Verify Railway deployment succeeded
-- [ ] Smoke test: dashboard login + bot command in Discord
+- [ ] Smoke test: dashboard login + voting login + bot command in Discord

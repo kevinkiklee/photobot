@@ -26,7 +26,7 @@ and server-level feature management through an admin dashboard.
 - **Admin Dashboard** -- Web-based feature management with Discord OAuth, audit logging, and schedule management
 - **Bouncer Security** -- Two-layer AI moderation, EXIF metadata stripping, shadow rate limiting
 - **Hierarchical Permissions** -- Channel > Role > Server specificity with "Allow Wins" conflict resolution
-- **Prompt Voting Site** -- Community tool for members to upvote/downvote discussion prompts, with admin oversight
+- **Prompt Voting Site** -- Community tool for members to upvote/downvote discussion prompts, submit new prompts, flag duplicates, with admin oversight and mobile-responsive design
 
 ## Commands
 
@@ -61,6 +61,10 @@ pnpm dev:local         # Starts Docker, runs migrations, launches everything
 ```
 
 Dashboard at `http://localhost:3100`. Voting site at `http://localhost:3200`. Bot connects to Discord automatically.
+
+**Production URLs:**
+- Voting: [discussion-prompts.pl.iser.io](https://discussion-prompts.pl.iser.io)
+- Dashboard: [bot-dashboard.pl.iser.io](https://bot-dashboard.pl.iser.io)
 
 > **Prerequisites:** Node.js 20+, pnpm 8+, Docker, and a [Discord Application](https://discord.com/developers/applications) with bot token.
 
@@ -106,16 +110,16 @@ photobot/
 | Database | Prisma 5 on Supabase Postgres |
 | AI | Google Gemini (prod), Ollama (local dev) |
 | Testing | Vitest |
-| Infrastructure | Docker Compose (local), Railway (bot), Vercel (dashboard) |
+| Infrastructure | Docker Compose (local), Railway (bot), Vercel (dashboard + voting) |
 
 ## Deployment
 
-| Service | Platform |
-|---------|----------|
-| Bot | [Railway](https://railway.app/) (persistent process) |
-| Dashboard | [Vercel](https://vercel.com/) (serverless) |
-| Voting Site | [Vercel](https://vercel.com/) (serverless, separate project) |
-| Database | [Supabase](https://supabase.com/) (managed Postgres) |
+| Service | Platform | URL |
+|---------|----------|-----|
+| Bot | [Railway](https://railway.app/) (persistent process) | — |
+| Dashboard | [Vercel](https://vercel.com/) (serverless) | `bot-dashboard.pl.iser.io` |
+| Voting Site | [Vercel](https://vercel.com/) (serverless) | `discussion-prompts.pl.iser.io` |
+| Database | [Supabase](https://supabase.com/) (managed Postgres) | — |
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed instructions.
 

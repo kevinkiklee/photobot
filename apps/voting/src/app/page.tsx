@@ -37,14 +37,12 @@ export default async function HomePage({
 
         <SubmitPromptProvider isAuthenticated={!!session}>
           <Suspense>
-            <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
-              <div className="flex-1">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex-1 min-w-0">
                 <SearchInput />
               </div>
-              <div className="flex items-center gap-2">
-                <SortSelect />
-                <SubmitButton />
-              </div>
+              <SortSelect />
+              <SubmitButton />
             </div>
           </Suspense>
 

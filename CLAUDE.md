@@ -14,7 +14,7 @@ packages/ai       Provider-agnostic AI wrapper (Gemini for prod, Ollama for loca
 packages/db       Prisma client + schema
 ```
 
-Prisma models: `FeatureConfig`, `ConfigAuditLog`, `UserUsageMetric`, `DiscussionSchedule`, `DiscussionPromptLog`, `AIAccessGrant`, `Prompt`, `PromptTag`, `PromptVote` (plus NextAuth models: `Account`, `Session`, `User`, `VerificationToken`).
+Prisma models: `FeatureConfig`, `ConfigAuditLog`, `UserUsageMetric`, `DiscussionSchedule`, `DiscussionPromptLog`, `AIAccessGrant`, `Prompt`, `PromptTag`, `PromptVote`, `PromptDuplicateFlag` (plus NextAuth models: `Account`, `Session`, `User`, `VerificationToken`).
 
 ## Key Commands
 
@@ -37,8 +37,8 @@ pnpm seed:prompts     # Seed discussion prompts into DB (requires DATABASE_URL)
 
 - **Bot:** discord.js 14, Sharp (image processing), dotenv
 - **Dashboard:** Next.js 14 (App Router), NextAuth 4 (Discord OAuth with `guilds` scope), Tailwind CSS
-- **Voting:** Next.js 14 (App Router), NextAuth 4 (Discord OAuth with `identify` scope), Tailwind CSS
-- **Database:** Prisma 5 on Supabase Postgres
+- **Voting:** Next.js 14 (App Router), NextAuth 4 (Discord OAuth with `identify email` scope), Tailwind CSS
+- **Database:** Prisma 5 on Supabase Postgres (pooled connections via PgBouncer port 6543)
 - **AI:** @google/generative-ai (Gemini) in prod, ollama package for local dev
 - **Testing:** Vitest across all workspaces (`vitest.workspace.ts` at root, `vitest.integration.workspace.ts` for integration tests)
 
@@ -54,7 +54,9 @@ pnpm seed:prompts     # Seed discussion prompts into DB (requires DATABASE_URL)
 - **AI access control** — Allowlist model in `bot/src/services/ai-access.ts` and `bot/src/commands/ai-access.ts`. Admins grant AI command access to specific roles or users via `/ai grant-role`, `/ai grant-user`. Uses `AIAccessGrant` model.
 - **Bouncer pipeline** — Two-layer AI moderation (fast + deep) with EXIF stripping and shadow rate limiting.
 - **Hierarchical permissions** — `canUseFeature()` in `bot/src/middleware/permissions.ts` implements Channel > Role > Server specificity with "Allow Wins" conflict resolution.
-- **Voting site** — `apps/voting` is a Next.js 14 community tool for upvoting/downvoting discussion prompts (NextAuth + Discord OAuth, `identify` scope only). Runs on port 3200 in local dev. Admin access is controlled by `VOTING_ADMIN_USER_IDS` (comma-separated Discord user IDs) and optionally `VOTING_ADMIN_ROLE_IDS` + `DISCORD_TOKEN` for role-based access via guild member lookup. API routes: `/api/vote` (voting), `/api/prompt` (POST/PATCH/DELETE for prompt management), `/api/admin/voters` (admin voter list). Rate limiting: 20 votes/min and 5 prompt submissions/min per user. Privacy: `submittedBy`/`submittedByUsername` fields are stripped from non-admin responses. Prompts are seeded from `discussion-prompts.md` into `Prompt`/`PromptTag` tables with 17 granular tags. Each app's `.env` is a symlink to the root `.env`.
+- **Voting site** — `apps/voting` is a Next.js 14 community tool for upvoting/downvoting discussion prompts (NextAuth + Discord OAuth, `identify email` scope). Runs on port 3200 in local dev. Deployed to Vercel at `discussion-prompts.pl.iser.io`. Admin access is controlled by `VOTING_ADMIN_USER_IDS` (comma-separated Discord user IDs) and optionally `VOTING_ADMIN_ROLE_IDS` + `DISCORD_TOKEN` for role-based access via guild member lookup. API routes: `/api/vote` (voting), `/api/prompt` (POST/PATCH/DELETE for prompt management), `/api/flag` (duplicate flagging toggle), `/api/admin/voters` (admin voter list), `/api/admin/export` (JSON export). Rate limiting: 20 votes/min and 20 prompt submissions/min per user. Privacy: `submittedBy`/`submittedByUsername` fields are stripped from non-admin responses. Prompts are seeded from `discussion-prompts.md` into `Prompt`/`PromptTag` tables with 17 granular tags. Each app's `.env` is a symlink to the root `.env`.
+- **Dashboard deployment** — `apps/dashboard` is deployed to Vercel at `bot-dashboard.pl.iser.io`. Uses the same Supabase database. Requires `guilds` OAuth scope for Discord admin guild lookup. Build uses `scripts/build.sh` with Prisma NFT trace patching (same pattern as voting app).
+- **Vercel monorepo deployment** — Both voting and dashboard apps use `outputFileTracingRoot` pointing to the monorepo root, a custom `scripts/build.sh` that builds the Prisma client then Next.js then patches `.nft.json` trace files to include the Prisma engine binary. The `vercel.json` in each app sets `installCommand: "cd ../.. && pnpm install"` and `buildCommand: "bash scripts/build.sh"`.
 - **Tests use `vi.clearAllMocks()` in `beforeEach`** — mock return values must be re-established after clearing, not just in `vi.mock()`.
 
 ## Environment Variables
