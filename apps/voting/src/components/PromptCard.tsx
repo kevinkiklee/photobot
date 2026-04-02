@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { LucidePencil, LucideCheck, LucideX, LucideTrash2 } from 'lucide-react';
+import { Spinner } from './Spinner';
 import { TAG_COLORS } from './TagFilter';
 import { VoteButton } from './VoteButton';
 import { VoterDetail } from './AdminView';
@@ -38,6 +39,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
   const [editTags, setEditTags] = useState(tags);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [flagging, setFlagging] = useState(false);
   const [error, setError] = useState('');
 
   const toggleEditTag = (tag: string) => {
@@ -89,7 +91,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
             <div className="flex items-center gap-2">
               <button onClick={handleSave} disabled={saving || editText.trim().length < 10}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                <LucideCheck className="w-3 h-3" />{saving ? 'Saving...' : 'Save'}
+                {saving ? <Spinner /> : <LucideCheck className="w-3 h-3" />}{saving ? 'Saving...' : 'Save'}
               </button>
               <button onClick={handleCancel}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-muted hover:text-primary transition-colors">
@@ -112,7 +114,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
                 <button
                   onClick={async () => { if (!confirm('Delete this prompt? This cannot be undone.')) return; setDeleting(true); try { await onDelete(id); } catch {} finally { setDeleting(false); } }}
                   disabled={deleting} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-red-400 transition-all disabled:opacity-40 shrink-0" title="Delete this prompt">
-                  <LucideTrash2 className="w-3 h-3" />
+                  {deleting ? <Spinner /> : <LucideTrash2 className="w-3 h-3" />}
                 </button>
               )}
             </div>
@@ -141,13 +143,15 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
         )}
         {isAuthenticated && !isOwner && (
           <button
-            onClick={() => onFlagDuplicate(id)}
-            className={`px-1.5 py-0.5 rounded text-[11px] font-medium border transition-all ${
+            onClick={async () => { setFlagging(true); try { await onFlagDuplicate(id); } finally { setFlagging(false); } }}
+            disabled={flagging}
+            className={`px-1.5 py-0.5 rounded text-[11px] font-medium border transition-all inline-flex items-center gap-1 ${
               userFlaggedDuplicate
                 ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
                 : 'text-muted border-[var(--border-subtle)] hover:text-amber-400 hover:border-amber-500/20'
-            }`}
+            } ${flagging ? 'opacity-60' : ''}`}
           >
+            {flagging && <Spinner />}
             {userFlaggedDuplicate ? 'Marked duplicate' : 'Mark duplicate'}
           </button>
         )}

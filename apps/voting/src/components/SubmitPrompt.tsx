@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { LucidePlus, LucideX, LucideSend } from 'lucide-react';
+import { Spinner } from './Spinner';
 import { TAG_COLORS } from './TagFilter';
 import { useRouter } from 'next/navigation';
 
@@ -126,7 +127,7 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
           disabled={submitting || text.trim().length < 10}
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20 hover:bg-brand-accent/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <LucideSend className="w-3 h-3" strokeWidth={1.5} />
+          {submitting ? <Spinner /> : <LucideSend className="w-3 h-3" strokeWidth={1.5} />}
           {submitting ? 'Submitting...' : 'Submit'}
         </button>
       </div>

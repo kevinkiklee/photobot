@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { LucideThumbsUp, LucideThumbsDown } from 'lucide-react';
+import { Spinner } from './Spinner';
 
 interface VoteButtonProps {
   promptId: string;
@@ -40,7 +41,7 @@ export function VoteButton({ promptId, direction, count, active, disabled, onVot
         active ? colorActive : colorInactive
       } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
     >
-      <Icon className="w-3 h-3" strokeWidth={1.5} />
+      {loading ? <Spinner /> : <Icon className="w-3 h-3" strokeWidth={1.5} />}
       <span className="tabular-nums">{count}</span>
     </button>
   );
