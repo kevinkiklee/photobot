@@ -132,10 +132,10 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
         )}
       </div>
 
-      {/* Row 2: Votes, actions */}
-      <div className="flex flex-wrap items-center gap-2 mt-1">
-        <VoteButton promptId={id} direction="UP" count={upvotes} active={userVote === 'UP'} disabled={!isAuthenticated} onVote={onVote} />
-        <VoteButton promptId={id} direction="DOWN" count={downvotes} active={userVote === 'DOWN'} disabled={!isAuthenticated} onVote={onVote} />
+      {/* Row 2: Votes, actions (hidden while editing) */}
+      {!editing && <div className="flex flex-wrap items-center gap-2 mt-1">
+        <VoteButton promptId={id} direction="UP" count={upvotes} active={userVote === 'UP'} disabled={!isAuthenticated || isOwner} onVote={onVote} />
+        <VoteButton promptId={id} direction="DOWN" count={downvotes} active={userVote === 'DOWN'} disabled={!isAuthenticated || isOwner} onVote={onVote} />
         {total > 0 && (
           <span className="text-xs text-muted font-medium tabular-nums">{approvalPct}%</span>
         )}
@@ -158,7 +158,7 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
           <span className="text-xs text-brand-accent/70">by {submittedByUsername}</span>
         )}
         {isAdmin && <VoterDetail promptId={id} voteVersion={upvotes + downvotes + (userVote === 'UP' ? 1 : userVote === 'DOWN' ? 2 : 0)} />}
-      </div>
+      </div>}
     </div>
   );
 }
