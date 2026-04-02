@@ -101,7 +101,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
             key={tag}
             className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-medium border ${
               TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'
-            } ${userVotedRemove ? 'opacity-60 line-through' : ''}`}
+            } ${userVotedRemove ? 'opacity-70' : ''}`}
           >
             {tag}
             {removeCount > 0 && (
