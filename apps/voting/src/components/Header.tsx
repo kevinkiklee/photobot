@@ -63,7 +63,7 @@ export async function Header() {
                 {session.isAdmin && (
                   <>
                     <span className="hidden sm:inline px-1.5 py-0.5 rounded text-[9px] font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20">
-                      Admin
+                      Staff
                     </span>
                     <a
                       href="/api/admin/export"

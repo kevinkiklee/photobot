@@ -20,14 +20,14 @@ export function AdminMenu({ username }: { username: string }) {
       <button
         onClick={() => setOpen(o => !o)}
         className="p-1.5 rounded-md text-brand-accent hover:bg-brand-accent/10 transition-colors"
-        title="Admin menu"
+        title="Staff menu"
       >
         <LucideShield className="w-4 h-4" />
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-page)] shadow-lg animate-fade-in z-50 py-1">
           <div className="px-3 py-1.5 text-[10px] text-muted border-b border-[var(--border-subtle)]">
-            {username} · Admin
+            {username} · Staff
           </div>
           <a
             href="/api/admin/export"
