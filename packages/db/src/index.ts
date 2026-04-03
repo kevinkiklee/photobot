@@ -1,15 +1,21 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from './generated/prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 
-// Add prisma to the global type in development to prevent multiple instances
-// during hot-reloads (common in frameworks like Next.js)
+// Prevent multiple Prisma instances during Next.js hot-reloads
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
+function createPrismaClient() {
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+  })
+  return new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
+}
+
+export const prisma = globalForPrisma.prisma || createPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-export * from '@prisma/client'
+export * from './generated/prisma/client'

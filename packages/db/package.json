@@ -11,10 +11,11 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^5.11.0"
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0"
   },
   "devDependencies": {
-    "prisma": "^5.11.0",
+    "prisma": "^7.6.0",
     "typescript": "^5.4.2",
     "vitest": "^1.6.1"
   }

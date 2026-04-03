@@ -39,7 +39,8 @@ export const authOptions: NextAuthOptions = {
       authorization: { params: { scope: "identify email" } },
     }),
   ],
-  adapter: PrismaAdapter(prisma),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adapter: PrismaAdapter(prisma as any),
   callbacks: {
     async session({ session, user }) {
       const account = await prisma.account.findFirst({
