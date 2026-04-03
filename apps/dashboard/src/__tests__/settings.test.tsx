@@ -38,7 +38,7 @@ describe('Settings Page', () => {
   it('shows prompt to select server when no serverId', async () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
 
-    const Page = await SettingsPage({ searchParams: {} });
+    const Page = await SettingsPage({ searchParams: Promise.resolve({}) });
     render(<ToastProvider>{Page}</ToastProvider>);
 
     expect(screen.getByText(/Select a server from the header/i)).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('Settings Page', () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
     (getAdminGuilds as any).mockResolvedValue([]);
 
-    const Page = await SettingsPage({ searchParams: { serverId: '123' } });
+    const Page = await SettingsPage({ searchParams: Promise.resolve({ serverId: '123' }) });
     render(<ToastProvider>{Page}</ToastProvider>);
 
     expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe('Settings Page', () => {
       { id: '1', featureKey: 'critique', isEnabled: true, serverId: '123', targetType: 'SERVER', targetId: '123' },
     ]);
 
-    const Page = await SettingsPage({ searchParams: { serverId: '123' } });
+    const Page = await SettingsPage({ searchParams: Promise.resolve({ serverId: '123' }) });
     render(<ToastProvider>{Page}</ToastProvider>);
 
     expect(screen.getByRole('heading', { level: 1, name: /Settings/i })).toBeInTheDocument();

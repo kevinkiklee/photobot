@@ -27,10 +27,10 @@ const featureMeta: Record<string, { icon: typeof LucideSparkles; description: st
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: { serverId?: string };
+  searchParams: Promise<{ serverId?: string }>;
 }) {
   const session = await getServerSession(authOptions);
-  const serverId = searchParams.serverId;
+  const { serverId } = await searchParams;
 
   if (serverId) {
     let adminGuilds;

@@ -16,15 +16,16 @@ export const dynamic = 'force-dynamic';
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: { page?: string; sort?: string; tags?: string; q?: string };
+  searchParams: Promise<{ page?: string; sort?: string; tags?: string; q?: string }>;
 }) {
   const session = await getServerSession(authOptions);
+  const resolvedParams = await searchParams;
 
   const params = {
-    page: parseInt(searchParams.page || '1', 10),
-    sort: (searchParams.sort || 'default') as 'default' | 'approval' | 'votes' | 'alphabetical',
-    tags: searchParams.tags?.split(',').filter(Boolean),
-    q: searchParams.q,
+    page: parseInt(resolvedParams.page || '1', 10),
+    sort: (resolvedParams.sort || 'default') as 'default' | 'approval' | 'votes' | 'alphabetical',
+    tags: resolvedParams.tags?.split(',').filter(Boolean),
+    q: resolvedParams.q,
   };
 
   const data = await fetchPrompts(params, session?.discordUserId || undefined, !!session?.isAdmin);
@@ -63,7 +64,7 @@ export default async function HomePage({
         </div>
 
         <PromptList
-          key={`${searchParams.q ?? ''}-${searchParams.sort ?? ''}-${searchParams.tags ?? ''}-${searchParams.page ?? ''}`}
+          key={`${resolvedParams.q ?? ''}-${resolvedParams.sort ?? ''}-${resolvedParams.tags ?? ''}-${resolvedParams.page ?? ''}`}
           prompts={data.prompts}
           userVotes={data.userVotes}
           isAuthenticated={!!session}

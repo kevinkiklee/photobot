@@ -17,10 +17,10 @@ const actionStyles: Record<string, string> = {
 export default async function AuditPage({
   searchParams,
 }: {
-  searchParams: { serverId?: string; page?: string };
+  searchParams: Promise<{ serverId?: string; page?: string }>;
 }) {
   const session = await getServerSession(authOptions);
-  const serverId = searchParams.serverId;
+  const { serverId, page: pageParam } = await searchParams;
 
   if (!serverId) {
     return (
@@ -50,7 +50,7 @@ export default async function AuditPage({
     return <div className="p-8 text-red-400">Access Denied.</div>;
   }
 
-  const page = parseInt(searchParams.page || '1', 10);
+  const page = parseInt(pageParam || '1', 10);
   const pageSize = 20;
 
   const [logs, totalCount] = await Promise.all([

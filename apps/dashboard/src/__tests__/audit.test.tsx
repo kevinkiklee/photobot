@@ -36,7 +36,7 @@ describe('Audit Page', () => {
   it('shows prompt to select server when no serverId', async () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
 
-    const Page = await AuditPage({ searchParams: {} });
+    const Page = await AuditPage({ searchParams: Promise.resolve({}) });
     render(Page);
 
     expect(screen.getByText(/Select a server from the header/i)).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('Audit Page', () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
     (getAdminGuilds as any).mockResolvedValue([]);
 
-    const Page = await AuditPage({ searchParams: { serverId: '123' } });
+    const Page = await AuditPage({ searchParams: Promise.resolve({ serverId: '123' }) });
     render(Page);
 
     expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe('Audit Page', () => {
     ]);
     (prisma.configAuditLog.count as any).mockResolvedValue(1);
 
-    const Page = await AuditPage({ searchParams: { serverId: '123' } });
+    const Page = await AuditPage({ searchParams: Promise.resolve({ serverId: '123' }) });
     render(Page);
 
     expect(screen.getByText(/Audit Log/i)).toBeInTheDocument();
