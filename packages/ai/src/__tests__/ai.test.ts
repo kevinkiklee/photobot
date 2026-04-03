@@ -4,17 +4,15 @@ import { OllamaProvider } from '../providers/ollama';
 import { AIProviderError } from '../index';
 
 // We mock the external dependencies
-vi.mock('@google/generative-ai', () => {
+vi.mock('@google/genai', () => {
   return {
-    GoogleGenerativeAI: vi.fn().mockImplementation(() => {
+    GoogleGenAI: vi.fn().mockImplementation(() => {
       return {
-        getGenerativeModel: vi.fn().mockReturnValue({
+        models: {
           generateContent: vi.fn().mockResolvedValue({
-            response: {
-              text: () => 'Mock Gemini response',
-            },
+            text: 'Mock Gemini response',
           }),
-        }),
+        },
       };
     }),
   };
@@ -51,8 +49,8 @@ describe('AI Providers', () => {
 
     it('should throw AIProviderError on failure', async () => {
       const provider = new GeminiProvider('fake-api-key');
-      const mockModel = (provider as any).model;
-      mockModel.generateContent.mockRejectedValueOnce(new Error('API Error'));
+      const mockModels = (provider as any).client.models;
+      mockModels.generateContent.mockRejectedValueOnce(new Error('API Error'));
 
       await expect(provider.analyzeText('Hello')).rejects.toThrow('Gemini text analysis failed: API Error');
     });

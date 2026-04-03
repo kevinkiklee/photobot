@@ -1,15 +1,13 @@
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { AIProvider, AIProviderError } from '../index';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
 export class GeminiProvider implements AIProvider {
-  private genAI: GoogleGenerativeAI;
-  private model: GenerativeModel;
+  private client: GoogleGenAI;
 
   constructor(apiKey: string) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    this.client = new GoogleGenAI({ apiKey });
   }
 
   private getMimeType(filePath: string): string {
@@ -28,16 +26,24 @@ export class GeminiProvider implements AIProvider {
   async analyzeImage(imagePath: string, prompt: string): Promise<string> {
     try {
       const imageData = await fs.readFile(imagePath);
-      const result = await this.model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: imageData.toString('base64'),
-            mimeType: this.getMimeType(imagePath),
+      const response = await this.client.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  data: imageData.toString('base64'),
+                  mimeType: this.getMimeType(imagePath),
+                },
+              },
+            ],
           },
-        },
-      ]);
-      return result.response.text();
+        ],
+      });
+      return response.text ?? '';
     } catch (error) {
       throw new AIProviderError(`Gemini image analysis failed: ${error instanceof Error ? error.message : String(error)}`, error);
     }
@@ -45,8 +51,11 @@ export class GeminiProvider implements AIProvider {
 
   async analyzeText(prompt: string): Promise<string> {
     try {
-      const result = await this.model.generateContent(prompt);
-      return result.response.text();
+      const response = await this.client.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: prompt,
+      });
+      return response.text ?? '';
     } catch (error) {
       throw new AIProviderError(`Gemini text analysis failed: ${error instanceof Error ? error.message : String(error)}`, error);
     }
