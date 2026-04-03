@@ -4,14 +4,16 @@ import { GeminiProvider } from '@photobot/ai';
 import sharp from 'sharp';
 
 vi.mock('@photobot/ai', () => ({
-  GeminiProvider: vi.fn().mockImplementation(() => ({
-    analyzeImage: vi.fn(),
-  })),
+  GeminiProvider: vi.fn().mockImplementation(function () {
+    return { analyzeImage: vi.fn() };
+  }),
 }));
 
 vi.mock('sharp', () => ({
-  default: vi.fn().mockReturnValue({
-    toFile: vi.fn().mockResolvedValue({}),
+  default: vi.fn(function () {
+    return {
+      toFile: vi.fn().mockResolvedValue({}),
+    };
   }),
 }));
 
@@ -184,8 +186,8 @@ describe('BouncerService', () => {
   describe('stripMetadata - output verification', () => {
     it('calls sharp with input path and toFile with output path', async () => {
       const mockToFile = vi.fn().mockResolvedValue({});
-      (sharp as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-        toFile: mockToFile,
+      (sharp as unknown as ReturnType<typeof vi.fn>).mockImplementation(function () {
+        return { toFile: mockToFile };
       });
 
       await bouncer.stripMetadata('photo.jpg', 'stripped.jpg');

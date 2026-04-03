@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "prisma": "^7.6.0",
-    "typescript": "^5.4.2",
-    "vitest": "^1.6.1"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   }
 }

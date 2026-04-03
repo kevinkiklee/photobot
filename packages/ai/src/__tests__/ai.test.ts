@@ -6,7 +6,7 @@ import { AIProviderError } from '../index';
 // We mock the external dependencies
 vi.mock('@google/genai', () => {
   return {
-    GoogleGenAI: vi.fn().mockImplementation(() => {
+    GoogleGenAI: vi.fn().mockImplementation(function () {
       return {
         models: {
           generateContent: vi.fn().mockResolvedValue({
@@ -20,7 +20,7 @@ vi.mock('@google/genai', () => {
 
 vi.mock('ollama', () => {
   const generate = vi.fn().mockResolvedValue({ response: 'Mock Ollama response' });
-  const OllamaMock = vi.fn().mockImplementation(() => ({ generate }));
+  const OllamaMock = vi.fn().mockImplementation(function () { return { generate }; });
   return {
     default: { generate },
     Ollama: OllamaMock,

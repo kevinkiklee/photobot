@@ -33,10 +33,11 @@ vi.mock('node:os', () => ({
 }));
 
 vi.mock('sharp', () => {
-  const mockSharp = vi.fn().mockReturnValue({
+  const mockSharpInstance = {
     png: vi.fn().mockReturnThis(),
     toFile: vi.fn().mockResolvedValue(undefined),
-  });
+  };
+  const mockSharp = vi.fn(function () { return mockSharpInstance; });
   return { default: mockSharp };
 });
 
@@ -44,10 +45,12 @@ vi.mock('discord.js', async () => {
   const actual = await vi.importActual('discord.js');
   return {
     ...actual,
-    AttachmentBuilder: vi.fn().mockImplementation((path: string, options: any) => ({
-      attachment: path,
-      name: options?.name,
-    })),
+    AttachmentBuilder: vi.fn().mockImplementation(function (path: string, options: any) {
+      return {
+        attachment: path,
+        name: options?.name,
+      };
+    }),
   };
 });
 
