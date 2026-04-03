@@ -57,7 +57,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
   const availableToSuggest = ALL_TAGS.filter(t => !tags.includes(t) && !suggestedTags.includes(t));
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1 justify-end flex-1">
       {/* Suggest a new tag button */}
       {isAuthenticated && availableToSuggest.length > 0 && (
         <div className="relative" ref={suggestRef}>

@@ -102,7 +102,7 @@ export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
       </button>
 
       {open && voters && (
-        <div className="absolute right-0 top-full mt-1.5 z-40 w-56 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-page)] shadow-lg shadow-black/20 animate-scale-in">
+        <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-40 w-56 max-w-[calc(100vw-2rem)] rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-page)] shadow-lg shadow-black/20 animate-scale-in">
           <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-subtle)]">
             <span className="text-[11px] font-medium text-secondary">
               {voters.length} voter{voters.length !== 1 ? 's' : ''}

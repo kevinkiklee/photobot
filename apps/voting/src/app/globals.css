@@ -132,6 +132,10 @@ select option {
 ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
 
+/* ─── Hide scrollbar ─── */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
 /* ─── Selection ─── */
 ::selection {
   background: rgba(116, 215, 236, 0.3);

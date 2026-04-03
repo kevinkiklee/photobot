@@ -108,9 +108,9 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
           </div>
         ) : (
           <div>
-            {/* Row 1: Prompt text + edit/delete + author/voters */}
+            {/* Row 1: Prompt text + edit/delete */}
             <div className="flex items-start gap-1.5">
-              <p className="text-sm text-primary leading-snug">{text}</p>
+              <p className="text-sm text-primary leading-snug flex-1 min-w-0">{text}</p>
               {(isOwner || (isAdmin && isUserSubmitted)) && (
                 <button onClick={() => setEditing(true)} className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-primary transition-all shrink-0 mt-0.5" title="Edit prompt">
                   <LucidePencil className="w-3 h-3" />
@@ -123,8 +123,8 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
                   {deleting ? <Spinner /> : <LucideTrash2 className="w-3 h-3" />}
                 </button>
               )}
-              <div className="flex-1" />
-              <div className="flex items-center gap-2 shrink-0">
+              {/* Desktop: badge + admin info inline */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
                 {isUserSubmitted && (
                   <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
                     User submission
@@ -136,9 +136,23 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
                 {isAdmin && <VoterDetail promptId={id} voteVersion={upvotes + downvotes + (userVote === 'UP' ? 1 : userVote === 'DOWN' ? 2 : 0)} />}
               </div>
             </div>
+            {/* Mobile: badge + admin info on separate row */}
+            {(isUserSubmitted || isAdmin) && (
+              <div className="flex items-center gap-2 mt-1 sm:hidden">
+                {isUserSubmitted && (
+                  <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-white/10 text-primary/80 border border-white/20 dark:bg-white/10 dark:text-white/80 dark:border-white/20">
+                    User submission
+                  </span>
+                )}
+                {isUserSubmitted && isAdmin && (
+                  <span className="text-xs text-brand-accent/70">by {submittedByUsername}</span>
+                )}
+                {isAdmin && <VoterDetail promptId={id} voteVersion={upvotes + downvotes + (userVote === 'UP' ? 1 : userVote === 'DOWN' ? 2 : 0)} />}
+              </div>
+            )}
 
             {/* Row 2: Votes + mark duplicate + tags */}
-            <div className="flex flex-wrap items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-1 w-full">
               <VoteButton promptId={id} direction="UP" count={upvotes} active={userVote === 'UP'} disabled={!isAuthenticated || isOwner} onVote={onVote} />
               <VoteButton promptId={id} direction="DOWN" count={downvotes} active={userVote === 'DOWN'} disabled={!isAuthenticated || isOwner} onVote={onVote} />
               {total > 0 && (
@@ -158,7 +172,6 @@ export function PromptCard({ id, text, tags, upvotes, downvotes, approvalPct, us
                   {userFlaggedDuplicate ? 'Marked duplicate' : 'Mark duplicate'}
                 </button>
               )}
-              <div className="flex-1" />
               <TagVotes
                 promptId={id}
                 tags={tags}
