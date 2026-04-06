@@ -15,36 +15,34 @@ describe('FeatureConfig Integration', () => {
   });
 
   it('creates and reads a FeatureConfig', async () => {
-    const serverId = testId('server-1');
+    const targetId = testId('target-1');
     const config = await prisma.featureConfig.create({
       data: {
-        serverId,
         targetType: 'SERVER',
-        targetId: serverId,
+        targetId,
         featureKey: 'critique',
         isEnabled: true,
       },
     });
 
     expect(config.id).toBeDefined();
-    expect(config.serverId).toBe(serverId);
+    expect(config.targetId).toBe(targetId);
     expect(config.isEnabled).toBe(true);
     expect(config.createdAt).toBeInstanceOf(Date);
 
     const found = await prisma.featureConfig.findFirst({
-      where: { serverId, featureKey: 'critique' },
+      where: { targetId, featureKey: 'critique' },
     });
     expect(found).not.toBeNull();
     expect(found!.id).toBe(config.id);
   });
 
   it('enforces unique constraint on composite key', async () => {
-    const serverId = testId('server-2');
+    const targetId = testId('target-2');
     await prisma.featureConfig.create({
       data: {
-        serverId,
         targetType: 'SERVER',
-        targetId: serverId,
+        targetId,
         featureKey: 'critique',
         isEnabled: true,
       },
@@ -53,9 +51,8 @@ describe('FeatureConfig Integration', () => {
     await expect(
       prisma.featureConfig.create({
         data: {
-          serverId,
           targetType: 'SERVER',
-          targetId: serverId,
+          targetId,
           featureKey: 'critique',
           isEnabled: false,
         },
@@ -64,16 +61,15 @@ describe('FeatureConfig Integration', () => {
   });
 
   it('upsert creates then updates', async () => {
-    const serverId = testId('server-3');
+    const targetId = testId('target-3');
     const where = {
-      serverId_targetType_targetId_featureKey: {
-        serverId,
+      targetType_targetId_featureKey: {
         targetType: 'SERVER' as const,
-        targetId: serverId,
+        targetId,
         featureKey: 'palette',
       },
     };
-    const base = { serverId, targetType: 'SERVER' as const, targetId: serverId, featureKey: 'palette' };
+    const base = { targetType: 'SERVER' as const, targetId, featureKey: 'palette' };
 
     const created = await prisma.featureConfig.upsert({
       where,
@@ -92,14 +88,13 @@ describe('FeatureConfig Integration', () => {
   });
 
   it('creates an audit log entry with JSON values', async () => {
-    const serverId = testId('server-4');
+    const targetId = testId('target-4');
     const log = await prisma.configAuditLog.create({
       data: {
-        serverId,
         userId: 'test-user',
         action: 'UPDATE',
         targetType: 'SERVER',
-        targetId: serverId,
+        targetId,
         featureKey: 'critique',
         oldValue: { isEnabled: false },
         newValue: { isEnabled: true },
@@ -111,7 +106,7 @@ describe('FeatureConfig Integration', () => {
     expect(log.newValue).toEqual({ isEnabled: true });
 
     const found = await prisma.configAuditLog.findFirst({
-      where: { serverId },
+      where: { targetId },
     });
     expect(found).not.toBeNull();
   });

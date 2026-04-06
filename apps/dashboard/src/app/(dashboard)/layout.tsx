@@ -1,8 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getAdminGuilds, DiscordTokenExpiredError } from "@/lib/discord";
-import { ServerPopover } from "@/components/ServerPopover";
+import { isPlAdmin, DiscordTokenExpiredError } from "@/lib/discord";
 import { MobileNav } from "@/components/MobileNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
@@ -18,9 +17,11 @@ export default async function DashboardLayout({
     redirect("/");
   }
 
-  let adminGuilds;
   try {
-    adminGuilds = await getAdminGuilds(session.accessToken as string);
+    const authorized = await isPlAdmin(session.accessToken as string);
+    if (!authorized) {
+      redirect("/");
+    }
   } catch (e) {
     if (e instanceof DiscordTokenExpiredError) {
       redirect("/api/auth/signin");
@@ -33,7 +34,7 @@ export default async function DashboardLayout({
       <header className="glass border-b border-subtle sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
+            <Link href="/settings" className="flex items-center gap-2.5 group">
               <div className="p-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 group-hover:bg-brand-primary/20 transition-colors">
                 <LucideCamera className="w-4 h-4 text-brand-primary" strokeWidth={1.5} />
               </div>
@@ -58,15 +59,11 @@ export default async function DashboardLayout({
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <div className="w-px h-5 bg-[var(--border-subtle)] hidden md:block" />
-            <div className="hidden md:block">
-              <ServerPopover guilds={adminGuilds} />
-            </div>
           </div>
         </div>
       </header>
       <main className="animate-fade-in pb-20 md:pb-0">{children}</main>
-      <MobileNav guilds={adminGuilds} />
+      <MobileNav />
     </div>
   );
 }

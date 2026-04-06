@@ -1,6 +1,6 @@
 # Photobot Roadmap
 
-Derived from `docs/DESIGN.md`, feature specs in `docs/superpowers/specs/`, and the current state of the codebase. Last updated: 2026-04-05.
+Derived from `docs/DESIGN.md`, feature specs in `docs/superpowers/specs/`, and the current state of the codebase. Last updated: 2026-04-06.
 
 ---
 
@@ -15,7 +15,7 @@ Derived from `docs/DESIGN.md`, feature specs in `docs/superpowers/specs/`, and t
 ### Admin Dashboard
 - [x] Feature toggles with hierarchical permissions
 - [x] Audit logs with action badges, relative timestamps, sticky header
-- [x] Server selector (popover with search, role badges, gradient initials)
+- [x] Single-server (Photography Lounge) — no server selector needed
 - [x] Mobile navigation (bottom tab bar, responsive layout)
 - [x] Loading skeletons and error boundaries for all pages
 - [x] Toast notification system

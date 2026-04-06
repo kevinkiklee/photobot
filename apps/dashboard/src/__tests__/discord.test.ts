@@ -1,9 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
-import { getAdminGuilds, DiscordTokenExpiredError } from '../lib/discord';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.stubEnv('PL_GUILD_ID', 'pl-guild-id');
+
+import { getAdminGuilds, isPlAdmin, DiscordTokenExpiredError } from '../lib/discord';
 
 global.fetch = vi.fn();
 
 describe('Discord Lib', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('filters guilds for ADMINISTRATOR permission', async () => {
     (fetch as any).mockResolvedValue({
       ok: true,
@@ -49,5 +56,45 @@ describe('Discord Lib', () => {
       'https://discord.com/api/users/@me/guilds',
       { headers: { Authorization: 'Bearer my-token-123' } }
     );
+  });
+});
+
+describe('isPlAdmin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns true when user is admin of PL guild', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: 'pl-guild-id', name: 'Photography Lounge', permissions: '8' },
+      ],
+    });
+
+    const result = await isPlAdmin('fake-token');
+    expect(result).toBe(true);
+  });
+
+  it('returns false when user is not admin of PL guild', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: 'other-guild', name: 'Other', permissions: '8' },
+      ],
+    });
+
+    const result = await isPlAdmin('fake-token');
+    expect(result).toBe(false);
+  });
+
+  it('returns false when user has no admin guilds', async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
+
+    const result = await isPlAdmin('fake-token');
+    expect(result).toBe(false);
   });
 });

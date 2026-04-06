@@ -50,7 +50,7 @@ async function runScheduledPosts(): Promise<void> {
 
   for (const s of schedules) {
     const lastLog = await prisma.discussionPromptLog.findFirst({
-      where: { serverId: s.serverId, channelId: s.channelId },
+      where: { channelId: s.channelId },
       orderBy: { postedAt: 'desc' },
     });
 
@@ -100,7 +100,7 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
 
   // Re-check permission at execution time — admins may have disabled the feature
   // via the dashboard since the schedule was created.
-  const allowed = await canUseFeature(s.serverId, s.channelId, [], 'discuss');
+  const allowed = await canUseFeature(s.channelId, [], 'discuss');
   if (!allowed) return;
 
   try {
@@ -110,7 +110,7 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
     // Wait for a natural pause in conversation before posting
     await waitForQuiet(channel);
 
-    const prompt = await selectPrompt(s.serverId, s.categoryFilter);
+    const prompt = await selectPrompt(s.categoryFilter);
 
     const embed = new EmbedBuilder()
       .setColor(BRAND_COLOR)
@@ -124,7 +124,6 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
     // Log
     await prisma.discussionPromptLog.create({
       data: {
-        serverId: s.serverId,
         channelId: s.channelId,
         promptText: prompt.text,
         category: prompt.category,

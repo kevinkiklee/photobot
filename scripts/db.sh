@@ -69,22 +69,24 @@ case "$CMD" in
   seed)
     log "Inserting sample data..."
 
+    PL_ID="${PL_GUILD_ID:-000000000000000001}"
+
     docker exec photobot-db psql -U postgres -d postgres -c "
-      -- Sample feature configs for a test server
-      INSERT INTO feature_configs (id, server_id, target_type, target_id, feature_key, is_enabled, settings, created_at, updated_at)
+      -- Sample feature configs for Photography Lounge
+      INSERT INTO feature_configs (id, target_type, target_id, feature_key, is_enabled, created_at, updated_at)
       VALUES
-        (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'settings',  true,  '{}', now(), now()),
-        (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'discuss',   true,  '{}', now(), now())
-      ON CONFLICT (server_id, target_type, target_id, feature_key) DO NOTHING;
+        (gen_random_uuid(), 'SERVER', '${PL_ID}', 'settings',  true, now(), now()),
+        (gen_random_uuid(), 'SERVER', '${PL_ID}', 'discuss',   true, now(), now())
+      ON CONFLICT (target_type, target_id, feature_key) DO NOTHING;
 
       -- Sample audit log entry
-      INSERT INTO config_audit_logs (id, server_id, user_id, action, target_type, target_id, feature_key, old_value, new_value, created_at)
+      INSERT INTO config_audit_logs (id, user_id, action, target_type, target_id, feature_key, old_value, new_value, created_at)
       VALUES
-        (gen_random_uuid(), '000000000000000001', 'seed-user', 'UPDATE', 'SERVER', '000000000000000001', 'discuss', '{\"isEnabled\": false}', '{\"isEnabled\": true}', now())
+        (gen_random_uuid(), 'seed-user', 'UPDATE', 'SERVER', '${PL_ID}', 'discuss', '{\"isEnabled\": false}', '{\"isEnabled\": true}', now())
       ON CONFLICT DO NOTHING;
     " 2>/dev/null
 
-    ok "Sample data inserted for server 000000000000000001"
+    ok "Sample data inserted for Photography Lounge"
     ;;
 
   migrate)

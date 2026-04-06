@@ -46,29 +46,28 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand(sub =>
     sub.setName('list')
-      .setDescription('List discussion schedules for this server')
+      .setDescription('List discussion schedules')
   ) as SlashCommandBuilder;
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const guildId = interaction.guildId;
-  if (!guildId) {
+  if (!interaction.guildId) {
     return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
   }
 
   const subcommand = interaction.options.getSubcommand();
 
   if (subcommand === 'prompt') {
-    return handlePrompt(interaction, guildId);
+    return handlePrompt(interaction);
   }
   if (subcommand === 'schedule') {
-    return handleSchedule(interaction, guildId);
+    return handleSchedule(interaction);
   }
   if (subcommand === 'list') {
-    return handleList(interaction, guildId);
+    return handleList(interaction);
   }
 }
 
-async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: string) {
+async function handlePrompt(interaction: ChatInputCommandInteraction) {
   // Extract role IDs — discord.js gives GuildMemberRoleManager (with .cache)
   // for full members, but a plain string[] for interactions from REST.
   const member = interaction.member;
@@ -76,7 +75,7 @@ async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: s
     ? [...(member.roles as any).cache.keys()]
     : Array.isArray(member?.roles) ? member.roles : [];
 
-  const allowed = await canUseFeature(guildId, interaction.channelId, roleIds, 'discuss');
+  const allowed = await canUseFeature(interaction.channelId, roleIds, 'discuss');
   if (!allowed) {
     return interaction.reply({
       content: 'The discussion prompt feature is not enabled for this server.',
@@ -86,7 +85,7 @@ async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: s
 
   const category = interaction.options.getString('category');
 
-  const prompt = await selectPrompt(guildId, category);
+  const prompt = await selectPrompt(category);
 
   const embed = new EmbedBuilder()
     .setColor(BRAND_COLOR)
@@ -100,7 +99,6 @@ async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: s
   // Log to database
   await prisma.discussionPromptLog.create({
     data: {
-      serverId: guildId,
       channelId: interaction.channelId,
       promptText: prompt.text,
       category: prompt.category,
@@ -108,19 +106,16 @@ async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: s
   });
 }
 
-async function handleSchedule(interaction: ChatInputCommandInteraction, guildId: string) {
+async function handleSchedule(interaction: ChatInputCommandInteraction) {
   const channel = interaction.options.getChannel('channel', true);
   const category = interaction.options.getString('category');
 
   // Upsert — re-running /discuss schedule on the same channel updates the
   // config rather than creating a duplicate.
   await prisma.discussionSchedule.upsert({
-    where: {
-      serverId_channelId: { serverId: guildId, channelId: channel.id },
-    },
+    where: { channelId: channel.id },
     update: { categoryFilter: category, createdBy: interaction.user.id },
     create: {
-      serverId: guildId,
       channelId: channel.id,
       categoryFilter: category,
       createdBy: interaction.user.id,
@@ -129,7 +124,6 @@ async function handleSchedule(interaction: ChatInputCommandInteraction, guildId:
 
   await prisma.configAuditLog.create({
     data: {
-      serverId: guildId,
       userId: interaction.user.id,
       action: 'SET_SCHEDULE',
       targetType: 'CHANNEL',
@@ -145,10 +139,8 @@ async function handleSchedule(interaction: ChatInputCommandInteraction, guildId:
   });
 }
 
-async function handleList(interaction: ChatInputCommandInteraction, guildId: string) {
-  const schedules = await prisma.discussionSchedule.findMany({
-    where: { serverId: guildId },
-  });
+async function handleList(interaction: ChatInputCommandInteraction) {
+  const schedules = await prisma.discussionSchedule.findMany();
 
   const embed = new EmbedBuilder()
     .setColor(BRAND_COLOR)

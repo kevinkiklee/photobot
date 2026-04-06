@@ -5,11 +5,9 @@ import { updateFeatureAction } from '@/lib/actions';
 import { useToast } from '@/components/Toast';
 
 export function FeatureToggle({
-  serverId,
   featureKey,
   initialEnabled
 }: {
-  serverId: string;
   featureKey: string;
   initialEnabled: boolean
 }) {
@@ -23,7 +21,7 @@ export function FeatureToggle({
 
     startTransition(async () => {
       try {
-        await updateFeatureAction(serverId, featureKey, nextState);
+        await updateFeatureAction(featureKey, nextState);
         toast({
           variant: 'success',
           message: `${featureKey} ${nextState ? 'enabled' : 'disabled'}`,

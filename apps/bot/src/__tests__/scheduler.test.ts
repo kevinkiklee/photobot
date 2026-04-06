@@ -27,7 +27,7 @@ import { canUseFeature } from '../middleware/permissions';
 import { selectPrompt } from '../services/prompts';
 import { startScheduler, stopScheduler } from '../services/scheduler';
 
-const SCHEDULE_FIXTURE = { id: 'sched-1', serverId: 'guild-1', channelId: 'ch-1', categoryFilter: null, isActive: true };
+const SCHEDULE_FIXTURE = { id: 'sched-1', channelId: 'ch-1', categoryFilter: null, isActive: true };
 
 function createMockClient() {
   const mockChannel = {
@@ -127,7 +127,7 @@ describe('Scheduler', () => {
     expect(mockChannel.send).not.toHaveBeenCalled();
   });
 
-  it('logs posted prompt without threadId', async () => {
+  it('logs posted prompt', async () => {
     const { mockClient } = createMockClient();
     (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
     (prisma.discussionSchedule.findFirst as any).mockResolvedValue(SCHEDULE_FIXTURE);
@@ -137,15 +137,14 @@ describe('Scheduler', () => {
 
     expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        serverId: 'guild-1',
         channelId: 'ch-1',
         promptText: 'Test prompt',
         category: 'creative',
       }),
     });
-    // Ensure no threadId is set
+    // Ensure no serverId is set
     const callData = (prisma.discussionPromptLog.create as any).mock.calls[0][0].data;
-    expect(callData.threadId).toBeUndefined();
+    expect(callData.serverId).toBeUndefined();
   });
 
   it('handles channel fetch failure without crashing', async () => {

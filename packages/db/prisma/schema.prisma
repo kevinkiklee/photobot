@@ -67,22 +67,20 @@ enum TargetType {
 }
 
 model FeatureConfig {
-  id           String     @id @default(uuid())
-  serverId     String     @map("server_id")
-  targetType   TargetType @map("target_type")
-  targetId     String     @map("target_id") // Discord ID of server, role, or channel
-  featureKey   String     @map("feature_key")
-  isEnabled    Boolean    @default(true) @map("is_enabled")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  id         String     @id @default(uuid())
+  targetType TargetType @map("target_type")
+  targetId   String     @map("target_id") // Discord ID of server, role, or channel
+  featureKey String     @map("feature_key")
+  isEnabled  Boolean    @default(true) @map("is_enabled")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
 
-  @@unique([serverId, targetType, targetId, featureKey])
+  @@unique([targetType, targetId, featureKey])
   @@map("feature_configs")
 }
 
 model ConfigAuditLog {
   id         String     @id @default(uuid())
-  serverId   String     @map("server_id")
   userId     String     @map("user_id")
   action     String
   targetType TargetType @map("target_type")
@@ -97,27 +95,24 @@ model ConfigAuditLog {
 
 model DiscussionSchedule {
   id             String   @id @default(cuid())
-  serverId       String   @map("server_id")
-  channelId      String   @map("channel_id")
+  channelId      String   @unique @map("channel_id")
   categoryFilter String?  @map("category_filter")
   isActive       Boolean  @default(true) @map("is_active")
   createdBy      String   @map("created_by")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  @@unique([serverId, channelId])
   @@map("discussion_schedules")
 }
 
 model DiscussionPromptLog {
   id         String   @id @default(cuid())
-  serverId   String   @map("server_id")
   channelId  String   @map("channel_id")
   promptText String   @map("prompt_text")
   category   String
   postedAt   DateTime @default(now()) @map("posted_at")
 
-  @@index([serverId, postedAt])
+  @@index([postedAt])
   @@map("discussion_prompt_logs")
 }
 

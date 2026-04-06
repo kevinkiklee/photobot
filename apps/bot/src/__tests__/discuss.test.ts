@@ -1,5 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+vi.stubEnv('PL_GUILD_ID', 'pl-guild-id');
+
 vi.mock('@photobot/db', () => ({
   prisma: {
     discussionSchedule: {
@@ -46,7 +48,7 @@ describe('Discuss Command', () => {
     (prisma.configAuditLog.create as any).mockResolvedValue({});
 
     interaction = {
-      guildId: 'guild-123',
+      guildId: 'pl-guild-id',
       channelId: 'channel-123',
       user: { id: 'user-123' },
       member: { roles: { cache: new Map([['role-1', { id: 'role-1' }]]) } },
@@ -75,7 +77,7 @@ describe('Discuss Command', () => {
     it('posts a discussion prompt embed as a regular message', async () => {
       await execute(interaction);
 
-      expect(selectPrompt).toHaveBeenCalledWith('guild-123', null);
+      expect(selectPrompt).toHaveBeenCalledWith(null);
       expect(interaction.reply).toHaveBeenCalledWith(
         expect.objectContaining({
           embeds: expect.arrayContaining([
@@ -100,11 +102,13 @@ describe('Discuss Command', () => {
 
       expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          serverId: 'guild-123',
           promptText: 'How do you push through a creative rut when nothing feels inspiring?',
           category: 'creative',
         }),
       });
+      // Ensure no serverId in log data
+      const callData = (prisma.discussionPromptLog.create as any).mock.calls[0][0].data;
+      expect(callData.serverId).toBeUndefined();
     });
 
     it('blocks when feature is disabled', async () => {
@@ -126,7 +130,7 @@ describe('Discuss Command', () => {
 
       await execute(interaction);
 
-      expect(selectPrompt).toHaveBeenCalledWith('guild-123', 'creative');
+      expect(selectPrompt).toHaveBeenCalledWith('creative');
     });
   });
 
@@ -142,11 +146,8 @@ describe('Discuss Command', () => {
 
       expect(prisma.discussionSchedule.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {
-            serverId_channelId: { serverId: 'guild-123', channelId: 'channel-456' },
-          },
+          where: { channelId: 'channel-456' },
           create: expect.objectContaining({
-            serverId: 'guild-123',
             channelId: 'channel-456',
           }),
         })
@@ -162,12 +163,14 @@ describe('Discuss Command', () => {
 
       expect(prisma.configAuditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          serverId: 'guild-123',
           userId: 'user-123',
           action: 'SET_SCHEDULE',
           featureKey: 'discuss',
         }),
       });
+      // Ensure no serverId in audit log
+      const callData = (prisma.configAuditLog.create as any).mock.calls[0][0].data;
+      expect(callData.serverId).toBeUndefined();
     });
   });
 

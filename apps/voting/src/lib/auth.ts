@@ -15,7 +15,7 @@ const ADMIN_ROLE_IDS = new Set(
   (process.env.VOTING_ADMIN_ROLE_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
 );
 
-const GUILD_ID = process.env.VOTING_GUILD_ID || '';
+const GUILD_ID = process.env.PL_GUILD_ID || '';
 
 // In-memory cache for Discord admin role checks (5-minute TTL)
 const ADMIN_ROLE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes

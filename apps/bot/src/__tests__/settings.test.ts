@@ -1,4 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+vi.stubEnv('PL_GUILD_ID', 'pl-guild-id');
+
 import { execute, data } from '../commands/settings';
 import { prisma } from '@photobot/db';
 
@@ -16,7 +19,7 @@ describe('Settings Command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     interaction = {
-      guildId: '123456789',
+      guildId: 'pl-guild-id',
       reply: vi.fn(),
     };
   });
@@ -32,7 +35,12 @@ describe('Settings Command', () => {
 
     await execute(interaction);
 
-    expect(prisma.featureConfig.findMany).toHaveBeenCalled();
+    expect(prisma.featureConfig.findMany).toHaveBeenCalledWith({
+      where: {
+        targetType: 'SERVER',
+        targetId: 'pl-guild-id',
+      },
+    });
     expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
       embeds: expect.any(Array),
       ephemeral: true,

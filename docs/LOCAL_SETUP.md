@@ -81,13 +81,12 @@ NEXT_PUBLIC_SUPABASE_URL=http://localhost:54421
 NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-for-local-dev
 SUPABASE_SERVICE_ROLE_KEY=placeholder-for-local-dev
 
-# AI — choose one:
-AI_PROVIDER=ollama                      # Free, runs in Docker (~4.7 GB download)
-OLLAMA_HOST=http://localhost:11434
+# Photography Lounge
+PL_GUILD_ID=728905379274162177
 
-# OR for production-quality AI results:
-# AI_PROVIDER=gemini
-# GEMINI_API_KEY=your-gemini-api-key    # Get one at https://aistudio.google.com/apikey
+# Voting Site
+VOTING_ADMIN_USER_IDS=
+VOTING_ADMIN_ROLE_IDS=
 ```
 
 > **Tip:** For local development, you can leave the Supabase keys as placeholders.
@@ -108,7 +107,6 @@ This starts four services:
 | Postgres | photobot-db | 54422 | Database |
 | GoTrue | photobot-auth | 9998 | Supabase Auth |
 | PostgREST | photobot-rest | 54421 | REST API |
-| Ollama | photobot-ollama | 11434 | Local AI inference |
 
 Wait for the database to be healthy:
 
@@ -119,19 +117,7 @@ docker inspect -f '{{.State.Health.Status}}' photobot-db
 
 ---
 
-## Step 5: Pull the Ollama Model
-
-If using Ollama for local AI (recommended for development):
-
-```bash
-docker exec photobot-ollama ollama pull llava
-```
-
-This downloads the `llava` vision model (~4.7 GB). Only needed once — data persists in a Docker volume.
-
----
-
-## Step 6: Set Up the Database
+## Step 5: Set Up the Database
 
 Generate the Prisma client and push the schema:
 
@@ -146,22 +132,21 @@ Optionally seed with sample data:
 pnpm db seed
 ```
 
-This creates feature configs (critique, palette, settings, discuss) for a test server.
+This creates feature configs (settings, discuss) for Photography Lounge.
 
 ---
 
-## Step 7: Build Shared Packages
+## Step 6: Build Shared Packages
 
 The bot and dashboard depend on shared packages:
 
 ```bash
 pnpm -C packages/db build
-pnpm -C packages/ai build
 ```
 
 ---
 
-## Step 8: Start the Applications
+## Step 7: Start the Applications
 
 ```bash
 pnpm dev
@@ -174,25 +159,23 @@ This starts both apps concurrently:
 | Dashboard | http://localhost:3100 | Admin panel (Next.js) |
 | Bot | — | Connects to Discord via websocket |
 
-The bot registers its slash commands on startup: `/critique`, `/palette`, `/settings`, and `/discuss`.
+The bot registers its slash commands on startup: `/settings` and `/discuss`.
 
 ---
 
-## Step 9: Verify Everything Works
+## Step 8: Verify Everything Works
 
 ### Bot
 
-1. Open your test Discord server.
-2. Type `/` — you should see `critique`, `palette`, `settings`, and `discuss` in autocomplete.
-3. Try `/discuss prompt` — the bot should post a discussion prompt with a thread and reactions.
-4. Try `/critique` with an image attachment for AI-powered feedback.
+1. Open Photography Lounge (or your test Discord server).
+2. Type `/` — you should see `settings` and `discuss` in autocomplete.
+3. Try `/discuss prompt` — the bot should post a discussion prompt.
 
 ### Dashboard
 
 1. Open http://localhost:3100.
 2. Click **Login with Discord**.
-3. After OAuth, you should see your servers listed.
-4. Click a server, then go to **Settings** to manage feature toggles.
+3. After OAuth, if you're a PL admin you'll see the **Settings** page with feature toggles.
 
 ### Health Check
 
@@ -255,10 +238,6 @@ Discord caches global slash commands for up to an hour. Wait, or restart the bot
 
 The dashboard's NextAuth adapter needs Supabase env vars. Make sure `NEXT_PUBLIC_SUPABASE_URL` is set in `.env`. For local dev, placeholder values work.
 
-### Ollama is slow on first request
-
-The model loads into memory on the first request (~10-30 seconds). Subsequent requests are fast. If you have < 8 GB RAM, use the Gemini API instead (`AI_PROVIDER=gemini`).
-
 ### Prisma "Can't reach database server"
 
 Ensure Docker is running and Postgres is healthy:
@@ -277,7 +256,6 @@ Photobot uses non-standard ports to avoid conflicts:
 | 54422 | Postgres | `lsof -i :54422` |
 | 54421 | PostgREST | `lsof -i :54421` |
 | 9998 | GoTrue Auth | `lsof -i :9998` |
-| 11434 | Ollama | `lsof -i :11434` |
 | 3100 | Dashboard | `lsof -i :3100` |
 
 ### Discussion scheduler not firing

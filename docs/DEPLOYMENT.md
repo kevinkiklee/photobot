@@ -10,7 +10,6 @@ How to deploy Photobot to production and manage releases.
 | **Dashboard** | Vercel | Next.js admin panel (serverless) | `bot-dashboard.pl.iser.io` |
 | **Voting Site** | Vercel | Next.js prompt voting (serverless) | `discussion-prompts.pl.iser.io` |
 | **Database** | Supabase | Managed Postgres (PgBouncer pooling) | — |
-| **AI** | Google Gemini API | Image analysis (production) | — |
 
 All services share a single Supabase Postgres database via `DATABASE_URL` (pooled connection on port 6543).
 
@@ -20,12 +19,12 @@ All services share a single Supabase Postgres database via `DATABASE_URL` (poole
                     │  (Postgres)  │
                     └──────┬───────┘
                            │
-         ┌─────────────────┼─────────────────┐
-         │                 │                 │
-┌────────▼───┐  ┌─────────▼──────────┐  ┌──▼───────────┐
-│  Railway   │  │      Vercel        │  │  Gemini API  │
-│   (Bot)    │  │ Dashboard + Voting │  │  (AI Vision) │
-└────────────┘  └────────────────────┘  └──────────────┘
+              ┌────────────┼────────────┐
+              │                         │
+     ┌────────▼───┐          ┌─────────▼──────────┐
+     │  Railway   │          │      Vercel        │
+     │   (Bot)    │          │ Dashboard + Voting │
+     └────────────┘          └────────────────────┘
 ```
 
 ---
@@ -37,7 +36,6 @@ Before your first deploy, you need accounts and projects on:
 - [Supabase](https://supabase.com) — Create a project; note the connection string
 - [Vercel](https://vercel.com) — Link to your GitHub repo
 - [Railway](https://railway.app) — Create a project for the bot
-- [Google AI Studio](https://aistudio.google.com/apikey) — Get a Gemini API key
 - [Discord Developer Portal](https://discord.com/developers/applications) — Production bot application
 
 ---
@@ -104,6 +102,7 @@ Set these in Vercel project settings (**Settings > Environment Variables**):
 | `NEXTAUTH_SECRET` | Random 32-byte string | Production |
 | `NEXTAUTH_URL` | `https://bot-dashboard.pl.iser.io` | Production |
 | `DATABASE_URL` | Supabase pooled connection string (port 6543) | Production |
+| `PL_GUILD_ID` | Photography Lounge Discord server ID | Production |
 
 Generate `NEXTAUTH_SECRET`:
 ```bash
@@ -148,7 +147,7 @@ Same monorepo pattern as the dashboard (see above). The voting app uses a separa
 | `DATABASE_URL` | Supabase pooled connection string (port 6543) | Production |
 | `VOTING_ADMIN_USER_IDS` | Comma-separated Discord user IDs | Production |
 | `VOTING_ADMIN_ROLE_IDS` | Comma-separated Discord role IDs (optional) | Production |
-| `VOTING_GUILD_ID` | Discord server ID (for role-based admin) | Production |
+| `PL_GUILD_ID` | Photography Lounge Discord server ID | Production |
 
 ### Deploy
 
@@ -175,7 +174,7 @@ https://discussion-prompts.pl.iser.io/api/auth/callback/discord
 3. Set the **Root Directory** to `/` (monorepo root).
 4. Set the **Build Command** to:
    ```
-   pnpm install && pnpm --filter @photobot/db build && pnpm --filter @photobot/ai build && pnpm --filter @photobot/bot build
+   pnpm install && pnpm --filter @photobot/db build && pnpm --filter @photobot/bot build
    ```
 5. Set the **Start Command** to:
    ```
@@ -191,8 +190,7 @@ Set these in Railway service settings:
 | `DISCORD_TOKEN` | Production bot token |
 | `DISCORD_CLIENT_ID` | Production Discord app ID |
 | `DATABASE_URL` | Supabase connection string |
-| `AI_PROVIDER` | `gemini` |
-| `GEMINI_API_KEY` | Your Google Gemini API key |
+| `PL_GUILD_ID` | Photography Lounge Discord server ID |
 
 ### Deploy
 
@@ -283,11 +281,12 @@ git branch -d hotfix/description
 # ─── Shared ───
 DATABASE_URL=postgresql://postgres.PROJECT:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
 
+# ─── Photography Lounge ───
+PL_GUILD_ID=<discord-server-id>
+
 # ─── Bot (Railway) ───
 DISCORD_TOKEN=<bot-token>
 DISCORD_CLIENT_ID=<app-id>
-AI_PROVIDER=gemini
-GEMINI_API_KEY=<gemini-key>
 
 # ─── Dashboard (Vercel: pl-bot-dashboard) ───
 DISCORD_CLIENT_ID=<main-app-id>
@@ -304,7 +303,7 @@ VOTING_NEXTAUTH_SECRET=<random-32-byte-base64>
 NEXTAUTH_URL=https://discussion-prompts.pl.iser.io
 VOTING_ADMIN_USER_IDS=<comma-separated-discord-user-ids>
 VOTING_ADMIN_ROLE_IDS=<comma-separated-role-ids>
-VOTING_GUILD_ID=<discord-server-id>
+PL_GUILD_ID=<discord-server-id>
 ```
 
 ### Where to Find Each Value
@@ -316,7 +315,7 @@ VOTING_GUILD_ID=<discord-server-id>
 | `DISCORD_CLIENT_ID` | Discord Developer Portal > General Information > Application ID |
 | `DISCORD_CLIENT_SECRET` | Discord Developer Portal > OAuth2 > Client Secret |
 | `NEXTAUTH_SECRET` | Generate: `openssl rand -base64 32` |
-| `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `PL_GUILD_ID` | Discord Developer Portal > Your server ID |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase > Settings > API > Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase > Settings > API > anon public |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase > Settings > API > service_role secret |
@@ -397,7 +396,6 @@ DATABASE_URL=<prod> npx prisma db push
 | Bot offline | Railway service stopped or crashed | Check Railway logs, redeploy |
 | Bot commands missing | `DISCORD_CLIENT_ID` mismatch | Verify env var matches Discord app |
 | "Can't reach database" | Wrong `DATABASE_URL` or Supabase paused | Check connection string; unpause project |
-| AI commands fail | Missing `GEMINI_API_KEY` or quota exceeded | Check key validity and quota in Google AI Studio |
 
 ---
 
@@ -410,7 +408,6 @@ Use this before every production deploy:
 - [ ] Schema changes applied to production Supabase (if any)
 - [ ] Environment variables updated in Vercel/Railway (if any new ones)
 - [ ] Discord OAuth redirect URLs configured for both apps (if domain changed)
-- [ ] AI access grants configured for production server (`/ai-access list`)
 - [ ] Push to `main`
 - [ ] Verify Vercel deployments succeeded (both dashboard and voting)
 - [ ] Verify Railway deployment succeeded

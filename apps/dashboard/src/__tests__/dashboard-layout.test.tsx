@@ -10,19 +10,21 @@ vi.mock('../lib/auth', () => ({
 }));
 
 vi.mock('../lib/discord', () => ({
-  getAdminGuilds: vi.fn(),
+  isPlAdmin: vi.fn(),
+  DiscordTokenExpiredError: class extends Error {
+    constructor() { super('Discord access token expired'); }
+  },
 }));
 
 vi.mock('next/navigation', () => ({
   redirect: vi.fn((url: string) => { throw new Error(`NEXT_REDIRECT:${url}`); }),
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => '/settings',
-  useSearchParams: () => new URLSearchParams(''),
 }));
 
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
-import { getAdminGuilds } from '../lib/discord';
+import { isPlAdmin } from '../lib/discord';
 import DashboardLayout from '../app/(dashboard)/layout';
 
 describe('DashboardLayout', () => {
@@ -44,7 +46,7 @@ describe('DashboardLayout', () => {
 
   it('renders nav and children with valid session', async () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
-    (getAdminGuilds as any).mockResolvedValue([{ id: '1', name: 'Guild', permissions: '8' }]);
+    (isPlAdmin as any).mockResolvedValue(true);
 
     const Page = await DashboardLayout({ children: <div>test-child</div> });
     render(Page);

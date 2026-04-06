@@ -116,6 +116,13 @@ NEXT_PUBLIC_SUPABASE_URL=http://localhost:54421
 NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-for-local-dev
 SUPABASE_SERVICE_ROLE_KEY=placeholder-for-local-dev
 
+# --- Photography Lounge ---
+PL_GUILD_ID=728905379274162177
+
+# --- Voting Site ---
+VOTING_ADMIN_USER_IDS=
+VOTING_ADMIN_ROLE_IDS=
+
 EOF
 
   ok ".env created with auto-generated NEXTAUTH_SECRET"

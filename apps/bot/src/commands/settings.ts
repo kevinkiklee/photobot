@@ -7,17 +7,14 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const guildId = interaction.guildId;
-
-  if (!guildId) {
+  if (!interaction.guildId) {
     return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
   }
 
   const configs = await prisma.featureConfig.findMany({
     where: {
-      serverId: guildId,
       targetType: 'SERVER',
-      targetId: guildId,
+      targetId: process.env.PL_GUILD_ID!,
     },
   });
 
@@ -32,7 +29,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     configs.forEach((config: any) => {
       embed.addFields({
         name: config.featureKey,
-        value: config.isEnabled ? '✅ Enabled' : '❌ Disabled',
+        value: config.isEnabled ? 'Enabled' : 'Disabled',
         inline: true,
       });
     });

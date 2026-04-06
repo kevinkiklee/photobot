@@ -2,16 +2,16 @@
 
 # Photobot
 
-**AI-powered photography community bot for Discord**
+**Photography Lounge Discord bot**
 
-Automated image critique, color palette extraction, discussion prompts,
-and server-level feature management through an admin dashboard.
+Curated discussion prompts, community voting, and feature management
+through an admin dashboard — exclusively serving Photography Lounge.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Tests](https://github.com/kevinkiklee/photobot/actions/workflows/ci.yml/badge.svg)](https://github.com/kevinkiklee/photobot/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Discord.js](https://img.shields.io/badge/discord.js-14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 
 </div>
 
@@ -19,36 +19,23 @@ and server-level feature management through an admin dashboard.
 
 ## Features
 
-- **AI Image Critique** -- Technical feedback on photographs (composition, lighting, focus) powered by Gemini or Ollama
-- **Color Palette Extraction** -- 5-color hex palette with a branded visual swatch image
 - **Discussion Prompts** -- 400 curated prompts across Creative Process and Inspiration, posted on a schedule with conversation-aware timing
-- **AI Access Control** -- Allowlist model: grant AI commands to specific roles or individual users
 - **Admin Dashboard** -- Web-based feature management with Discord OAuth, audit logging, and schedule management
-- **Bouncer Security** -- Two-layer AI moderation, EXIF metadata stripping, shadow rate limiting
 - **Hierarchical Permissions** -- Channel > Role > Server specificity with "Allow Wins" conflict resolution
 - **Prompt Voting Site** -- Community tool for members to upvote/downvote discussion prompts, submit new prompts, flag duplicates, with admin oversight and mobile-responsive design
+- **Single-Server Guard** -- Auto-leaves any server that isn't Photography Lounge
 
 ## Commands
 
 ```
-/critique <image>                  Technical feedback on a photograph
-/palette <image>                   Extract a 5-color hex palette with swatch
-
 /discuss prompt [category]         Post a discussion prompt
 /discuss schedule                  Set up automatic discussion prompts
 /discuss list                      List all discussion schedules
 
-/settings list                     List all feature toggles
-/settings toggle <feature> <on>    Enable/disable a feature
-
-/ai grant-role <role>              Grant AI access to a role
-/ai revoke-role <role>             Revoke AI access from a role
-/ai grant-user <user>              Grant AI access to a user
-/ai revoke-user <user>             Revoke AI access from a user
-/ai list                           List all AI access grants
+/settings                          View feature toggles
 ```
 
-`/critique` and `/palette` require an AI access grant. All other commands require Administrator permission. AI commands are hidden by default -- configure visibility in **Server Settings > Integrations > Photobot**.
+All commands require Administrator permission.
 
 ## Quick Start
 
@@ -75,14 +62,13 @@ For step-by-step setup including Discord app creation and OAuth2 configuration, 
 ```
 photobot/
 ├── apps/
-│   ├── bot/                 Discord.js bot (commands, bouncer, permissions)
+│   ├── bot/                 Discord.js bot (commands, permissions, auto-leave guard)
 │   ├── dashboard/           Next.js 16 admin panel (NextAuth, feature toggles, audit logs)
 │   └── voting/              Next.js 16 community prompt voting site
 ├── packages/
-│   ├── ai/                  Provider-agnostic AI wrapper (Gemini / Ollama)
 │   └── db/                  Prisma schema and client
 ├── scripts/                 Setup, dev, status, db, and cleanup scripts
-└── docker-compose.yml       Local Postgres, Supabase Auth, Ollama
+└── docker-compose.yml       Local Postgres and Supabase Auth
 ```
 
 ## Development
@@ -104,11 +90,10 @@ photobot/
 
 | Layer | Technology |
 |-------|-----------|
-| Bot | discord.js 14, Sharp, dotenv |
+| Bot | discord.js 14, dotenv |
 | Dashboard | Next.js 16 (App Router), NextAuth 4, Tailwind CSS |
 | Voting | Next.js 16 (App Router), NextAuth 4, Tailwind CSS |
 | Database | Prisma 7 on Supabase Postgres |
-| AI | Google Gemini (prod), Ollama (local dev) |
 | Testing | Vitest |
 | Infrastructure | Docker Compose (local), Railway (bot), Vercel (dashboard + voting) |
 

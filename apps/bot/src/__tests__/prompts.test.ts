@@ -19,13 +19,13 @@ describe('selectPrompt', () => {
   });
 
   it('returns a curated prompt', async () => {
-    const result = await selectPrompt('server-1', null);
+    const result = await selectPrompt(null);
 
     expect(result.text.length).toBeGreaterThan(0);
   });
 
   it('filters by category when provided', async () => {
-    const result = await selectPrompt('server-1', 'creative');
+    const result = await selectPrompt('creative');
 
     expect(result.category).toBe('creative');
   });
@@ -36,7 +36,7 @@ describe('selectPrompt', () => {
     const recentLogs = creativePrompts.slice(0, -1).map(p => ({ promptText: p.text }));
     (prisma.discussionPromptLog.findMany as any).mockResolvedValue(recentLogs);
 
-    const result = await selectPrompt('server-1', 'creative');
+    const result = await selectPrompt('creative');
     expect(result.text).toBe(creativePrompts[creativePrompts.length - 1].text);
   });
 
@@ -45,7 +45,7 @@ describe('selectPrompt', () => {
     const recentLogs = creativePrompts.map(p => ({ promptText: p.text }));
     (prisma.discussionPromptLog.findMany as any).mockResolvedValue(recentLogs);
 
-    const result = await selectPrompt('server-1', 'creative');
+    const result = await selectPrompt('creative');
 
     expect(result.category).toBe('creative');
   });
@@ -55,7 +55,7 @@ describe('selectPrompt', () => {
     const recentLogs = DISCUSSION_PROMPTS.map(p => ({ promptText: p.text }));
     (prisma.discussionPromptLog.findMany as any).mockResolvedValue(recentLogs);
 
-    const result = await selectPrompt('server-1', null);
+    const result = await selectPrompt(null);
 
     expect(result.text.length).toBeGreaterThan(0);
     // The returned prompt must be one of the known prompts
@@ -71,7 +71,7 @@ describe('selectPrompt', () => {
     const [smallestCategory] = [...categoryCounts.entries()].sort((a, b) => a[1] - b[1])[0];
     const categoryPrompts = DISCUSSION_PROMPTS.filter(p => p.category === smallestCategory);
 
-    const result = await selectPrompt('server-1', smallestCategory);
+    const result = await selectPrompt(smallestCategory);
 
     expect(result.category).toBe(smallestCategory);
     expect(categoryPrompts.some(p => p.text === result.text)).toBe(true);

@@ -28,7 +28,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', 'admin-1,admin-2');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
-    vi.stubEnv('VOTING_GUILD_ID', '');
+    vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
     const sessionCallback = authOptions.callbacks!.session!;
@@ -51,7 +51,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', 'admin-1,admin-2');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
-    vi.stubEnv('VOTING_GUILD_ID', '');
+    vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
     const sessionCallback = authOptions.callbacks!.session!;
@@ -74,7 +74,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', '');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
-    vi.stubEnv('VOTING_GUILD_ID', '');
+    vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
     const sessionCallback = authOptions.callbacks!.session!;
@@ -96,7 +96,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', ' admin-1 , admin-2 ');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
-    vi.stubEnv('VOTING_GUILD_ID', '');
+    vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
     const sessionCallback = authOptions.callbacks!.session!;
@@ -118,7 +118,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', '');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
-    vi.stubEnv('VOTING_GUILD_ID', '');
+    vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
     const sessionCallback = authOptions.callbacks!.session!;
@@ -140,7 +140,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', '');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
-    vi.stubEnv('VOTING_GUILD_ID', '');
+    vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
     const sessionCallback = authOptions.callbacks!.session!;
@@ -162,7 +162,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', '');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
-    vi.stubEnv('VOTING_GUILD_ID', '');
+    vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
     const sessionCallback = authOptions.callbacks!.session!;

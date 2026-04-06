@@ -23,7 +23,7 @@ describe('Home Page', () => {
   it('renders the description text', async () => {
     const Page = await Home();
     render(Page);
-    const description = screen.getByText(/photography communities/i);
+    const description = screen.getByText(/Photography Lounge/i);
     expect(description).toBeInTheDocument();
   });
 

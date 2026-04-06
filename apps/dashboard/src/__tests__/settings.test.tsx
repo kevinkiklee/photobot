@@ -25,47 +25,29 @@ vi.mock('../lib/auth', () => ({
   authOptions: {},
 }));
 
-vi.mock('../lib/discord', () => ({
-  getAdminGuilds: vi.fn(),
-}));
-
 import { prisma } from '@photobot/db';
-import { getServerSession } from 'next-auth/next';
-import { getAdminGuilds } from '../lib/discord';
 import SettingsPage from '../app/(dashboard)/settings/page';
 
 describe('Settings Page', () => {
-  it('shows prompt to select server when no serverId', async () => {
-    (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
-
-    const Page = await SettingsPage({ searchParams: Promise.resolve({}) });
-    render(<ToastProvider>{Page}</ToastProvider>);
-
-    expect(screen.getByText(/Select a server from the header/i)).toBeInTheDocument();
-  });
-
-  it('shows access denied if user is not admin of server', async () => {
-    (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
-    (getAdminGuilds as any).mockResolvedValue([]);
-
-    const Page = await SettingsPage({ searchParams: Promise.resolve({ serverId: '123' }) });
-    render(<ToastProvider>{Page}</ToastProvider>);
-
-    expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
-  });
-
-  it('renders feature toggle cards for a specific server', async () => {
-    (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
-    (getAdminGuilds as any).mockResolvedValue([{ id: '123', name: 'Test', permissions: '8' }]);
+  it('renders feature toggle cards', async () => {
     (prisma.featureConfig.findMany as any).mockResolvedValue([
-      { id: '1', featureKey: 'settings', isEnabled: true, serverId: '123', targetType: 'SERVER', targetId: '123' },
+      { id: '1', featureKey: 'settings', isEnabled: true, targetType: 'SERVER', targetId: 'pl-guild-id' },
     ]);
 
-    const Page = await SettingsPage({ searchParams: Promise.resolve({ serverId: '123' }) });
+    const Page = await SettingsPage();
     render(<ToastProvider>{Page}</ToastProvider>);
 
     expect(screen.getByRole('heading', { level: 1, name: /Settings/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: /settings/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: /discuss/i })).toBeInTheDocument();
+  });
+
+  it('shows Photography Lounge in description', async () => {
+    (prisma.featureConfig.findMany as any).mockResolvedValue([]);
+
+    const Page = await SettingsPage();
+    render(<ToastProvider>{Page}</ToastProvider>);
+
+    expect(screen.getByText(/Photography Lounge/i)).toBeInTheDocument();
   });
 });

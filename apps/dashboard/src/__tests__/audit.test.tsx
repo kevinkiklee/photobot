@@ -23,46 +23,28 @@ vi.mock('../lib/auth', () => ({
   authOptions: {},
 }));
 
-vi.mock('../lib/discord', () => ({
-  getAdminGuilds: vi.fn(),
-}));
-
 import { prisma } from '@photobot/db';
-import { getServerSession } from 'next-auth/next';
-import { getAdminGuilds } from '../lib/discord';
 import AuditPage from '../app/(dashboard)/audit/page';
 
 describe('Audit Page', () => {
-  it('shows prompt to select server when no serverId', async () => {
-    (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
+  it('shows empty state when no logs', async () => {
+    (prisma.configAuditLog.findMany as any).mockResolvedValue([]);
+    (prisma.configAuditLog.count as any).mockResolvedValue(0);
 
     const Page = await AuditPage({ searchParams: Promise.resolve({}) });
     render(Page);
 
-    expect(screen.getByText(/Select a server from the header/i)).toBeInTheDocument();
-  });
-
-  it('shows access denied if user is not admin of server', async () => {
-    (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
-    (getAdminGuilds as any).mockResolvedValue([]);
-
-    const Page = await AuditPage({ searchParams: Promise.resolve({ serverId: '123' }) });
-    render(Page);
-
-    expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
+    expect(screen.getByText(/No Entries/i)).toBeInTheDocument();
   });
 
   it('renders audit logs with action badges', async () => {
-    (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
-    (getAdminGuilds as any).mockResolvedValue([{ id: '123', name: 'Test', permissions: '8' }]);
     (prisma.configAuditLog.findMany as any).mockResolvedValue([
       {
         id: '1',
-        serverId: '123',
         userId: 'user1',
         action: 'UPDATE',
         targetType: 'SERVER',
-        targetId: '123',
+        targetId: 'pl-guild-id',
         featureKey: 'discuss',
         oldValue: { isEnabled: false },
         newValue: { isEnabled: true },
@@ -71,7 +53,7 @@ describe('Audit Page', () => {
     ]);
     (prisma.configAuditLog.count as any).mockResolvedValue(1);
 
-    const Page = await AuditPage({ searchParams: Promise.resolve({ serverId: '123' }) });
+    const Page = await AuditPage({ searchParams: Promise.resolve({}) });
     render(Page);
 
     expect(screen.getByText(/Audit Log/i)).toBeInTheDocument();

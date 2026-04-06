@@ -8,10 +8,10 @@ export function testId(suffix: string): string {
 
 export async function cleanupTestData() {
   await prisma.configAuditLog.deleteMany({
-    where: { serverId: { startsWith: TEST_PREFIX } },
+    where: { targetId: { startsWith: TEST_PREFIX } },
   });
   await prisma.featureConfig.deleteMany({
-    where: { serverId: { startsWith: TEST_PREFIX } },
+    where: { targetId: { startsWith: TEST_PREFIX } },
   });
 }
 

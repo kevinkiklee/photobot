@@ -28,9 +28,10 @@ client.commands.set(discussCommand.data.name, discussCommand);
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
+const plGuildId = process.env.PL_GUILD_ID;
 
-if (!token || !clientId) {
-  console.error('Missing DISCORD_TOKEN or DISCORD_CLIENT_ID in environment variables.');
+if (!token || !clientId || !plGuildId) {
+  console.error('Missing DISCORD_TOKEN, DISCORD_CLIENT_ID, or PL_GUILD_ID in environment variables.');
   process.exit(1);
 }
 
@@ -64,8 +65,19 @@ client.once(Events.ClientReady, async readyClient => {
   console.log('Discussion scheduler started.');
 });
 
+// Auto-leave any server that isn't Photography Lounge
+client.on(Events.GuildCreate, async guild => {
+  if (guild.id !== plGuildId) {
+    console.log(`Leaving non-PL server: ${guild.name} (${guild.id})`);
+    await guild.leave();
+  }
+});
+
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
+
+  // Only respond to commands in Photography Lounge
+  if (interaction.guildId !== plGuildId) return;
 
   const command = interaction.client.commands.get(interaction.commandName);
 

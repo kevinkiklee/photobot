@@ -49,7 +49,7 @@ Please do **not** open a public issue for security vulnerabilities. See [SECURIT
 
 ## Production Service Access for Contributors
 
-Most development uses local services only (Docker Postgres, Ollama). However, some tasks require access to production or staging services. This section is for project maintainers granting access to trusted contributors.
+Most development uses local services only (Docker Postgres). However, some tasks require access to production or staging services. This section is for project maintainers granting access to trusted contributors.
 
 ### Access Tiers
 
@@ -114,16 +114,6 @@ Contributors generally don't need Railway access. If they're working on bot depl
 2. Create a separate staging service (not the production service).
 3. Set the staging service's env vars to point at the staging Discord bot and staging database.
 
-#### 5. Google Gemini API (AI)
-
-For local development, contributors use Ollama (free, no API key needed). This is the default.
-
-If a contributor needs to test against Gemini specifically:
-1. Have them create their own key at [Google AI Studio](https://aistudio.google.com/apikey) (free tier is sufficient for development).
-2. They set `AI_PROVIDER=gemini` and `GEMINI_API_KEY=<their-key>` in their `.env`.
-
-> **Never share the production Gemini API key.** Contributors use their own free-tier keys.
-
 ### Onboarding Checklist
 
 When granting staging access to a contributor, use this checklist:
@@ -155,6 +145,5 @@ When a contributor's access should be removed:
 | Production `DATABASE_URL` | Direct access to all production data |
 | Production `NEXTAUTH_SECRET` | Could forge dashboard sessions |
 | Production `SUPABASE_SERVICE_ROLE_KEY` | Bypasses all row-level security |
-| Production `GEMINI_API_KEY` | Billed to the project; could exhaust quota |
 
 All production secrets stay with maintainers only. Contributors work against staging/local environments.

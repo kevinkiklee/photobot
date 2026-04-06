@@ -7,39 +7,39 @@
 import { prisma } from '@photobot/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth';
-import { getAdminGuilds } from './discord';
+import { isPlAdmin } from './discord';
 import { revalidatePath } from 'next/cache';
 
+async function requirePlAdmin(): Promise<string> {
+  const session = await getServerSession(authOptions);
+  if (!session?.accessToken) throw new Error('Unauthorized');
+  const authorized = await isPlAdmin(session.accessToken as string);
+  if (!authorized) throw new Error('Forbidden');
+  return (session.user as any)?.id || 'unknown';
+}
+
 export async function updateFeatureAction(
-  serverId: string,
   featureKey: string,
   isEnabled: boolean
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) throw new Error('Unauthorized');
-
-  const adminGuilds = await getAdminGuilds(session.accessToken as string);
-  const hasAccess = adminGuilds.some(g => g.id === serverId);
-  if (!hasAccess) throw new Error('Forbidden');
+  const userId = await requirePlAdmin();
 
   const oldConfig = await prisma.featureConfig.findFirst({
-    where: { serverId, featureKey },
+    where: { featureKey, targetType: 'SERVER' },
   });
 
   const newConfig = await prisma.featureConfig.upsert({
     where: {
-      serverId_targetType_targetId_featureKey: {
-        serverId,
+      targetType_targetId_featureKey: {
         targetType: 'SERVER',
-        targetId: serverId,
+        targetId: process.env.PL_GUILD_ID!,
         featureKey,
       },
     },
     update: { isEnabled },
     create: {
-      serverId,
       targetType: 'SERVER',
-      targetId: serverId,
+      targetId: process.env.PL_GUILD_ID!,
       featureKey,
       isEnabled,
     },
@@ -47,11 +47,10 @@ export async function updateFeatureAction(
 
   await prisma.configAuditLog.create({
     data: {
-      serverId,
-      userId: (session.user as any)?.id || 'unknown',
+      userId,
       action: 'UPDATE',
       targetType: 'SERVER',
-      targetId: serverId,
+      targetId: process.env.PL_GUILD_ID!,
       featureKey,
       oldValue: { isEnabled: oldConfig?.isEnabled ?? true },
       newValue: { isEnabled },
@@ -63,35 +62,25 @@ export async function updateFeatureAction(
   return newConfig;
 }
 
-export async function getDiscussionSchedules(serverId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) throw new Error('Unauthorized');
-
-  const adminGuilds = await getAdminGuilds(session.accessToken as string);
-  if (!adminGuilds.some(g => g.id === serverId)) throw new Error('Forbidden');
+export async function getDiscussionSchedules() {
+  await requirePlAdmin();
 
   return prisma.discussionSchedule.findMany({
-    where: { serverId },
     orderBy: { createdAt: 'asc' },
   });
 }
 
-export async function deleteDiscussionSchedule(scheduleId: string, serverId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) throw new Error('Unauthorized');
-
-  const adminGuilds = await getAdminGuilds(session.accessToken as string);
-  if (!adminGuilds.some(g => g.id === serverId)) throw new Error('Forbidden');
+export async function deleteDiscussionSchedule(scheduleId: string) {
+  const userId = await requirePlAdmin();
 
   const schedule = await prisma.discussionSchedule.findUnique({ where: { id: scheduleId } });
-  if (!schedule || schedule.serverId !== serverId) throw new Error('Not found');
+  if (!schedule) throw new Error('Not found');
 
   await prisma.discussionSchedule.delete({ where: { id: scheduleId } });
 
   await prisma.configAuditLog.create({
     data: {
-      serverId,
-      userId: (session.user as any)?.id || 'unknown',
+      userId,
       action: 'DELETE_SCHEDULE',
       targetType: 'CHANNEL',
       targetId: schedule.channelId,
@@ -104,15 +93,11 @@ export async function deleteDiscussionSchedule(scheduleId: string, serverId: str
   revalidatePath('/audit');
 }
 
-export async function toggleDiscussionSchedule(scheduleId: string, serverId: string, isActive: boolean) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) throw new Error('Unauthorized');
-
-  const adminGuilds = await getAdminGuilds(session.accessToken as string);
-  if (!adminGuilds.some(g => g.id === serverId)) throw new Error('Forbidden');
+export async function toggleDiscussionSchedule(scheduleId: string, isActive: boolean) {
+  const userId = await requirePlAdmin();
 
   const schedule = await prisma.discussionSchedule.findUnique({ where: { id: scheduleId } });
-  if (!schedule || schedule.serverId !== serverId) throw new Error('Not found');
+  if (!schedule) throw new Error('Not found');
 
   await prisma.discussionSchedule.update({
     where: { id: scheduleId },
@@ -121,8 +106,7 @@ export async function toggleDiscussionSchedule(scheduleId: string, serverId: str
 
   await prisma.configAuditLog.create({
     data: {
-      serverId,
-      userId: (session.user as any)?.id || 'unknown',
+      userId,
       action: isActive ? 'ENABLE_SCHEDULE' : 'DISABLE_SCHEDULE',
       targetType: 'CHANNEL',
       targetId: schedule.channelId,

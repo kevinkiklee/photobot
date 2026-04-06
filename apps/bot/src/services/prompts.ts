@@ -1,5 +1,5 @@
 // Selects a curated discussion prompt from discussion-prompts.md, cycling
-// through the pool per server so prompts don't repeat within 30 days.
+// through the pool so prompts don't repeat within 30 days.
 
 import { prisma } from '@photobot/db';
 import { DISCUSSION_PROMPTS } from '../constants';
@@ -10,23 +10,15 @@ interface PromptResult {
 }
 
 export async function selectPrompt(
-  serverId: string,
   category: string | null,
 ): Promise<PromptResult> {
-  return selectCuratedPrompt(serverId, category);
-}
-
-async function selectCuratedPrompt(
-  serverId: string,
-  category: string | null,
-): Promise<PromptResult> {
-  // Track prompts used in the last 30 days per server so we cycle through
-  // the full pool before repeating. Each server has its own history.
+  // Track prompts used in the last 30 days so we cycle through
+  // the full pool before repeating.
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const recentLogs = await prisma.discussionPromptLog.findMany({
-    where: { serverId, postedAt: { gte: thirtyDaysAgo } },
+    where: { postedAt: { gte: thirtyDaysAgo } },
     select: { promptText: true },
   });
 

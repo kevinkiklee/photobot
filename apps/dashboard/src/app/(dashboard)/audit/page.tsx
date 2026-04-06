@@ -1,10 +1,6 @@
 import { prisma } from '@photobot/db';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { getAdminGuilds, DiscordTokenExpiredError } from '@/lib/discord';
-import { redirect } from 'next/navigation';
 import { RelativeTime } from '@/components/relative-time';
-import { LucideInfo, LucideChevronLeft, LucideChevronRight } from 'lucide-react';
+import { LucideChevronLeft, LucideChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 const actionStyles: Record<string, string> = {
@@ -17,50 +13,20 @@ const actionStyles: Record<string, string> = {
 export default async function AuditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ serverId?: string; page?: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  const { serverId, page: pageParam } = await searchParams;
-
-  if (!serverId) {
-    return (
-      <div className="p-6 sm:p-8 max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-display text-primary">Audit Log</h1>
-          <p className="text-sm text-muted mt-1">Track all configuration changes</p>
-        </div>
-        <div className="flex items-start gap-3 p-4 rounded-xl border border-brand-highlight/20 bg-brand-highlight/5 backdrop-blur-sm">
-          <LucideInfo className="w-4 h-4 text-brand-highlight mt-0.5 flex-shrink-0" strokeWidth={1.5} />
-          <p className="text-sm text-primary">Select a server from the header to view its audit logs.</p>
-        </div>
-      </div>
-    );
-  }
-
-  let adminGuilds;
-  try {
-    adminGuilds = await getAdminGuilds(session?.accessToken as string);
-  } catch (e) {
-    if (e instanceof DiscordTokenExpiredError) {
-      redirect('/api/auth/signin');
-    }
-    throw e;
-  }
-  if (!adminGuilds.some(g => g.id === serverId)) {
-    return <div className="p-8 text-red-400">Access Denied.</div>;
-  }
+  const { page: pageParam } = await searchParams;
 
   const page = parseInt(pageParam || '1', 10);
   const pageSize = 20;
 
   const [logs, totalCount] = await Promise.all([
     prisma.configAuditLog.findMany({
-      where: { serverId },
       orderBy: { createdAt: 'desc' },
       take: pageSize,
       skip: (page - 1) * pageSize,
     }),
-    prisma.configAuditLog.count({ where: { serverId } }),
+    prisma.configAuditLog.count(),
   ]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -132,7 +98,7 @@ export default async function AuditPage({
         <div className="flex items-center justify-center gap-1 mt-6 max-sm:flex-col max-sm:gap-2">
           {page > 1 && (
             <Link
-              href={`/audit?serverId=${serverId}&page=${page - 1}#audit-table`}
+              href={`/audit?page=${page - 1}#audit-table`}
               className="flex items-center gap-1 px-3 py-1.5 text-xs border border-subtle rounded-lg text-secondary hover:text-primary hover:border-brand-primary/30 transition-all max-sm:w-full max-sm:justify-center"
             >
               <LucideChevronLeft className="w-3 h-3" />
@@ -144,7 +110,7 @@ export default async function AuditPage({
           </span>
           {page < totalPages && (
             <Link
-              href={`/audit?serverId=${serverId}&page=${page + 1}#audit-table`}
+              href={`/audit?page=${page + 1}#audit-table`}
               className="flex items-center gap-1 px-3 py-1.5 text-xs border border-subtle rounded-lg text-secondary hover:text-primary hover:border-brand-primary/30 transition-all max-sm:w-full max-sm:justify-center"
             >
               Next
