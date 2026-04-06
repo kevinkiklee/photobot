@@ -53,15 +53,5 @@ services:
     ports:
       - "${REST_PORT:-54421}:3000"
 
-  # --- Ollama Service ---
-  ollama:
-    container_name: photobot-ollama
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
 volumes:
   supabase_db:
-  ollama_data:

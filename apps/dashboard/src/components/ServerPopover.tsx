@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { LucideChevronDown, LucideSearch } from 'lucide-react';
+import Image from 'next/image';
 import { DiscordGuild } from '@/lib/discord';
 
 interface ServerPopoverProps {
@@ -106,9 +107,12 @@ export function ServerPopover({ guilds, mode = 'popover', onClose }: ServerPopov
                 }`}
               >
                 {guild.icon ? (
-                  <img
+                  <Image
                     src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}
                     alt=""
+                    width={32}
+                    height={32}
+                    unoptimized
                     className="w-8 h-8 rounded-full flex-shrink-0"
                   />
                 ) : (
@@ -158,9 +162,12 @@ export function ServerPopover({ guilds, mode = 'popover', onClose }: ServerPopov
         {currentGuild ? (
           <>
             {currentGuild.icon ? (
-              <img
+              <Image
                 src={`https://cdn.discordapp.com/icons/${currentGuild.id}/${currentGuild.icon}.png`}
                 alt=""
+                width={20}
+                height={20}
+                unoptimized
                 className="w-5 h-5 rounded-full"
               />
             ) : (

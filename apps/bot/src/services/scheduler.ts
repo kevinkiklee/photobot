@@ -93,12 +93,10 @@ async function waitForQuiet(channel: TextChannel): Promise<boolean> {
 async function executeScheduledPrompt(scheduleId: string): Promise<void> {
   if (!clientRef) return;
 
-  const schedule = await prisma.discussionSchedule.findMany({
+  const s = await prisma.discussionSchedule.findFirst({
     where: { id: scheduleId, isActive: true },
   });
-  if (schedule.length === 0) return;
-
-  const s = schedule[0];
+  if (!s) return;
 
   // Re-check permission at execution time — admins may have disabled the feature
   // via the dashboard since the schedule was created.
@@ -112,7 +110,7 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
     // Wait for a natural pause in conversation before posting
     await waitForQuiet(channel);
 
-    const prompt = await selectPrompt(s.serverId, s.useAi, s.categoryFilter);
+    const prompt = await selectPrompt(s.serverId, s.categoryFilter);
 
     const embed = new EmbedBuilder()
       .setColor(BRAND_COLOR)
@@ -130,7 +128,6 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
         channelId: s.channelId,
         promptText: prompt.text,
         category: prompt.category,
-        source: prompt.source,
       },
     });
   } catch (err) {

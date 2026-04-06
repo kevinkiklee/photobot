@@ -25,6 +25,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
   });
 
   it('marks user as admin when their discord ID is in VOTING_ADMIN_USER_IDS', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', 'admin-1,admin-2');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
     vi.stubEnv('VOTING_GUILD_ID', '');
@@ -47,6 +48,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
   });
 
   it('does not mark user as admin when their ID is not in the list', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', 'admin-1,admin-2');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
     vi.stubEnv('VOTING_GUILD_ID', '');
@@ -69,6 +71,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
   });
 
   it('handles empty VOTING_ADMIN_USER_IDS gracefully', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', '');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
     vi.stubEnv('VOTING_GUILD_ID', '');
@@ -90,6 +93,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
   });
 
   it('handles whitespace in VOTING_ADMIN_USER_IDS', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', ' admin-1 , admin-2 ');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
     vi.stubEnv('VOTING_GUILD_ID', '');
@@ -111,6 +115,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
   });
 
   it('sets discordUsername from user name', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', '');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
     vi.stubEnv('VOTING_GUILD_ID', '');
@@ -132,6 +137,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
   });
 
   it('defaults discordUsername to Unknown when user has no name', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', '');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
     vi.stubEnv('VOTING_GUILD_ID', '');
@@ -153,6 +159,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
   });
 
   it('does not set session fields when no account is found', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('VOTING_ADMIN_USER_IDS', '');
     vi.stubEnv('VOTING_ADMIN_ROLE_IDS', '');
     vi.stubEnv('VOTING_GUILD_ID', '');

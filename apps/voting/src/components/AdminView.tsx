@@ -40,13 +40,15 @@ export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Auto-refetch when votes change while popover is open
-  if (open && voteVersion !== lastVersion) {
-    setLastVersion(voteVersion);
-    fetch(`/api/admin/voters?promptId=${promptId}`)
-      .then(res => res.ok ? res.json() : { voters: [] })
-      .then(data => setVoters(data.voters || []))
-      .catch(() => {});
-  }
+  useEffect(() => {
+    if (open && voteVersion !== lastVersion) {
+      setLastVersion(voteVersion);
+      fetch(`/api/admin/voters?promptId=${promptId}`)
+        .then(res => res.ok ? res.json() : { voters: [] })
+        .then(data => setVoters(data.voters || []))
+        .catch(() => {});
+    }
+  }, [open, voteVersion, lastVersion, promptId]);
 
   // Close on click outside
   useEffect(() => {

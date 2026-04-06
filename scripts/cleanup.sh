@@ -52,7 +52,6 @@ fi
 log "Removing build artifacts..."
 
 rm -rf packages/db/dist
-rm -rf packages/ai/dist
 rm -rf apps/bot/dist
 rm -rf apps/dashboard/.next
 
@@ -73,7 +72,6 @@ if [ "$FULL" = true ]; then
   rm -rf apps/bot/node_modules
   rm -rf apps/dashboard/node_modules
   rm -rf packages/db/node_modules
-  rm -rf packages/ai/node_modules
   ok "node_modules removed"
 
   warn "Removing pnpm store cache for this project..."

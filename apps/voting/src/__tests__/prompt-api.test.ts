@@ -11,16 +11,12 @@ vi.mock('@photobot/db', () => ({
   },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  authOptions: {},
-}));
-
-vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fn(),
+vi.mock('@/lib/session', () => ({
+  getSession: vi.fn(),
 }));
 
 import { prisma } from '@photobot/db';
-import { getServerSession } from 'next-auth/next';
+import { getSession } from '@/lib/session';
 import { POST, PATCH, DELETE } from '@/app/api/prompt/route';
 import { NextRequest } from 'next/server';
 
@@ -43,11 +39,11 @@ describe('POST /api/prompt', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (getServerSession as any).mockResolvedValue(postSession);
+    (getSession as any).mockResolvedValue(postSession);
   });
 
   it('returns 401 when not authenticated', async () => {
-    (getServerSession as any).mockResolvedValue(null);
+    (getSession as any).mockResolvedValue(null);
 
     const res = await POST(makeRequest({ text: 'A valid prompt text' }));
     expect(res.status).toBe(401);
@@ -162,11 +158,11 @@ describe('PATCH /api/prompt', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (getServerSession as any).mockResolvedValue(patchSession);
+    (getSession as any).mockResolvedValue(patchSession);
   });
 
   it('returns 401 when not authenticated', async () => {
-    (getServerSession as any).mockResolvedValue(null);
+    (getSession as any).mockResolvedValue(null);
 
     const res = await PATCH(makeRequest({ id: 'p1', text: 'Updated prompt text' }));
     expect(res.status).toBe(401);
@@ -292,7 +288,7 @@ describe('PATCH /api/prompt', () => {
   });
 
   it('allows admin to edit another user\'s prompt', async () => {
-    (getServerSession as any).mockResolvedValue({
+    (getSession as any).mockResolvedValue({
       ...patchSession,
       isAdmin: true,
     });
@@ -319,11 +315,11 @@ describe('DELETE /api/prompt', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (getServerSession as any).mockResolvedValue(deleteSession);
+    (getSession as any).mockResolvedValue(deleteSession);
   });
 
   it('returns 401 when not authenticated', async () => {
-    (getServerSession as any).mockResolvedValue(null);
+    (getSession as any).mockResolvedValue(null);
 
     const res = await DELETE(makeRequest({ id: 'p1' }));
     expect(res.status).toBe(401);
@@ -380,7 +376,7 @@ describe('DELETE /api/prompt', () => {
   });
 
   it('allows admin to delete another user\'s prompt', async () => {
-    (getServerSession as any).mockResolvedValue({
+    (getSession as any).mockResolvedValue({
       ...deleteSession,
       isAdmin: true,
     });

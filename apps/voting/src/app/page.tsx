@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { fetchPrompts } from '@/lib/prompts';
 import { Header } from '@/components/Header';
 import { PromptList } from '@/components/PromptList';
@@ -18,7 +17,7 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ page?: string; sort?: string; tags?: string; q?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const resolvedParams = await searchParams;
 
   const params = {

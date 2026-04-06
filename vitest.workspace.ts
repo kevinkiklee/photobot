@@ -12,12 +12,6 @@ export default defineWorkspace([
   'apps/voting/vitest.config.ts',
   {
     test: {
-      name: '@photobot/ai',
-      root: 'packages/ai',
-    },
-  },
-  {
-    test: {
       name: '@photobot/db',
       root: 'packages/db',
       exclude: ['**/*.integration.test.*', '**/node_modules/**', '**/dist/**'],

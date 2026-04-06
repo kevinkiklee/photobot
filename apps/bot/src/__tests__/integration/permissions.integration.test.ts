@@ -34,16 +34,16 @@ describe('Permissions Integration', () => {
     const roleId = tid('role-1');
 
     await prisma.featureConfig.create({
-      data: { serverId, targetType: 'SERVER', targetId: serverId, featureKey: 'critique', isEnabled: true },
+      data: { serverId, targetType: 'SERVER', targetId: serverId, featureKey: 'discuss', isEnabled: true },
     });
     await prisma.featureConfig.create({
-      data: { serverId, targetType: 'ROLE', targetId: roleId, featureKey: 'critique', isEnabled: true },
+      data: { serverId, targetType: 'ROLE', targetId: roleId, featureKey: 'discuss', isEnabled: true },
     });
     await prisma.featureConfig.create({
-      data: { serverId, targetType: 'CHANNEL', targetId: channelId, featureKey: 'critique', isEnabled: false },
+      data: { serverId, targetType: 'CHANNEL', targetId: channelId, featureKey: 'discuss', isEnabled: false },
     });
 
-    const result = await canUseFeature(serverId, channelId, [roleId], 'critique');
+    const result = await canUseFeature(serverId, channelId, [roleId], 'discuss');
     expect(result).toBe(false);
   });
 
@@ -54,16 +54,16 @@ describe('Permissions Integration', () => {
     const role2 = tid('role-2b');
 
     await prisma.featureConfig.create({
-      data: { serverId, targetType: 'SERVER', targetId: serverId, featureKey: 'palette', isEnabled: false },
+      data: { serverId, targetType: 'SERVER', targetId: serverId, featureKey: 'settings', isEnabled: false },
     });
     await prisma.featureConfig.create({
-      data: { serverId, targetType: 'ROLE', targetId: role1, featureKey: 'palette', isEnabled: false },
+      data: { serverId, targetType: 'ROLE', targetId: role1, featureKey: 'settings', isEnabled: false },
     });
     await prisma.featureConfig.create({
-      data: { serverId, targetType: 'ROLE', targetId: role2, featureKey: 'palette', isEnabled: true },
+      data: { serverId, targetType: 'ROLE', targetId: role2, featureKey: 'settings', isEnabled: true },
     });
 
-    const result = await canUseFeature(serverId, channelId, [role1, role2], 'palette');
+    const result = await canUseFeature(serverId, channelId, [role1, role2], 'settings');
     expect(result).toBe(true);
   });
 

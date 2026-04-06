@@ -14,6 +14,12 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Load .env if it exists (don't override already-set vars)
+if [ -f "$ROOT_DIR/.env" ]; then
+  set -a
+  source "$ROOT_DIR/.env"
+  set +a
+fi
 export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:54422/postgres}"
 
 # --- Colors ---
@@ -107,7 +113,7 @@ log "Generating Prisma client..."
 pnpm -C packages/db exec prisma generate --no-hints
 
 log "Pushing schema to database..."
-pnpm -C packages/db exec prisma db push --skip-generate
+pnpm -C packages/db exec prisma db push
 ok "Database schema is up to date"
 
 # -----------------------------------------------
@@ -115,7 +121,6 @@ ok "Database schema is up to date"
 # -----------------------------------------------
 log "Building shared packages..."
 pnpm -C packages/db build 2>/dev/null
-pnpm -C packages/ai build 2>/dev/null
 ok "Shared packages built"
 
 # -----------------------------------------------
@@ -127,7 +132,7 @@ echo ""
 log "Starting apps..."
 log "  Dashboard:  http://localhost:3100"
 log "  Bot:        Connecting to Discord..."
-log "  Commands:   /critique, /palette, /discuss, /settings"
+log "  Commands:   /discuss, /settings"
 log "  Status:     pnpm status"
 echo ""
 

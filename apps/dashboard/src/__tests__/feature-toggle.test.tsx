@@ -20,41 +20,41 @@ describe('FeatureToggle', () => {
   });
 
   it('renders enabled state', () => {
-    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={true} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="discuss" initialEnabled={true} />);
     const button = screen.getByRole('button');
     expect(button).toHaveAttribute('aria-pressed', 'true');
     expect(button.className).toContain('bg-brand-primary');
   });
 
   it('renders disabled state', () => {
-    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="discuss" initialEnabled={false} />);
     const button = screen.getByRole('button');
     expect(button).toHaveAttribute('aria-pressed', 'false');
     expect(button.className).toContain('bg-[var(--toggle-off)]');
   });
 
   it('calls updateFeatureAction on click', async () => {
-    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="discuss" initialEnabled={false} />);
     fireEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(updateFeatureAction).toHaveBeenCalledWith('s1', 'critique', true);
+      expect(updateFeatureAction).toHaveBeenCalledWith('s1', 'discuss', true);
     });
   });
 
   it('shows success toast after toggling', async () => {
-    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="discuss" initialEnabled={false} />);
     fireEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
-      expect(screen.getByText(/critique enabled/i)).toBeInTheDocument();
+      expect(screen.getByText(/discuss enabled/i)).toBeInTheDocument();
     });
   });
 
   it('rolls back state and shows error toast on failure', async () => {
     (updateFeatureAction as any).mockRejectedValue(new Error('fail'));
 
-    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={false} />);
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="discuss" initialEnabled={false} />);
     fireEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
@@ -64,7 +64,7 @@ describe('FeatureToggle', () => {
   });
 
   it('has correct aria-label', () => {
-    renderWithToast(<FeatureToggle serverId="s1" featureKey="critique" initialEnabled={true} />);
-    expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Toggle critique');
+    renderWithToast(<FeatureToggle serverId="s1" featureKey="discuss" initialEnabled={true} />);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Toggle discuss');
   });
 });

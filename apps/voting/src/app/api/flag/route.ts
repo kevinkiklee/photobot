@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { prisma } from '@photobot/db';
 
+const rateLimits = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 20;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimits.get(userId);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimits.set(userId, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+
+  entry.count++;
+  return entry.count <= RATE_LIMIT;
+}
+
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.discordUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!checkRateLimit(session.discordUserId)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   const { promptId } = await request.json();

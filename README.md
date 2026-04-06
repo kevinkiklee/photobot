@@ -76,8 +76,8 @@ For step-by-step setup including Discord app creation and OAuth2 configuration, 
 photobot/
 ├── apps/
 │   ├── bot/                 Discord.js bot (commands, bouncer, permissions)
-│   ├── dashboard/           Next.js 14 admin panel (NextAuth, feature toggles, audit logs)
-│   └── voting/              Next.js 14 community prompt voting site
+│   ├── dashboard/           Next.js 16 admin panel (NextAuth, feature toggles, audit logs)
+│   └── voting/              Next.js 16 community prompt voting site
 ├── packages/
 │   ├── ai/                  Provider-agnostic AI wrapper (Gemini / Ollama)
 │   └── db/                  Prisma schema and client
@@ -105,9 +105,9 @@ photobot/
 | Layer | Technology |
 |-------|-----------|
 | Bot | discord.js 14, Sharp, dotenv |
-| Dashboard | Next.js 14 (App Router), NextAuth 4, Tailwind CSS |
-| Voting | Next.js 14 (App Router), NextAuth 4, Tailwind CSS |
-| Database | Prisma 5 on Supabase Postgres |
+| Dashboard | Next.js 16 (App Router), NextAuth 4, Tailwind CSS |
+| Voting | Next.js 16 (App Router), NextAuth 4, Tailwind CSS |
+| Database | Prisma 7 on Supabase Postgres |
 | AI | Google Gemini (prod), Ollama (local dev) |
 | Testing | Vitest |
 | Infrastructure | Docker Compose (local), Railway (bot), Vercel (dashboard + voting) |

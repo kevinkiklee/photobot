@@ -43,10 +43,6 @@ export const data = new SlashCommandBuilder()
             { name: 'Inspiration', value: 'inspiration' },
           )
       )
-      .addBooleanOption(opt =>
-        opt.setName('use_ai')
-          .setDescription('Use AI to generate prompts (default: false)')
-      )
   )
   .addSubcommand(sub =>
     sub.setName('list')
@@ -73,9 +69,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 }
 
 async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: string) {
-  const roleIds = interaction.member?.roles
-    ? [...(interaction.member.roles as any).cache.keys()]
-    : [];
+  // Extract role IDs — discord.js gives GuildMemberRoleManager (with .cache)
+  // for full members, but a plain string[] for interactions from REST.
+  const member = interaction.member;
+  const roleIds = member && 'cache' in (member.roles ?? {})
+    ? [...(member.roles as any).cache.keys()]
+    : Array.isArray(member?.roles) ? member.roles : [];
 
   const allowed = await canUseFeature(guildId, interaction.channelId, roleIds, 'discuss');
   if (!allowed) {
@@ -87,14 +86,7 @@ async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: s
 
   const category = interaction.options.getString('category');
 
-  // Inherit the AI setting from the channel's schedule config (if one exists)
-  // so manual /discuss prompt calls use the same source as auto-posts.
-  const schedule = await prisma.discussionSchedule.findUnique({
-    where: { serverId_channelId: { serverId: guildId, channelId: interaction.channelId } },
-  });
-  const useAi = schedule?.useAi ?? false;
-
-  const prompt = await selectPrompt(guildId, useAi, category);
+  const prompt = await selectPrompt(guildId, category);
 
   const embed = new EmbedBuilder()
     .setColor(BRAND_COLOR)
@@ -112,7 +104,6 @@ async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: s
       channelId: interaction.channelId,
       promptText: prompt.text,
       category: prompt.category,
-      source: prompt.source,
     },
   });
 }
@@ -120,24 +111,18 @@ async function handlePrompt(interaction: ChatInputCommandInteraction, guildId: s
 async function handleSchedule(interaction: ChatInputCommandInteraction, guildId: string) {
   const channel = interaction.options.getChannel('channel', true);
   const category = interaction.options.getString('category');
-  const useAi = interaction.options.getBoolean('use_ai') ?? false;
 
   // Upsert — re-running /discuss schedule on the same channel updates the
-  // config rather than creating a duplicate. The days/timeUtc fields are
-  // legacy schema columns; the scheduler now uses interval-based timing.
+  // config rather than creating a duplicate.
   await prisma.discussionSchedule.upsert({
     where: {
       serverId_channelId: { serverId: guildId, channelId: channel.id },
     },
-    update: { categoryFilter: category, useAi, createdBy: interaction.user.id },
+    update: { categoryFilter: category, createdBy: interaction.user.id },
     create: {
       serverId: guildId,
       channelId: channel.id,
-      days: [0, 1, 2, 3, 4, 5, 6],
-      timeUtc: '00:00',
-      timezone: 'UTC',
       categoryFilter: category,
-      useAi,
       createdBy: interaction.user.id,
     },
   });
@@ -150,12 +135,12 @@ async function handleSchedule(interaction: ChatInputCommandInteraction, guildId:
       targetType: 'CHANNEL',
       targetId: channel.id,
       featureKey: 'discuss',
-      newValue: { categoryFilter: category, useAi },
+      newValue: { categoryFilter: category },
     },
   });
 
   return interaction.reply({
-    content: `Discussion prompts enabled for <#${channel.id}> — posts every 6 hours, waiting for a natural pause in conversation.${category ? ` Category: ${category}.` : ''}${useAi ? ' AI-generated prompts enabled.' : ''}`,
+    content: `Discussion prompts enabled for <#${channel.id}> — posts every 6 hours, waiting for a natural pause in conversation.${category ? ` Category: ${category}.` : ''}`,
     ephemeral: true,
   });
 }
@@ -176,11 +161,10 @@ async function handleList(interaction: ChatInputCommandInteraction, guildId: str
   } else {
     for (const s of schedules) {
       const status = s.isActive ? 'Active' : 'Paused';
-      const ai = s.useAi ? ' | AI' : '';
       const cat = s.categoryFilter ? ` | ${s.categoryFilter}` : '';
       embed.addFields({
         name: `<#${s.channelId}>`,
-        value: `Every 6 hours — ${status}${ai}${cat}`,
+        value: `Every 6 hours — ${status}${cat}`,
       });
     }
   }

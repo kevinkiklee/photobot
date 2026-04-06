@@ -1,4 +1,4 @@
-import { LucideCamera, LucideSparkles, LucidePalette, LucideShield } from "lucide-react";
+import { LucideCamera, LucideMessageSquare, LucideSettings } from "lucide-react";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../lib/auth";
 import { ServerSelector } from "../components/ServerSelector";
@@ -32,16 +32,15 @@ export default async function Home() {
               Photobot
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-secondary font-light leading-relaxed max-w-xl mx-auto">
-              AI-driven mentorship, palette extraction, and automated critiques for photography communities.
+              Discussion prompts and community tools for photography communities.
             </p>
           </div>
 
           {/* Feature pills */}
           <div className="animate-fade-up flex flex-wrap justify-center gap-2 sm:gap-3" style={{ animationDelay: '160ms' }}>
             {[
-              { icon: LucideSparkles, label: "AI Critique" },
-              { icon: LucidePalette, label: "Palette Extraction" },
-              { icon: LucideShield, label: "Content Moderation" },
+              { icon: LucideMessageSquare, label: "Discussion Prompts" },
+              { icon: LucideSettings, label: "Feature Toggles" },
             ].map(({ icon: Icon, label }) => (
               <span
                 key={label}

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { getVotersForPrompt } from '@/lib/admin';
 
 const adminRateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -17,7 +16,7 @@ function checkAdminRateLimit(userId: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.isAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

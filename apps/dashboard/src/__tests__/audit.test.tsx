@@ -63,7 +63,7 @@ describe('Audit Page', () => {
         action: 'UPDATE',
         targetType: 'SERVER',
         targetId: '123',
-        featureKey: 'critique',
+        featureKey: 'discuss',
         oldValue: { isEnabled: false },
         newValue: { isEnabled: true },
         createdAt: new Date('2024-03-29T10:00:00Z'),
@@ -76,7 +76,7 @@ describe('Audit Page', () => {
 
     expect(screen.getByText(/Audit Log/i)).toBeInTheDocument();
     expect(screen.getByText(/user1/i)).toBeInTheDocument();
-    expect(screen.getByText(/critique/i)).toBeInTheDocument();
+    expect(screen.getByText(/discuss/i)).toBeInTheDocument();
 
     const badge = screen.getByText('UPDATE');
     expect(badge.className).toContain('bg-brand-primary/15');

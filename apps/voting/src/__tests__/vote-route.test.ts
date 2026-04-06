@@ -1,18 +1,14 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('@/lib/auth', () => ({
-  authOptions: {},
-}));
-
-vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fn(),
+vi.mock('@/lib/session', () => ({
+  getSession: vi.fn(),
 }));
 
 vi.mock('@/lib/vote', () => ({
   handleVote: vi.fn(),
 }));
 
-import { getServerSession } from 'next-auth/next';
+import { getSession } from '@/lib/session';
 import { handleVote } from '@/lib/vote';
 import { POST } from '@/app/api/vote/route';
 import { NextRequest } from 'next/server';
@@ -33,11 +29,11 @@ describe('POST /api/vote', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (getServerSession as any).mockResolvedValue(session);
+    (getSession as any).mockResolvedValue(session);
   });
 
   it('returns 401 when not authenticated', async () => {
-    (getServerSession as any).mockResolvedValue(null);
+    (getSession as any).mockResolvedValue(null);
 
     const res = await POST(makeRequest({ promptId: 'p1', direction: 'UP' }));
     expect(res.status).toBe(401);

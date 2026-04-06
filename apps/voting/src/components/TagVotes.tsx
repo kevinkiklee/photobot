@@ -2,14 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { LucideX, LucidePlus } from 'lucide-react';
-import { TAG_COLORS } from './TagFilter';
+import { ALL_TAGS, TAG_COLORS } from '@/lib/constants';
 import { Spinner } from './Spinner';
-
-const ALL_TAGS = [
-  'motivation', 'workflow', 'style', 'editing', 'portfolio', 'storytelling',
-  'collaboration', 'social-media', 'gear', 'ethics', 'business', 'influences',
-  'learning', 'projects', 'self-reflection', 'community', 'technique',
-];
 
 interface TagVotesProps {
   promptId: string;

@@ -3,6 +3,10 @@ import DiscordProvider from "next-auth/providers/discord";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@photobot/db";
 
+if (!process.env.VOTING_NEXTAUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+  throw new Error('Missing VOTING_NEXTAUTH_SECRET or NEXTAUTH_SECRET environment variable');
+}
+
 const ADMIN_USER_IDS = new Set(
   (process.env.VOTING_ADMIN_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
 );
@@ -13,20 +17,38 @@ const ADMIN_ROLE_IDS = new Set(
 
 const GUILD_ID = process.env.VOTING_GUILD_ID || '';
 
+// In-memory cache for Discord admin role checks (5-minute TTL)
+const ADMIN_ROLE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const adminRoleCache = new Map<string, { result: boolean; cachedAt: number }>();
+
 async function hasAdminRole(discordUserId: string): Promise<boolean> {
   if (ADMIN_ROLE_IDS.size === 0 || !GUILD_ID) return false;
   const botToken = process.env.DISCORD_TOKEN;
   if (!botToken) return false;
+
+  // Check cache first
+  const cached = adminRoleCache.get(discordUserId);
+  if (cached && Date.now() - cached.cachedAt < ADMIN_ROLE_CACHE_TTL) {
+    return cached.result;
+  }
 
   try {
     const res = await fetch(
       `https://discord.com/api/guilds/${GUILD_ID}/members/${discordUserId}`,
       { headers: { Authorization: `Bot ${botToken}` } }
     );
-    if (!res.ok) return false;
+    if (!res.ok) {
+      // On API error, return stale cache if available
+      if (cached) return cached.result;
+      return false;
+    }
     const member = await res.json();
-    return (member.roles || []).some((r: string) => ADMIN_ROLE_IDS.has(r));
+    const result = (member.roles || []).some((r: string) => ADMIN_ROLE_IDS.has(r));
+    adminRoleCache.set(discordUserId, { result, cachedAt: Date.now() });
+    return result;
   } catch {
+    // On network error, return stale cache if available
+    if (cached) return cached.result;
     return false;
   }
 }

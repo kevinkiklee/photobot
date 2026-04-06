@@ -1,0 +1,25 @@
+export const ALL_TAGS = [
+  'motivation', 'workflow', 'style', 'editing', 'portfolio', 'storytelling',
+  'collaboration', 'social-media', 'gear', 'ethics', 'business', 'influences',
+  'learning', 'projects', 'self-reflection', 'community', 'technique',
+];
+
+export const TAG_COLORS: Record<string, string> = {
+  motivation: 'bg-green-500/10 text-green-400/80 border-green-500/15',
+  workflow: 'bg-blue-500/10 text-blue-400/80 border-blue-500/15',
+  style: 'bg-purple-500/10 text-purple-400/80 border-purple-500/15',
+  editing: 'bg-orange-500/10 text-orange-400/80 border-orange-500/15',
+  portfolio: 'bg-cyan-500/10 text-cyan-400/80 border-cyan-500/15',
+  storytelling: 'bg-pink-500/10 text-pink-400/80 border-pink-500/15',
+  collaboration: 'bg-yellow-500/10 text-yellow-400/80 border-yellow-500/15',
+  'social-media': 'bg-indigo-500/10 text-indigo-400/80 border-indigo-500/15',
+  gear: 'bg-slate-500/10 text-slate-400/80 border-slate-500/15',
+  ethics: 'bg-rose-500/10 text-rose-400/80 border-rose-500/15',
+  business: 'bg-emerald-500/10 text-emerald-400/80 border-emerald-500/15',
+  influences: 'bg-amber-500/10 text-amber-400/80 border-amber-500/15',
+  learning: 'bg-teal-500/10 text-teal-400/80 border-teal-500/15',
+  projects: 'bg-violet-500/10 text-violet-400/80 border-violet-500/15',
+  'self-reflection': 'bg-fuchsia-500/10 text-fuchsia-400/80 border-fuchsia-500/15',
+  community: 'bg-sky-500/10 text-sky-400/80 border-sky-500/15',
+  technique: 'bg-lime-500/10 text-lime-400/80 border-lime-500/15',
+};

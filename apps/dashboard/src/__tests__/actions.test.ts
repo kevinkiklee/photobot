@@ -41,18 +41,18 @@ describe('updateFeatureAction', () => {
 
   it('throws Unauthorized when session is null', async () => {
     (getServerSession as any).mockResolvedValue(null);
-    await expect(updateFeatureAction('server-1', 'critique', true)).rejects.toThrow('Unauthorized');
+    await expect(updateFeatureAction('server-1', 'discuss', true)).rejects.toThrow('Unauthorized');
   });
 
   it('throws Unauthorized when session has no accessToken', async () => {
     (getServerSession as any).mockResolvedValue({ user: { name: 'Test' } });
-    await expect(updateFeatureAction('server-1', 'critique', true)).rejects.toThrow('Unauthorized');
+    await expect(updateFeatureAction('server-1', 'discuss', true)).rejects.toThrow('Unauthorized');
   });
 
   it('throws Forbidden when user is not admin of server', async () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
     (getAdminGuilds as any).mockResolvedValue([{ id: 'other-server', name: 'Other', permissions: '8' }]);
-    await expect(updateFeatureAction('server-1', 'critique', true)).rejects.toThrow('Forbidden');
+    await expect(updateFeatureAction('server-1', 'discuss', true)).rejects.toThrow('Forbidden');
   });
 
   it('creates new config when none exists', async () => {
@@ -62,13 +62,13 @@ describe('updateFeatureAction', () => {
     (prisma.featureConfig.upsert as any).mockResolvedValue({ id: '1', isEnabled: true });
     (prisma.configAuditLog.create as any).mockResolvedValue({});
 
-    await updateFeatureAction('server-1', 'critique', true);
+    await updateFeatureAction('server-1', 'discuss', true);
 
     expect(prisma.featureConfig.upsert).toHaveBeenCalledWith(expect.objectContaining({
       where: { serverId_targetType_targetId_featureKey: {
-        serverId: 'server-1', targetType: 'SERVER', targetId: 'server-1', featureKey: 'critique',
+        serverId: 'server-1', targetType: 'SERVER', targetId: 'server-1', featureKey: 'discuss',
       }},
-      create: expect.objectContaining({ serverId: 'server-1', featureKey: 'critique', isEnabled: true }),
+      create: expect.objectContaining({ serverId: 'server-1', featureKey: 'discuss', isEnabled: true }),
     }));
     expect(prisma.configAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
@@ -85,7 +85,7 @@ describe('updateFeatureAction', () => {
     (prisma.featureConfig.upsert as any).mockResolvedValue({ id: '1', isEnabled: false });
     (prisma.configAuditLog.create as any).mockResolvedValue({});
 
-    await updateFeatureAction('server-1', 'critique', false);
+    await updateFeatureAction('server-1', 'discuss', false);
 
     expect(prisma.configAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
@@ -102,7 +102,7 @@ describe('updateFeatureAction', () => {
     (prisma.featureConfig.upsert as any).mockResolvedValue({ id: '1', isEnabled: true });
     (prisma.configAuditLog.create as any).mockResolvedValue({});
 
-    await updateFeatureAction('server-1', 'critique', true);
+    await updateFeatureAction('server-1', 'discuss', true);
 
     expect(revalidatePath).toHaveBeenCalledWith('/settings');
     expect(revalidatePath).toHaveBeenCalledWith('/audit');

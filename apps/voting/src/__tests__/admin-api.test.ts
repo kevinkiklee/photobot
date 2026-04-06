@@ -13,16 +13,12 @@ vi.mock('@photobot/db', () => ({
   },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  authOptions: {},
-}));
-
-vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fn(),
+vi.mock('@/lib/session', () => ({
+  getSession: vi.fn(),
 }));
 
 import { prisma } from '@photobot/db';
-import { getServerSession } from 'next-auth/next';
+import { getSession } from '@/lib/session';
 import { GET } from '@/app/api/admin/voters/route';
 import { NextRequest } from 'next/server';
 import { getAdminStats, getVotersForPrompt } from '@/lib/admin';
@@ -36,11 +32,11 @@ describe('GET /api/admin/voters', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (getServerSession as any).mockResolvedValue(adminSession);
+    (getSession as any).mockResolvedValue(adminSession);
   });
 
   it('returns 403 when not admin', async () => {
-    (getServerSession as any).mockResolvedValue({
+    (getSession as any).mockResolvedValue({
       discordUserId: 'regular-user',
       isAdmin: false,
     });
@@ -51,7 +47,7 @@ describe('GET /api/admin/voters', () => {
   });
 
   it('returns 403 when not authenticated', async () => {
-    (getServerSession as any).mockResolvedValue(null);
+    (getSession as any).mockResolvedValue(null);
 
     const req = new NextRequest('http://localhost/api/admin/voters?promptId=p1');
     const res = await GET(req);

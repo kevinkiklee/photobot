@@ -96,7 +96,7 @@ export async function deleteDiscussionSchedule(scheduleId: string, serverId: str
       targetType: 'CHANNEL',
       targetId: schedule.channelId,
       featureKey: 'discuss',
-      oldValue: { days: schedule.days, timeUtc: schedule.timeUtc },
+      oldValue: { channelId: schedule.channelId },
     },
   });
 

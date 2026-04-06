@@ -73,7 +73,6 @@ model FeatureConfig {
   targetId     String     @map("target_id") // Discord ID of server, role, or channel
   featureKey   String     @map("feature_key")
   isEnabled    Boolean    @default(true) @map("is_enabled")
-  settings     Json?      @default("{}")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
@@ -96,27 +95,11 @@ model ConfigAuditLog {
   @@map("config_audit_logs")
 }
 
-model UserUsageMetric {
-  userId        String   @id @map("user_id")
-  lastActive    DateTime @default(now()) @map("last_active")
-  totalCommands Int      @default(0) @map("total_commands")
-  rateLimitHits Int      @default(0) @map("rate_limit_hits")
-  securityFlags Json     @default("{}") @map("security_flags")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@map("user_usage_metrics")
-}
-
 model DiscussionSchedule {
   id             String   @id @default(cuid())
   serverId       String   @map("server_id")
   channelId      String   @map("channel_id")
-  days           Json     // Array of day numbers: 0=Sun..6=Sat
-  timeUtc        String   @map("time_utc") // e.g. "14:00"
-  timezone       String   @default("UTC") // IANA timezone for display
   categoryFilter String?  @map("category_filter")
-  useAi          Boolean  @default(false) @map("use_ai")
   isActive       Boolean  @default(true) @map("is_active")
   createdBy      String   @map("created_by")
   createdAt      DateTime @default(now()) @map("created_at")
@@ -126,31 +109,12 @@ model DiscussionSchedule {
   @@map("discussion_schedules")
 }
 
-enum AIGrantType {
-  ROLE
-  USER
-}
-
-model AIAccessGrant {
-  id        String      @id @default(uuid())
-  serverId  String      @map("server_id")
-  grantType AIGrantType @map("grant_type")
-  targetId  String      @map("target_id") // Discord role ID or user ID
-  grantedBy String      @map("granted_by") // Discord user ID of the admin who granted
-  createdAt DateTime    @default(now()) @map("created_at")
-
-  @@unique([serverId, grantType, targetId])
-  @@map("ai_access_grants")
-}
-
 model DiscussionPromptLog {
   id         String   @id @default(cuid())
   serverId   String   @map("server_id")
   channelId  String   @map("channel_id")
   promptText String   @map("prompt_text")
   category   String
-  source     String   // "curated" or "ai"
-  threadId   String?  @map("thread_id")
   postedAt   DateTime @default(now()) @map("posted_at")
 
   @@index([serverId, postedAt])

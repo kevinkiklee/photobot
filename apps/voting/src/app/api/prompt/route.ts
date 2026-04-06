@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { prisma } from '@photobot/db';
 
 const promptRateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -27,7 +26,7 @@ const ALLOWED_TAGS = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.discordUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -78,7 +77,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.discordUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -137,7 +136,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.discordUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

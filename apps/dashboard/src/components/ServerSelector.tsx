@@ -3,6 +3,7 @@ import { authOptions } from "../lib/auth";
 import { getBotAdminGuilds, DiscordTokenExpiredError } from "../lib/discord";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { LucideSettings, LucideScrollText } from "lucide-react";
 
 export async function ServerSelector() {
@@ -40,9 +41,12 @@ export async function ServerSelector() {
 
             <div className="relative flex items-center gap-4 mb-5">
               {guild.icon ? (
-                <img
+                <Image
                   src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}
                   alt={guild.name}
+                  width={48}
+                  height={48}
+                  unoptimized
                   className="w-12 h-12 rounded-xl flex-shrink-0 ring-1 ring-white/10 group-hover:ring-brand-primary/20 transition-all"
                 />
               ) : (

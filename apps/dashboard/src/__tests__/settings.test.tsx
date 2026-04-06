@@ -58,14 +58,14 @@ describe('Settings Page', () => {
     (getServerSession as any).mockResolvedValue({ accessToken: 'tok' });
     (getAdminGuilds as any).mockResolvedValue([{ id: '123', name: 'Test', permissions: '8' }]);
     (prisma.featureConfig.findMany as any).mockResolvedValue([
-      { id: '1', featureKey: 'critique', isEnabled: true, serverId: '123', targetType: 'SERVER', targetId: '123' },
+      { id: '1', featureKey: 'settings', isEnabled: true, serverId: '123', targetType: 'SERVER', targetId: '123' },
     ]);
 
     const Page = await SettingsPage({ searchParams: Promise.resolve({ serverId: '123' }) });
     render(<ToastProvider>{Page}</ToastProvider>);
 
     expect(screen.getByRole('heading', { level: 1, name: /Settings/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: /critique/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: /palette/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: /settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: /discuss/i })).toBeInTheDocument();
   });
 });

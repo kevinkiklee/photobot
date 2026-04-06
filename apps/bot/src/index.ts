@@ -5,11 +5,9 @@ import { resolve } from 'path';
 config({ path: resolve(__dirname, '../../../.env') });
 import { Client, Events, GatewayIntentBits, Collection, REST, Routes } from 'discord.js';
 import * as settingsCommand from './commands/settings';
-import * as critiqueCommand from './commands/critique';
-import * as paletteCommand from './commands/palette';
 import * as discussCommand from './commands/discuss';
-import * as aiAccessCommand from './commands/ai-access';
-import { startScheduler } from './services/scheduler';
+import { startScheduler, stopScheduler } from './services/scheduler';
+import { prisma } from '@photobot/db';
 
 // Extend Client type to include commands
 declare module 'discord.js' {
@@ -26,10 +24,7 @@ const client = new Client({
 
 client.commands = new Collection();
 client.commands.set(settingsCommand.data.name, settingsCommand);
-client.commands.set(critiqueCommand.data.name, critiqueCommand);
-client.commands.set(paletteCommand.data.name, paletteCommand);
 client.commands.set(discussCommand.data.name, discussCommand);
-client.commands.set(aiAccessCommand.data.name, aiAccessCommand);
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -52,10 +47,7 @@ const rest = new REST({ version: '10' }).setToken(token);
       Routes.applicationCommands(clientId),
       { body: [
         settingsCommand.data.toJSON(),
-        critiqueCommand.data.toJSON(),
-        paletteCommand.data.toJSON(),
         discussCommand.data.toJSON(),
-        aiAccessCommand.data.toJSON(),
       ] },
     );
 
@@ -93,5 +85,18 @@ client.on(Events.InteractionCreate, async interaction => {
     }
   }
 });
+
+// Graceful shutdown — clean up resources before exiting
+const shutdown = async (signal: string) => {
+  console.log(`Received ${signal}. Shutting down gracefully...`);
+  stopScheduler();
+  client.destroy();
+  await prisma.$disconnect();
+  console.log('Shutdown complete.');
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 client.login(token);

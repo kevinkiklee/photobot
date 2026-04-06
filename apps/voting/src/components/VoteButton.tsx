@@ -37,6 +37,7 @@ export function VoteButton({ promptId, direction, count, active, disabled, onVot
       onClick={handleClick}
       disabled={disabled || loading}
       title={disabled ? 'Sign in to vote' : direction === 'UP' ? 'Upvote' : 'Downvote'}
+      aria-label={disabled ? 'Sign in to vote' : direction === 'UP' ? 'Upvote' : 'Downvote'}
       className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-all ${
         active ? colorActive : colorInactive
       } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}

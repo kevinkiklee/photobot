@@ -8,14 +8,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@photobot/ai": "workspace:*",
     "@photobot/db": "workspace:*",
     "discord.js": "^14.26.0",
-    "dotenv": "^17.3.1",
-    "node-cron": "^4.2.1",
-    "sharp": "^0.34.5"
+    "dotenv": "^17.3.1"
   },
   "devDependencies": {
-    "@types/node-cron": "^3.0.11"
+    "@types/node": "^20.11.24"
   }
 }

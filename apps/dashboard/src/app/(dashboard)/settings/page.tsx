@@ -3,24 +3,16 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getAdminGuilds, DiscordTokenExpiredError } from '@/lib/discord';
 import { FeatureToggle } from '@/components/feature-toggle';
-import { LucideSparkles, LucidePalette, LucideSettings, LucideInfo, LucideMessageSquare } from 'lucide-react';
+import { LucideSettings, LucideInfo, LucideMessageSquare } from 'lucide-react';
 
-const featureMeta: Record<string, { icon: typeof LucideSparkles; description: string }> = {
-  critique: {
-    icon: LucideSparkles,
-    description: 'AI-powered technical feedback on uploaded photographs',
-  },
-  palette: {
-    icon: LucidePalette,
-    description: 'Extract dominant color palettes from uploaded images',
-  },
+const featureMeta: Record<string, { icon: typeof LucideSettings; description: string }> = {
   settings: {
     icon: LucideSettings,
     description: 'Allow server members to configure bot preferences',
   },
   discuss: {
     icon: LucideMessageSquare,
-    description: 'AI-powered discussion prompts for community engagement',
+    description: 'Curated discussion prompts for community engagement',
   },
 };
 
@@ -53,7 +45,7 @@ export default async function SettingsPage({
     orderBy: { featureKey: 'asc' },
   }) : [];
 
-  const availableFeatures = ['critique', 'palette', 'settings', 'discuss'];
+  const availableFeatures = ['settings', 'discuss'];
 
   return (
     <div className="p-6 sm:p-8 max-w-5xl mx-auto">

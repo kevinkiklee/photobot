@@ -115,30 +115,6 @@ check_container() {
 check_container "photobot-db"              "54422" "Postgres"
 check_container "photobot-auth"            "9998"  "GoTrue Auth"
 check_container "photobot-rest"            "54421" "PostgREST"
-check_container "photobot-ollama"   "11434" "Ollama"
-
-echo ""
-
-# -----------------------------------------------
-# Ollama model
-# -----------------------------------------------
-echo -e "${BOLD}AI Model${NC}"
-
-if docker ps --format '{{.Names}}' 2>/dev/null | grep -q photobot-ollama; then
-  if docker exec photobot-ollama ollama list 2>/dev/null | grep -q llava; then
-    MODEL_SIZE=$(docker exec photobot-ollama ollama list 2>/dev/null | grep llava | awk '{print $3, $4}')
-    pass "llava model loaded ${DIM}(${MODEL_SIZE})${NC}"
-  else
-    warn "llava model not pulled — run: docker exec photobot-ollama ollama pull llava"
-  fi
-else
-  warn "Ollama container not running"
-fi
-
-GEMINI_KEY=$(grep "^GEMINI_API_KEY=" .env 2>/dev/null | cut -d= -f2-)
-if [ -n "$GEMINI_KEY" ] && [ "$GEMINI_KEY" != "your-gemini-api-key" ]; then
-  pass "Gemini API key configured"
-fi
 
 echo ""
 
@@ -175,12 +151,6 @@ if [ -f "packages/db/dist/index.js" ]; then
   pass "packages/db built"
 else
   warn "packages/db not built — run: pnpm -C packages/db build"
-fi
-
-if [ -f "packages/ai/dist/index.js" ]; then
-  pass "packages/ai built"
-else
-  warn "packages/ai not built — run: pnpm -C packages/ai build"
 fi
 
 if [ -d "packages/db/node_modules/.prisma" ]; then

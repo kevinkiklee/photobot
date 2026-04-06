@@ -35,5 +35,6 @@ coverage
 # Auto-generated
 next-env.d.ts
 .vercel
+.vercel-voting-backup
 packages/db/generated/
 apps/voting/.prisma/

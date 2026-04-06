@@ -19,7 +19,7 @@ describe('Permission Middleware', () => {
   const serverId = 'server-1';
   const channelId = 'channel-1';
   const roleIds = ['role-1', 'role-2'];
-  const featureKey = 'ai_analysis';
+  const featureKey = 'discuss';
 
   beforeEach(() => {
     vi.clearAllMocks();

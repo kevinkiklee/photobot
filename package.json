@@ -2,7 +2,7 @@
   "name": "photobot-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "AI-powered photography community Discord bot with admin dashboard",
+  "description": "Photography community Discord bot with admin dashboard",
   "license": "MIT",
   "author": "Kevin Lee",
   "repository": {
@@ -17,8 +17,6 @@
     "discord",
     "bot",
     "photography",
-    "ai",
-    "gemini",
     "nextjs",
     "prisma"
   ],
@@ -32,7 +30,7 @@
     "dev": "pnpm -r dev",
     "dev:local": "./scripts/dev.sh 2>&1 | tee /tmp/photobot-dev.log",
     "dev:down": "docker compose down",
-    "build": "pnpm --filter @photobot/db build && pnpm --filter @photobot/ai build && pnpm --filter @photobot/bot build && pnpm --filter @photobot/dashboard build && pnpm --filter @photobot/voting build",
+    "build": "pnpm --filter @photobot/db build && pnpm --filter @photobot/bot build && pnpm --filter @photobot/dashboard build && pnpm --filter @photobot/voting build",
     "test": "vitest run",
     "test:integration": "DATABASE_URL=postgresql://postgres:postgres@localhost:54422/postgres vitest run --workspace vitest.integration.workspace.ts",
     "test:all": "pnpm test && pnpm test:integration",

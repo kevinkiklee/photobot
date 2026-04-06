@@ -3,14 +3,8 @@
 import { useState } from 'react';
 import { LucidePlus, LucideX, LucideSend } from 'lucide-react';
 import { Spinner } from './Spinner';
-import { TAG_COLORS } from './TagFilter';
+import { ALL_TAGS, TAG_COLORS } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
-
-const ALL_TAGS = [
-  'motivation', 'workflow', 'style', 'editing', 'portfolio', 'storytelling',
-  'collaboration', 'social-media', 'gear', 'ethics', 'business', 'influences',
-  'learning', 'projects', 'self-reflection', 'community', 'technique',
-];
 
 export function SubmitPrompt({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [open, setOpen] = useState(false);

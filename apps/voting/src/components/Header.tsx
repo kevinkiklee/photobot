@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { ThemeToggle } from './ThemeToggle';
 import { LoginButton } from './LoginButton';
 import { SignOutButton } from './SignOutButton';
@@ -21,7 +20,7 @@ async function getHeaderStats() {
 
 export async function Header() {
   const [session, stats] = await Promise.all([
-    getServerSession(authOptions),
+    getSession(),
     getHeaderStats(),
   ]);
 

@@ -11,16 +11,12 @@ vi.mock('@photobot/db', () => ({
   },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  authOptions: {},
-}));
-
-vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fn(),
+vi.mock('@/lib/session', () => ({
+  getSession: vi.fn(),
 }));
 
 import { prisma } from '@photobot/db';
-import { getServerSession } from 'next-auth/next';
+import { getSession } from '@/lib/session';
 import { POST } from '@/app/api/flag/route';
 import { NextRequest } from 'next/server';
 
@@ -40,11 +36,11 @@ describe('POST /api/flag', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (getServerSession as any).mockResolvedValue(session);
+    (getSession as any).mockResolvedValue(session);
   });
 
   it('returns 401 when not authenticated', async () => {
-    (getServerSession as any).mockResolvedValue(null);
+    (getSession as any).mockResolvedValue(null);
 
     const res = await POST(makeRequest({ promptId: 'p1' }));
     expect(res.status).toBe(401);

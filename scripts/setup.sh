@@ -85,21 +85,6 @@ if [ "$SKIP_ENV" != "true" ]; then
   ask "Discord Client Secret:"
   read -r DISCORD_CLIENT_SECRET
 
-  echo ""
-  echo -e "${BOLD}AI Provider${NC}"
-  echo "  1) Ollama (local, free — requires Docker, ~4.7GB download)"
-  echo "  2) Gemini (cloud — requires API key)"
-  ask "Choose [1/2, default: 1]:"
-  read -r AI_CHOICE
-
-  GEMINI_API_KEY=""
-  AI_PROVIDER="ollama"
-  if [ "$AI_CHOICE" = "2" ]; then
-    AI_PROVIDER="gemini"
-    ask "Gemini API Key:"
-    read -r GEMINI_API_KEY
-  fi
-
   # Generate NEXTAUTH_SECRET
   if command -v openssl >/dev/null 2>&1; then
     NEXTAUTH_SECRET=$(openssl rand -base64 32)
@@ -131,10 +116,6 @@ NEXT_PUBLIC_SUPABASE_URL=http://localhost:54421
 NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-for-local-dev
 SUPABASE_SERVICE_ROLE_KEY=placeholder-for-local-dev
 
-# --- AI Provider ---
-AI_PROVIDER=${AI_PROVIDER}
-OLLAMA_HOST=http://localhost:11434
-GEMINI_API_KEY=${GEMINI_API_KEY}
 EOF
 
   ok ".env created with auto-generated NEXTAUTH_SECRET"
@@ -178,17 +159,9 @@ if [ "$START_DOCKER" != "n" ] && [ "$START_DOCKER" != "N" ]; then
   sleep 2
   log "Setting up database schema..."
   pnpm -C packages/db exec prisma generate --no-hints
-  pnpm -C packages/db exec prisma db push --skip-generate
+  pnpm -C packages/db exec prisma db push
   ok "Database schema applied"
 
-  # Pull Ollama model if using Ollama
-  if [ "$AI_PROVIDER" = "ollama" ]; then
-    if docker ps --format '{{.Names}}' | grep -q photobot-ollama; then
-      log "Pulling Ollama llava model (this takes a few minutes on first run)..."
-      docker exec photobot-ollama ollama pull llava
-      ok "Ollama model ready"
-    fi
-  fi
 fi
 
 # -----------------------------------------------
@@ -197,7 +170,6 @@ fi
 echo ""
 log "Building shared packages..."
 pnpm -C packages/db build 2>/dev/null
-pnpm -C packages/ai build 2>/dev/null
 ok "Shared packages built"
 
 # -----------------------------------------------
@@ -225,7 +197,7 @@ echo -e "       ${CYAN}pnpm dev:local${NC}   # Full stack (Docker + apps)"
 echo -e "       ${CYAN}pnpm dev${NC}         # Apps only (Docker already running)"
 echo -e "       ${CYAN}pnpm status${NC}      # Check health of all services"
 echo ""
-echo "  Available bot commands: /critique, /palette, /discuss, /settings"
+echo "  Available bot commands: /discuss, /settings"
 echo "  Dashboard: http://localhost:3100"
 echo "  Full guide: docs/GETTING_STARTED.md"
 echo ""

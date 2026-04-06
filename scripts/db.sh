@@ -17,6 +17,12 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Load .env if it exists (don't override already-set vars)
+if [ -f "$ROOT_DIR/.env" ]; then
+  set -a
+  source "$ROOT_DIR/.env"
+  set +a
+fi
 export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:54422/postgres}"
 
 RED='\033[0;31m'
@@ -38,7 +44,7 @@ case "$CMD" in
     log "Generating Prisma client..."
     pnpm -C packages/db exec prisma generate --no-hints
     log "Pushing schema to database..."
-    pnpm -C packages/db exec prisma db push --skip-generate
+    pnpm -C packages/db exec prisma db push
     ok "Schema pushed"
     ;;
 
@@ -48,7 +54,7 @@ case "$CMD" in
     read -r CONFIRM
     if [ "$CONFIRM" = "y" ] || [ "$CONFIRM" = "Y" ]; then
       log "Resetting database..."
-      pnpm -C packages/db exec prisma db push --force-reset --skip-generate
+      pnpm -C packages/db exec prisma db push --force-reset
       ok "Database reset and schema re-applied"
     else
       log "Aborted"
@@ -67,8 +73,6 @@ case "$CMD" in
       -- Sample feature configs for a test server
       INSERT INTO feature_configs (id, server_id, target_type, target_id, feature_key, is_enabled, settings, created_at, updated_at)
       VALUES
-        (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'critique',  true,  '{}', now(), now()),
-        (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'palette',   true,  '{}', now(), now()),
         (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'settings',  true,  '{}', now(), now()),
         (gen_random_uuid(), '000000000000000001', 'SERVER', '000000000000000001', 'discuss',   true,  '{}', now(), now())
       ON CONFLICT (server_id, target_type, target_id, feature_key) DO NOTHING;
@@ -76,7 +80,7 @@ case "$CMD" in
       -- Sample audit log entry
       INSERT INTO config_audit_logs (id, server_id, user_id, action, target_type, target_id, feature_key, old_value, new_value, created_at)
       VALUES
-        (gen_random_uuid(), '000000000000000001', 'seed-user', 'UPDATE', 'SERVER', '000000000000000001', 'critique', '{\"isEnabled\": false}', '{\"isEnabled\": true}', now())
+        (gen_random_uuid(), '000000000000000001', 'seed-user', 'UPDATE', 'SERVER', '000000000000000001', 'discuss', '{\"isEnabled\": false}', '{\"isEnabled\": true}', now())
       ON CONFLICT DO NOTHING;
     " 2>/dev/null
 

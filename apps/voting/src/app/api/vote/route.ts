@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { handleVote } from '@/lib/vote';
 
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -20,7 +19,7 @@ function checkRateLimit(userId: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.discordUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
