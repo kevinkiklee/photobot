@@ -17,11 +17,11 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // Attach the Discord access token to the session so server actions can
     // call the Discord API on behalf of the user (see lib/discord.ts).
-    async session({ session, user }: any) {
+    async session({ session, user }) {
       const account = await prisma.account.findFirst({
         where: { userId: user.id, provider: 'discord' },
       });
-      session.accessToken = account?.access_token;
+      session.accessToken = account?.access_token ?? undefined;
       return session;
     },
   },

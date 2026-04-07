@@ -15,7 +15,7 @@ async function requirePlAdmin(): Promise<string> {
   if (!session?.accessToken) throw new Error('Unauthorized');
   const authorized = await isPlAdmin(session.accessToken as string);
   if (!authorized) throw new Error('Forbidden');
-  return (session.user as any)?.id || 'unknown';
+  return session?.user?.id || 'unknown';
 }
 
 export async function updateFeatureAction(featureKey: string, isEnabled: boolean) {

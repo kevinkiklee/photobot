@@ -5,15 +5,20 @@ import { resolve } from 'path';
 config({ path: resolve(__dirname, '../../../.env') });
 
 import { prisma } from '@photobot/db';
-import { Client, Collection, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
+import { ChatInputCommandInteraction, Client, Collection, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
 import * as discussCommand from './commands/discuss';
 import * as settingsCommand from './commands/settings';
 import { startScheduler, stopScheduler } from './services/scheduler';
 
 // Extend Client type to include commands
+interface BotCommand {
+  data: { name: string; toJSON: () => unknown };
+  execute: (interaction: ChatInputCommandInteraction) => Promise<unknown>;
+}
+
 declare module 'discord.js' {
   export interface Client {
-    commands: Collection<string, any>;
+    commands: Collection<string, BotCommand>;
   }
 }
 

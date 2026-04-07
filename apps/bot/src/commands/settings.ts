@@ -1,5 +1,7 @@
 import { prisma } from '@photobot/db';
+import type { FeatureConfig } from '@photobot/db';
 import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
+import { BRAND_COLOR } from '../constants';
 
 export const data = new SlashCommandBuilder()
   .setName('settings')
@@ -21,12 +23,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const embed = new EmbedBuilder()
     .setTitle('Feature Toggles')
     .setDescription('Current feature configuration for this server:')
-    .setColor(0x00ae86);
+    .setColor(BRAND_COLOR);
 
   if (configs.length === 0) {
     embed.addFields({ name: 'No configurations found', value: 'All features are at their default settings.' });
   } else {
-    configs.forEach((config: any) => {
+    configs.forEach((config: FeatureConfig) => {
       embed.addFields({
         name: config.featureKey,
         value: config.isEnabled ? 'Enabled' : 'Disabled',

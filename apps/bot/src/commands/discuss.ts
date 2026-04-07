@@ -64,16 +64,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 }
 
+function extractRoleIds(member: ChatInputCommandInteraction['member']): string[] {
+  if (!member?.roles) return [];
+  if ('cache' in member.roles) return [...member.roles.cache.keys()];
+  if (Array.isArray(member.roles)) return member.roles;
+  return [];
+}
+
 async function handlePrompt(interaction: ChatInputCommandInteraction) {
-  // Extract role IDs — discord.js gives GuildMemberRoleManager (with .cache)
-  // for full members, but a plain string[] for interactions from REST.
-  const member = interaction.member;
-  const roleIds =
-    member && 'cache' in (member.roles ?? {})
-      ? [...(member.roles as any).cache.keys()]
-      : Array.isArray(member?.roles)
-        ? member.roles
-        : [];
+  const roleIds = extractRoleIds(interaction.member);
 
   const allowed = await canUseFeature(interaction.channelId, roleIds, 'discuss');
   if (!allowed) {

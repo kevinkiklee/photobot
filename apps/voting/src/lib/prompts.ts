@@ -1,4 +1,13 @@
-import { prisma } from '@photobot/db';
+import { prisma, Prisma } from '@photobot/db';
+
+type PromptWithRelations = Prisma.PromptGetPayload<{
+  include: {
+    tags: { select: { tag: true } };
+    votes: { select: { vote: true; discordUserId: true } };
+    duplicateFlags: { select: { discordUserId: true } };
+    tagSuggestions: { select: { tag: true; action: true; discordUserId: true } };
+  };
+}>;
 
 const PAGE_SIZE = 20;
 
@@ -65,7 +74,7 @@ export async function fetchPrompts(
   const page = Math.max(1, params.page || 1);
   const skip = (page - 1) * PAGE_SIZE;
 
-  const where: any = {};
+  const where: Prisma.PromptWhereInput = {};
 
   if (params.tags && params.tags.length > 0) {
     where.tags = { some: { tag: { in: params.tags } } };
@@ -75,7 +84,10 @@ export async function fetchPrompts(
     where.text = { contains: params.q, mode: 'insensitive' };
   }
 
-  let orderBy: any = [{ submittedBy: { sort: 'desc', nulls: 'last' } }, { createdAt: 'asc' }];
+  let orderBy: Prisma.PromptOrderByWithRelationInput[] = [
+    { submittedBy: { sort: 'desc', nulls: 'last' } },
+    { createdAt: 'asc' },
+  ];
   if (params.sort === 'alphabetical') {
     orderBy = [{ submittedBy: { sort: 'desc', nulls: 'last' } }, { text: 'asc' }];
   }
@@ -98,14 +110,14 @@ export async function fetchPrompts(
 
   const userVotes: Record<string, 'UP' | 'DOWN'> = {};
 
-  const mapped: PromptWithVotes[] = prompts.map((p: any) => {
-    const upvotes = p.votes.filter((v: any) => v.vote === 'UP').length;
-    const downvotes = p.votes.filter((v: any) => v.vote === 'DOWN').length;
+  const mapped: PromptWithVotes[] = (prompts as PromptWithRelations[]).map((p) => {
+    const upvotes = p.votes.filter((v) => v.vote === 'UP').length;
+    const downvotes = p.votes.filter((v) => v.vote === 'DOWN').length;
     const total = upvotes + downvotes;
     const approvalPct = total > 0 ? Math.round((upvotes / total) * 100) : 0;
 
     if (discordUserId) {
-      const userVote = p.votes.find((v: any) => v.discordUserId === discordUserId);
+      const userVote = p.votes.find((v) => v.discordUserId === discordUserId);
       if (userVote) userVotes[p.id] = userVote.vote;
     }
 
@@ -113,7 +125,7 @@ export async function fetchPrompts(
       id: p.id,
       text: p.text,
       originalCategory: p.originalCategory,
-      tags: p.tags.map((t: any) => t.tag),
+      tags: p.tags.map((t) => t.tag),
       upvotes,
       downvotes,
       approvalPct,
@@ -121,11 +133,11 @@ export async function fetchPrompts(
       submittedByUsername: isAdmin ? p.submittedByUsername || null : null,
       duplicateCount: p.duplicateFlags.length,
       userFlaggedDuplicate: discordUserId
-        ? p.duplicateFlags.some((f: any) => f.discordUserId === discordUserId)
+        ? p.duplicateFlags.some((f) => f.discordUserId === discordUserId)
         : false,
       tagVotes: buildTagVotes(p.tagSuggestions, discordUserId),
       suggestedTags: buildSuggestedTags(
-        p.tags.map((t: any) => t.tag),
+        p.tags.map((t) => t.tag),
         p.tagSuggestions,
       ),
     };
