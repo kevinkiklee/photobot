@@ -76,6 +76,7 @@ model FeatureConfig {
   updatedAt  DateTime   @updatedAt @map("updated_at")
 
   @@unique([targetType, targetId, featureKey])
+  @@index([featureKey])
   @@map("feature_configs")
 }
 
@@ -90,6 +91,7 @@ model ConfigAuditLog {
   newValue   Json?      @map("new_value")
   createdAt  DateTime   @default(now()) @map("created_at")
 
+  @@index([createdAt])
   @@map("config_audit_logs")
 }
 
@@ -113,6 +115,7 @@ model DiscussionPromptLog {
   postedAt   DateTime @default(now()) @map("posted_at")
 
   @@index([postedAt])
+  @@index([channelId])
   @@map("discussion_prompt_logs")
 }
 
@@ -159,6 +162,7 @@ model PromptVote {
 
   @@unique([promptId, discordUserId])
   @@index([discordUserId])
+  @@index([promptId])
   @@map("prompt_votes")
 }
 
@@ -170,6 +174,7 @@ model PromptDuplicateFlag {
   prompt        Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
 
   @@unique([promptId, discordUserId])
+  @@index([promptId])
   @@map("prompt_duplicate_flags")
 }
 
