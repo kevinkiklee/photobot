@@ -1,17 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { ToastProvider, useToast, Toaster } from '../components/Toast';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Toaster, ToastProvider, useToast } from '../components/Toast';
 
 function TestComponent() {
   const { toast } = useToast();
   return (
     <div>
-      <button onClick={() => toast({ variant: 'success', message: 'It worked!' })}>
-        Show Success
-      </button>
-      <button onClick={() => toast({ variant: 'error', message: 'It failed!' })}>
-        Show Error
-      </button>
+      <button onClick={() => toast({ variant: 'success', message: 'It worked!' })}>Show Success</button>
+      <button onClick={() => toast({ variant: 'error', message: 'It failed!' })}>Show Error</button>
     </div>
   );
 }
@@ -21,7 +17,7 @@ function renderWithToast() {
     <ToastProvider>
       <TestComponent />
       <Toaster />
-    </ToastProvider>
+    </ToastProvider>,
   );
 }
 

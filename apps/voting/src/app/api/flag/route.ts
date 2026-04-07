@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
 import { prisma } from '@photobot/db';
+import { type NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/session';
 
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 20;

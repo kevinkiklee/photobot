@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, useContext, useCallback, useState, useEffect, ReactNode } from 'react';
+import { LucideCheck, LucideInfo, LucideX } from 'lucide-react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LucideCheck, LucideX, LucideInfo } from 'lucide-react';
 
 type ToastVariant = 'success' | 'error' | 'info';
 
@@ -33,26 +33,32 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const removeToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const dismissToast = useCallback((id: number) => {
-    setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
-    setTimeout(() => removeToast(id), 200);
-  }, [removeToast]);
+  const dismissToast = useCallback(
+    (id: number) => {
+      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
+      setTimeout(() => removeToast(id), 200);
+    },
+    [removeToast],
+  );
 
-  const toast = useCallback(({ variant, message, action }: { variant: ToastVariant; message: string; action?: ToastAction }) => {
-    const id = nextId++;
-    setToasts(prev => {
-      const next = [...prev, { id, variant, message, action }];
-      if (next.length > MAX_TOASTS) {
-        return next.slice(next.length - MAX_TOASTS);
-      }
-      return next;
-    });
+  const toast = useCallback(
+    ({ variant, message, action }: { variant: ToastVariant; message: string; action?: ToastAction }) => {
+      const id = nextId++;
+      setToasts((prev) => {
+        const next = [...prev, { id, variant, message, action }];
+        if (next.length > MAX_TOASTS) {
+          return next.slice(next.length - MAX_TOASTS);
+        }
+        return next;
+      });
 
-    setTimeout(() => dismissToast(id), AUTO_DISMISS_MS);
-  }, [dismissToast]);
+      setTimeout(() => dismissToast(id), AUTO_DISMISS_MS);
+    },
+    [dismissToast],
+  );
 
   return (
     <ToastContext.Provider value={{ toast }}>
@@ -82,13 +88,19 @@ const variantIconColor: Record<ToastVariant, string> = {
 
 function ToasterInternal({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: number) => void }) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed top-4 right-4 z-[60] flex flex-col gap-2 max-sm:left-4 max-sm:right-4 max-sm:items-stretch sm:w-80" role="status" aria-live="polite">
-      {toasts.map(t => {
+    <div
+      className="fixed top-4 right-4 z-[60] flex flex-col gap-2 max-sm:left-4 max-sm:right-4 max-sm:items-stretch sm:w-80"
+      role="status"
+      aria-live="polite"
+    >
+      {toasts.map((t) => {
         const { border, icon: Icon } = variantStyles[t.variant];
         return (
           <div
@@ -101,7 +113,11 @@ function ToasterInternal({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss
               <p className="text-sm text-primary">{t.message}</p>
               {t.action && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); t.action!.onClick(); onDismiss(t.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    t.action!.onClick();
+                    onDismiss(t.id);
+                  }}
                   className="text-xs font-medium text-brand-primary hover:underline mt-1"
                 >
                   {t.action.label}
@@ -112,7 +128,7 @@ function ToasterInternal({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss
         );
       })}
     </div>,
-    document.body
+    document.body,
   );
 }
 

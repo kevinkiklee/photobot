@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import { ALL_TAGS, TAG_COLORS } from '@/lib/constants';
 
 const COLLAPSED_COUNT = 10;
@@ -16,9 +16,7 @@ export function TagFilter() {
     const params = new URLSearchParams(searchParams.toString());
     const current = params.get('tags')?.split(',').filter(Boolean) || [];
 
-    const next = current.includes(tag)
-      ? current.filter(t => t !== tag)
-      : [...current, tag];
+    const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
 
     if (next.length > 0) {
       params.set('tags', next.join(','));
@@ -36,7 +34,7 @@ export function TagFilter() {
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {visibleTags.map(tag => {
+      {visibleTags.map((tag) => {
         const active = activeTags.includes(tag);
         return (
           <button

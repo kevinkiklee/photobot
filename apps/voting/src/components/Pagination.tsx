@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LucideChevronsLeft, LucideChevronLeft, LucideChevronRight, LucideChevronsRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Spinner } from './Spinner';
 
 interface PaginationProps {

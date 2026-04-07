@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { LucideChevronDown, LucideChevronRight, LucideThumbsUp, LucideThumbsDown, LucideX } from 'lucide-react';
-import { Spinner } from './Spinner';
+import { LucideChevronDown, LucideChevronRight, LucideThumbsDown, LucideThumbsUp, LucideX } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { AdminStats } from '@/lib/admin';
+import { Spinner } from './Spinner';
 
 interface AdminViewProps {
   stats: AdminStats;
@@ -33,7 +33,9 @@ interface VoterDetailProps {
 }
 
 export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
-  const [voters, setVoters] = useState<Array<{ discordUsername: string; vote: string; createdAt: string }> | null>(null);
+  const [voters, setVoters] = useState<Array<{ discordUsername: string; vote: string; createdAt: string }> | null>(
+    null,
+  );
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lastVersion, setLastVersion] = useState(voteVersion);
@@ -44,8 +46,8 @@ export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
     if (open && voteVersion !== lastVersion) {
       setLastVersion(voteVersion);
       fetch(`/api/admin/voters?promptId=${promptId}`)
-        .then(res => res.ok ? res.json() : { voters: [] })
-        .then(data => setVoters(data.voters || []))
+        .then((res) => (res.ok ? res.json() : { voters: [] }))
+        .then((data) => setVoters(data.voters || []))
         .catch(() => {});
     }
   }, [open, voteVersion, lastVersion, promptId]);
@@ -119,11 +121,12 @@ export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
           </div>
 
           <div className="max-h-48 overflow-y-auto py-1">
-            {voters.length === 0 && (
-              <p className="text-[11px] text-muted px-3 py-2">No votes yet</p>
-            )}
+            {voters.length === 0 && <p className="text-[11px] text-muted px-3 py-2">No votes yet</p>}
             {voters.map((v, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-1 text-[11px] hover:bg-[var(--surface-elevated)] transition-colors">
+              <div
+                key={i}
+                className="flex items-center gap-2 px-3 py-1 text-[11px] hover:bg-[var(--surface-elevated)] transition-colors"
+              >
                 {v.vote === 'UP' ? (
                   <LucideThumbsUp className="w-3 h-3 text-green-400 shrink-0" />
                 ) : (

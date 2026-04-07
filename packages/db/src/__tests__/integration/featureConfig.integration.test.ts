@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { prisma, connectDb, disconnectDb, cleanupTestData, testId } from './setup';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupTestData, connectDb, disconnectDb, prisma, testId } from './setup';
 
 describe('FeatureConfig Integration', () => {
   beforeAll(async () => {
@@ -56,7 +56,7 @@ describe('FeatureConfig Integration', () => {
           featureKey: 'critique',
           isEnabled: false,
         },
-      })
+      }),
     ).rejects.toThrow();
   });
 

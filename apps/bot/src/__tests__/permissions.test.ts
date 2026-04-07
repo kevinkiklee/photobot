@@ -1,9 +1,9 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubEnv('PL_GUILD_ID', 'pl-guild-id');
 
-import { canUseFeature } from '../middleware/permissions';
 import { prisma } from '@photobot/db';
+import { canUseFeature } from '../middleware/permissions';
 
 vi.mock('@photobot/db', () => ({
   prisma: {

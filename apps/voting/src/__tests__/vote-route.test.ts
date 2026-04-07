@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/session', () => ({
   getSession: vi.fn(),
@@ -8,10 +8,10 @@ vi.mock('@/lib/vote', () => ({
   handleVote: vi.fn(),
 }));
 
+import { NextRequest } from 'next/server';
+import { POST } from '@/app/api/vote/route';
 import { getSession } from '@/lib/session';
 import { handleVote } from '@/lib/vote';
-import { POST } from '@/app/api/vote/route';
-import { NextRequest } from 'next/server';
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest('http://localhost/api/vote', {

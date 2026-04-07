@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubEnv('PL_GUILD_ID', 'pl-guild-id');
 
@@ -27,9 +27,9 @@ vi.mock('../middleware/permissions', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { selectPrompt } from '../services/prompts';
+import { data, execute } from '../commands/discuss';
 import { canUseFeature } from '../middleware/permissions';
-import { execute, data } from '../commands/discuss';
+import { selectPrompt } from '../services/prompts';
 
 describe('Discuss Command', () => {
   let interaction: any;
@@ -84,11 +84,13 @@ describe('Discuss Command', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 title: 'Discussion Prompt',
-                description: expect.stringContaining('How do you push through a creative rut when nothing feels inspiring?'),
+                description: expect.stringContaining(
+                  'How do you push through a creative rut when nothing feels inspiring?',
+                ),
               }),
             }),
           ]),
-        })
+        }),
       );
     });
 
@@ -120,7 +122,7 @@ describe('Discuss Command', () => {
         expect.objectContaining({
           content: expect.stringContaining('not enabled'),
           ephemeral: true,
-        })
+        }),
       );
       expect(selectPrompt).not.toHaveBeenCalled();
     });
@@ -150,12 +152,10 @@ describe('Discuss Command', () => {
           create: expect.objectContaining({
             channelId: 'channel-456',
           }),
-        })
+        }),
       );
 
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({ ephemeral: true })
-      );
+      expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ ephemeral: true }));
     });
 
     it('creates an audit log entry', async () => {
@@ -203,16 +203,14 @@ describe('Discuss Command', () => {
             }),
           ]),
           ephemeral: true,
-        })
+        }),
       );
     });
 
     it('shows a message when no schedules exist', async () => {
       await execute(interaction);
 
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({ ephemeral: true })
-      );
+      expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ ephemeral: true }));
     });
   });
 });

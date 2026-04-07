@@ -1,6 +1,6 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig } from 'vitest/config';
 
 // The root Vite server in workspace mode processes ALL module transforms
 // across all projects. React TSX files need the JSX transform at this level.
@@ -53,4 +53,4 @@ export default defineConfig({
       },
     ],
   },
-})
+});

@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
@@ -16,9 +16,9 @@ vi.mock('@/lib/session', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { getSession } from '@/lib/session';
-import { POST, PATCH, DELETE } from '@/app/api/prompt/route';
 import { NextRequest } from 'next/server';
+import { DELETE, PATCH, POST } from '@/app/api/prompt/route';
+import { getSession } from '@/lib/session';
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest('http://localhost/api/prompt', {
@@ -79,10 +79,12 @@ describe('POST /api/prompt', () => {
     };
     (prisma.prompt.create as any).mockResolvedValue(created);
 
-    const res = await POST(makeRequest({
-      text: 'A valid prompt for testing',
-      tags: ['motivation', 'workflow'],
-    }));
+    const res = await POST(
+      makeRequest({
+        text: 'A valid prompt for testing',
+        tags: ['motivation', 'workflow'],
+      }),
+    );
 
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -96,7 +98,7 @@ describe('POST /api/prompt', () => {
           submittedByUsername: 'PostUser',
           originalCategory: 'community',
         }),
-      })
+      }),
     );
   });
 
@@ -108,17 +110,19 @@ describe('POST /api/prompt', () => {
     };
     (prisma.prompt.create as any).mockResolvedValue(created);
 
-    await POST(makeRequest({
-      text: 'A valid prompt for testing',
-      tags: ['motivation', 'INVALID_TAG', 'another-bad'],
-    }));
+    await POST(
+      makeRequest({
+        text: 'A valid prompt for testing',
+        tags: ['motivation', 'INVALID_TAG', 'another-bad'],
+      }),
+    );
 
     expect(prisma.prompt.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           tags: { create: [{ tag: 'motivation' }] },
         }),
-      })
+      }),
     );
   });
 
@@ -130,17 +134,19 @@ describe('POST /api/prompt', () => {
     };
     (prisma.prompt.create as any).mockResolvedValue(created);
 
-    await POST(makeRequest({
-      text: 'A valid prompt for testing',
-      tags: ['motivation', 'workflow', 'style', 'editing'],
-    }));
+    await POST(
+      makeRequest({
+        text: 'A valid prompt for testing',
+        tags: ['motivation', 'workflow', 'style', 'editing'],
+      }),
+    );
 
     expect(prisma.prompt.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           tags: { create: [{ tag: 'motivation' }, { tag: 'workflow' }, { tag: 'style' }] },
         }),
-      })
+      }),
     );
   });
 
@@ -182,7 +188,7 @@ describe('PATCH /api/prompt', () => {
     expect(res.status).toBe(404);
   });
 
-  it('returns 403 when editing someone else\'s prompt', async () => {
+  it("returns 403 when editing someone else's prompt", async () => {
     (prisma.prompt.findUnique as any).mockResolvedValue({
       id: 'p1',
       submittedBy: 'other-user',
@@ -244,11 +250,13 @@ describe('PATCH /api/prompt', () => {
       text: 'Updated prompt with tags',
     });
 
-    const res = await PATCH(makeRequest({
-      id: 'p1',
-      text: 'Updated prompt with tags',
-      tags: ['motivation', 'workflow'],
-    }));
+    const res = await PATCH(
+      makeRequest({
+        id: 'p1',
+        text: 'Updated prompt with tags',
+        tags: ['motivation', 'workflow'],
+      }),
+    );
 
     expect(res.status).toBe(200);
     expect(prisma.prompt.update).toHaveBeenCalledWith({
@@ -270,11 +278,13 @@ describe('PATCH /api/prompt', () => {
     });
     (prisma.prompt.update as any).mockResolvedValue({ id: 'p1', text: 'Updated text here' });
 
-    await PATCH(makeRequest({
-      id: 'p1',
-      text: 'Updated text here',
-      tags: ['motivation', 'INVALID', 'workflow'],
-    }));
+    await PATCH(
+      makeRequest({
+        id: 'p1',
+        text: 'Updated text here',
+        tags: ['motivation', 'INVALID', 'workflow'],
+      }),
+    );
 
     expect(prisma.prompt.update).toHaveBeenCalledWith({
       where: { id: 'p1' },
@@ -287,7 +297,7 @@ describe('PATCH /api/prompt', () => {
     });
   });
 
-  it('allows admin to edit another user\'s prompt', async () => {
+  it("allows admin to edit another user's prompt", async () => {
     (getSession as any).mockResolvedValue({
       ...patchSession,
       isAdmin: true,
@@ -349,7 +359,7 @@ describe('DELETE /api/prompt', () => {
     expect(data.error).toContain('Curated prompts cannot be deleted');
   });
 
-  it('returns 403 when deleting someone else\'s prompt as non-admin', async () => {
+  it("returns 403 when deleting someone else's prompt as non-admin", async () => {
     (prisma.prompt.findUnique as any).mockResolvedValue({
       id: 'p1',
       submittedBy: 'other-user',
@@ -375,7 +385,7 @@ describe('DELETE /api/prompt', () => {
     expect(prisma.prompt.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
   });
 
-  it('allows admin to delete another user\'s prompt', async () => {
+  it("allows admin to delete another user's prompt", async () => {
     (getSession as any).mockResolvedValue({
       ...deleteSession,
       isAdmin: true,

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { PromptCard } from './PromptCard';
+import { useEffect, useState } from 'react';
 import type { PromptWithVotes } from '@/lib/prompts';
+import { PromptCard } from './PromptCard';
 
 interface PromptListProps {
   prompts: PromptWithVotes[];
@@ -12,7 +12,13 @@ interface PromptListProps {
   currentUserId: string | null;
 }
 
-export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthenticated, isAdmin, currentUserId }: PromptListProps) {
+export function PromptList({
+  prompts: initial,
+  userVotes: initialVotes,
+  isAuthenticated,
+  isAdmin,
+  currentUserId,
+}: PromptListProps) {
   const [prompts, setPrompts] = useState(initial);
   const [userVotes, setUserVotes] = useState(initialVotes);
 
@@ -35,7 +41,7 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
         tagVotes: {},
         suggestedTags: [],
       };
-      setPrompts(prev => [newPrompt, ...prev]);
+      setPrompts((prev) => [newPrompt, ...prev]);
     };
     window.addEventListener('prompt-created', handler);
     return () => window.removeEventListener('prompt-created', handler);
@@ -52,13 +58,23 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
 
     const result = await res.json();
 
-    setPrompts(prev => prev.map(p =>
-      p.id === promptId
-        ? { ...p, upvotes: result.upvotes, downvotes: result.downvotes, approvalPct: (result.upvotes + result.downvotes) > 0 ? Math.round((result.upvotes / (result.upvotes + result.downvotes)) * 100) : 0 }
-        : p
-    ));
+    setPrompts((prev) =>
+      prev.map((p) =>
+        p.id === promptId
+          ? {
+              ...p,
+              upvotes: result.upvotes,
+              downvotes: result.downvotes,
+              approvalPct:
+                result.upvotes + result.downvotes > 0
+                  ? Math.round((result.upvotes / (result.upvotes + result.downvotes)) * 100)
+                  : 0,
+            }
+          : p,
+      ),
+    );
 
-    setUserVotes(prev => {
+    setUserVotes((prev) => {
       const next = { ...prev };
       if (result.userVote) {
         next[promptId] = result.userVote;
@@ -78,9 +94,7 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
 
     if (!res.ok) throw new Error('Edit failed');
 
-    setPrompts(prev => prev.map(p =>
-      p.id === promptId ? { ...p, text: newText, tags: newTags } : p
-    ));
+    setPrompts((prev) => prev.map((p) => (p.id === promptId ? { ...p, text: newText, tags: newTags } : p)));
   };
 
   const handleFlagDuplicate = async (promptId: string) => {
@@ -94,11 +108,11 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
 
     const result = await res.json();
 
-    setPrompts(prev => prev.map(p =>
-      p.id === promptId
-        ? { ...p, duplicateCount: result.duplicateCount, userFlaggedDuplicate: result.flagged }
-        : p
-    ));
+    setPrompts((prev) =>
+      prev.map((p) =>
+        p.id === promptId ? { ...p, duplicateCount: result.duplicateCount, userFlaggedDuplicate: result.flagged } : p,
+      ),
+    );
   };
 
   const handleTagVote = async (promptId: string, tag: string, action: 'ADD' | 'REMOVE') => {
@@ -112,15 +126,17 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
 
     const result = await res.json();
 
-    setPrompts(prev => prev.map(p => {
-      if (p.id !== promptId) return p;
-      // Rebuild suggested tags from the updated tagVotes
-      const existingTags = new Set(p.tags);
-      const newSuggested = Object.entries(result.tagVotes as Record<string, { addCount: number }>)
-        .filter(([t, v]) => !existingTags.has(t) && v.addCount > 0)
-        .map(([t]) => t);
-      return { ...p, tagVotes: result.tagVotes, suggestedTags: newSuggested };
-    }));
+    setPrompts((prev) =>
+      prev.map((p) => {
+        if (p.id !== promptId) return p;
+        // Rebuild suggested tags from the updated tagVotes
+        const existingTags = new Set(p.tags);
+        const newSuggested = Object.entries(result.tagVotes as Record<string, { addCount: number }>)
+          .filter(([t, v]) => !existingTags.has(t) && v.addCount > 0)
+          .map(([t]) => t);
+        return { ...p, tagVotes: result.tagVotes, suggestedTags: newSuggested };
+      }),
+    );
   };
 
   const handleDelete = async (promptId: string) => {
@@ -132,12 +148,12 @@ export function PromptList({ prompts: initial, userVotes: initialVotes, isAuthen
 
     if (!res.ok) throw new Error('Delete failed');
 
-    setPrompts(prev => prev.filter(p => p.id !== promptId));
+    setPrompts((prev) => prev.filter((p) => p.id !== promptId));
   };
 
   return (
     <div className="space-y-1 animate-fade-in">
-      {prompts.map(p => (
+      {prompts.map((p) => (
         <PromptCard
           key={p.id}
           id={p.id}

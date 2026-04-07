@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getVotersForPrompt } from '@/lib/admin';
+import { getSession } from '@/lib/session';
 
 const adminRateLimits = new Map<string, { count: number; resetAt: number }>();
 

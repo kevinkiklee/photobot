@@ -1,6 +1,6 @@
+import { prisma } from '@photobot/db';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
-import { prisma } from '@photobot/db';
 
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 10;
@@ -50,16 +50,16 @@ export async function GET() {
       orderBy: { createdAt: 'asc' },
     });
 
-    const data = prompts.map(p => {
-      const upvotes = p.votes.filter(v => v.vote === 'UP').length;
-      const downvotes = p.votes.filter(v => v.vote === 'DOWN').length;
+    const data = prompts.map((p) => {
+      const upvotes = p.votes.filter((v) => v.vote === 'UP').length;
+      const downvotes = p.votes.filter((v) => v.vote === 'DOWN').length;
       const total = upvotes + downvotes;
 
       return {
         id: p.id,
         text: p.text,
         originalCategory: p.originalCategory,
-        tags: p.tags.map(t => t.tag),
+        tags: p.tags.map((t) => t.tag),
         submittedBy: p.submittedBy,
         submittedByUsername: p.submittedByUsername,
         createdAt: p.createdAt,
@@ -67,7 +67,7 @@ export async function GET() {
         downvotes,
         approvalPct: total > 0 ? Math.round((upvotes / total) * 100) : null,
         duplicateFlags: p.duplicateFlags.length,
-        voters: p.votes.map(v => ({
+        voters: p.votes.map((v) => ({
           discordUserId: v.discordUserId,
           discordUsername: v.discordUsername,
           vote: v.vote,

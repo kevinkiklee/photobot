@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { LucideX, LucidePlus } from 'lucide-react';
+import { LucidePlus, LucideX } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { ALL_TAGS, TAG_COLORS } from '@/lib/constants';
 import { Spinner } from './Spinner';
 
@@ -48,7 +48,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
   };
 
   // Tags not already on the prompt and not already suggested
-  const availableToSuggest = ALL_TAGS.filter(t => !tags.includes(t) && !suggestedTags.includes(t));
+  const availableToSuggest = ALL_TAGS.filter((t) => !tags.includes(t) && !suggestedTags.includes(t));
 
   return (
     <div className="flex flex-wrap items-center gap-1 justify-end flex-1">
@@ -67,10 +67,13 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
             <div className="absolute left-0 top-full mt-1 z-40 w-56 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-page)] shadow-lg shadow-black/20 animate-scale-in p-2 space-y-1">
               <p className="text-[10px] text-muted px-1 mb-1">Suggest a tag:</p>
               <div className="flex flex-wrap gap-1">
-                {availableToSuggest.map(tag => (
+                {availableToSuggest.map((tag) => (
                   <button
                     key={tag}
-                    onClick={() => { handleVote(tag, 'ADD'); setShowSuggest(false); }}
+                    onClick={() => {
+                      handleVote(tag, 'ADD');
+                      setShowSuggest(false);
+                    }}
                     className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all ${
                       TAG_COLORS[tag] || 'bg-brand-primary/10 text-brand-primary/70 border-brand-primary/15'
                     } hover:opacity-80`}
@@ -85,7 +88,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
       )}
 
       {/* Existing tags with remove vote */}
-      {tags.map(tag => {
+      {tags.map((tag) => {
         const votes = tagVotes[tag];
         const removeCount = votes?.removeCount || 0;
         const userVotedRemove = votes?.userAction === 'REMOVE';
@@ -116,7 +119,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
       })}
 
       {/* Suggested tags (from other users) */}
-      {suggestedTags.map(tag => {
+      {suggestedTags.map((tag) => {
         const votes = tagVotes[tag];
         const addCount = votes?.addCount || 0;
         const userVotedAdd = votes?.userAction === 'ADD';
@@ -139,7 +142,6 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
           </button>
         );
       })}
-
     </div>
   );
 }

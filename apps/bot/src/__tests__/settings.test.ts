@@ -1,9 +1,9 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubEnv('PL_GUILD_ID', 'pl-guild-id');
 
-import { execute, data } from '../commands/settings';
 import { prisma } from '@photobot/db';
+import { data, execute } from '../commands/settings';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
@@ -29,9 +29,7 @@ describe('Settings Command', () => {
   });
 
   it('returns an embed with feature toggles', async () => {
-    (prisma.featureConfig.findMany as any).mockResolvedValue([
-      { featureKey: 'discuss', isEnabled: true },
-    ]);
+    (prisma.featureConfig.findMany as any).mockResolvedValue([{ featureKey: 'discuss', isEnabled: true }]);
 
     await execute(interaction);
 
@@ -41,10 +39,12 @@ describe('Settings Command', () => {
         targetId: 'pl-guild-id',
       },
     });
-    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
-      embeds: expect.any(Array),
-      ephemeral: true,
-    }));
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        embeds: expect.any(Array),
+        ephemeral: true,
+      }),
+    );
   });
 
   it('rejects command outside of a server', async () => {
@@ -52,10 +52,12 @@ describe('Settings Command', () => {
 
     await execute(interaction);
 
-    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
-      content: expect.stringContaining('only be used in a server'),
-      ephemeral: true,
-    }));
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.stringContaining('only be used in a server'),
+        ephemeral: true,
+      }),
+    );
   });
 
   it('renders empty feature list with default message', async () => {
@@ -63,9 +65,11 @@ describe('Settings Command', () => {
 
     await execute(interaction);
 
-    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
-      embeds: expect.any(Array),
-      ephemeral: true,
-    }));
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        embeds: expect.any(Array),
+        ephemeral: true,
+      }),
+    );
   });
 });

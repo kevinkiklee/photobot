@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
 import { prisma } from '@photobot/db';
+import { type NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/session';
 
 const promptRateLimits = new Map<string, { count: number; resetAt: number }>();
 
@@ -20,9 +20,23 @@ function isValidId(id: unknown): id is string {
 }
 
 const ALLOWED_TAGS = new Set([
-  'motivation', 'workflow', 'style', 'editing', 'portfolio', 'storytelling',
-  'collaboration', 'social-media', 'gear', 'ethics', 'business', 'influences',
-  'learning', 'projects', 'self-reflection', 'community', 'technique',
+  'motivation',
+  'workflow',
+  'style',
+  'editing',
+  'portfolio',
+  'storytelling',
+  'collaboration',
+  'social-media',
+  'gear',
+  'ethics',
+  'business',
+  'influences',
+  'learning',
+  'projects',
+  'self-reflection',
+  'community',
+  'technique',
 ]);
 
 export async function POST(request: NextRequest) {
@@ -57,7 +71,7 @@ export async function POST(request: NextRequest) {
         originalCategory: 'community',
         submittedBy: session.discordUserId,
         submittedByUsername: session.discordUsername || 'Unknown',
-        tags: tags.length > 0 ? { create: tags.map(tag => ({ tag })) } : undefined,
+        tags: tags.length > 0 ? { create: tags.map((tag) => ({ tag })) } : undefined,
       },
       include: {
         tags: { select: { tag: true } },
@@ -67,7 +81,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       id: prompt.id,
       text: prompt.text,
-      tags: prompt.tags.map(t => t.tag),
+      tags: prompt.tags.map((t) => t.tag),
       submittedBy: prompt.submittedBy,
       submittedByUsername: prompt.submittedByUsername,
     });
@@ -123,7 +137,7 @@ export async function PATCH(request: NextRequest) {
         ...(newTags !== undefined && {
           tags: {
             deleteMany: {},
-            create: newTags.map(tag => ({ tag })),
+            create: newTags.map((tag) => ({ tag })),
           },
         }),
       },

@@ -1,13 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { LucideShieldCheck, LucideX } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export function AnonymityBanner() {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    try { setDismissed(localStorage.getItem('banner-dismissed') === 'true'); } catch { setDismissed(false); }
+    try {
+      setDismissed(localStorage.getItem('banner-dismissed') === 'true');
+    } catch {
+      setDismissed(false);
+    }
   }, []);
 
   if (dismissed) return null;
@@ -19,7 +23,12 @@ export function AnonymityBanner() {
         Your votes are anonymous to other members. Server admins can see individual votes to prevent misuse.
       </p>
       <button
-        onClick={() => { setDismissed(true); try { localStorage.setItem('banner-dismissed', 'true'); } catch {} }}
+        onClick={() => {
+          setDismissed(true);
+          try {
+            localStorage.setItem('banner-dismissed', 'true');
+          } catch {}
+        }}
         aria-label="Dismiss"
         className="p-0.5 rounded text-muted hover:text-primary transition-colors"
       >

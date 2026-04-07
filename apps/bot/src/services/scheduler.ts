@@ -5,10 +5,10 @@
 // If the channel stays busy for 30 min, it posts anyway to avoid skipping.
 
 import { prisma } from '@photobot/db';
-import { Client, EmbedBuilder, TextChannel, Collection, Message } from 'discord.js';
+import { type Client, type Collection, EmbedBuilder, type Message, TextChannel } from 'discord.js';
 import { BRAND_COLOR } from '../constants';
-import { selectPrompt } from './prompts';
 import { canUseFeature } from '../middleware/permissions';
+import { selectPrompt } from './prompts';
 
 const POST_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const QUIET_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes of silence = safe to post
@@ -83,7 +83,7 @@ async function waitForQuiet(channel: TextChannel): Promise<boolean> {
     if (await isChannelQuiet(channel)) return true;
 
     // Wait before checking again
-    await new Promise(resolve => setTimeout(resolve, DEFER_CHECK_MS));
+    await new Promise((resolve) => setTimeout(resolve, DEFER_CHECK_MS));
   }
 
   // Timed out waiting — post anyway rather than skipping entirely

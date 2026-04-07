@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { LucideCamera, LucideHelpCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function NotFound() {
   return (
@@ -14,9 +14,7 @@ export default function NotFound() {
           </div>
         </div>
         <h1 className="font-display text-3xl text-primary mb-3">404 — Lost in the darkroom</h1>
-        <p className="text-secondary text-sm leading-relaxed mb-8">
-          This page doesn&apos;t exist or has been moved.
-        </p>
+        <p className="text-secondary text-sm leading-relaxed mb-8">This page doesn&apos;t exist or has been moved.</p>
         <Link
           href="/"
           className="px-6 py-2.5 rounded-xl text-sm font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20 hover:bg-brand-primary/20 transition-colors"

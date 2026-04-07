@@ -1,14 +1,14 @@
 import { Suspense } from 'react';
-import { getSession } from '@/lib/session';
-import { fetchPrompts } from '@/lib/prompts';
+import { AnonymityBanner } from '@/components/AnonymityBanner';
 import { Header } from '@/components/Header';
+import { Pagination } from '@/components/Pagination';
 import { PromptList } from '@/components/PromptList';
-import { TagFilter } from '@/components/TagFilter';
 import { SearchInput } from '@/components/SearchInput';
 import { SortSelect } from '@/components/SortSelect';
-import { Pagination } from '@/components/Pagination';
-import { AnonymityBanner } from '@/components/AnonymityBanner';
-import { SubmitPromptProvider, SubmitButton, SubmitPanel } from '@/components/SubmitPromptWrapper';
+import { SubmitButton, SubmitPanel, SubmitPromptProvider } from '@/components/SubmitPromptWrapper';
+import { TagFilter } from '@/components/TagFilter';
+import { fetchPrompts } from '@/lib/prompts';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 

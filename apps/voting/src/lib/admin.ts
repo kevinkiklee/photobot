@@ -15,9 +15,9 @@ export interface PromptVoterDetail {
 export async function getAdminStats(): Promise<AdminStats> {
   const [totalVotes, uniqueVoters, totalPrompts, promptsWithVotes] = await Promise.all([
     prisma.promptVote.count(),
-    prisma.promptVote.groupBy({ by: ['discordUserId'] }).then(r => r.length),
+    prisma.promptVote.groupBy({ by: ['discordUserId'] }).then((r) => r.length),
     prisma.prompt.count(),
-    prisma.promptVote.groupBy({ by: ['promptId'] }).then(r => r.length),
+    prisma.promptVote.groupBy({ by: ['promptId'] }).then((r) => r.length),
   ]);
 
   return {

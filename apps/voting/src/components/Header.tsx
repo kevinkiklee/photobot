@@ -1,17 +1,14 @@
-import { getSession } from '@/lib/session';
-import { ThemeToggle } from './ThemeToggle';
-import { LoginButton } from './LoginButton';
-import { SignOutButton } from './SignOutButton';
-import { AdminMenu } from './AdminMenu';
 import { prisma } from '@photobot/db';
 import Link from 'next/link';
+import { getSession } from '@/lib/session';
+import { AdminMenu } from './AdminMenu';
+import { LoginButton } from './LoginButton';
+import { SignOutButton } from './SignOutButton';
+import { ThemeToggle } from './ThemeToggle';
 
 async function getHeaderStats() {
   try {
-    const [promptCount, voteCount] = await Promise.all([
-      prisma.prompt.count(),
-      prisma.promptVote.count(),
-    ]);
+    const [promptCount, voteCount] = await Promise.all([prisma.prompt.count(), prisma.promptVote.count()]);
     return { promptCount, voteCount };
   } catch {
     return { promptCount: 0, voteCount: 0 };
@@ -19,10 +16,7 @@ async function getHeaderStats() {
 }
 
 export async function Header() {
-  const [session, stats] = await Promise.all([
-    getSession(),
-    getHeaderStats(),
-  ]);
+  const [session, stats] = await Promise.all([getSession(), getHeaderStats()]);
 
   return (
     <header className="glass border-b border-subtle sticky top-0 z-30 animate-slide-down">

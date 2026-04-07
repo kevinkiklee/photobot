@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { LucideSun, LucideMoon } from 'lucide-react';
+import { LucideMoon, LucideSun } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
   const [dark, setDark] = useState<boolean | null>(null);
@@ -14,7 +14,9 @@ export function ThemeToggle() {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle('dark', next);
-    try { localStorage.setItem('theme', next ? 'dark' : 'light'); } catch {}
+    try {
+      localStorage.setItem('theme', next ? 'dark' : 'light');
+    } catch {}
   };
 
   if (dark === null) {
@@ -22,8 +24,17 @@ export function ThemeToggle() {
   }
 
   return (
-    <button onClick={toggle} className="p-2 rounded-lg text-secondary hover:text-primary hover:bg-brand-primary/5 transition-all" title="Toggle theme" aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}>
-      {dark ? <LucideSun className="w-4 h-4" strokeWidth={1.5} /> : <LucideMoon className="w-4 h-4" strokeWidth={1.5} />}
+    <button
+      onClick={toggle}
+      className="p-2 rounded-lg text-secondary hover:text-primary hover:bg-brand-primary/5 transition-all"
+      title="Toggle theme"
+      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+    >
+      {dark ? (
+        <LucideSun className="w-4 h-4" strokeWidth={1.5} />
+      ) : (
+        <LucideMoon className="w-4 h-4" strokeWidth={1.5} />
+      )}
     </button>
   );
 }

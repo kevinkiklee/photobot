@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
@@ -26,7 +26,7 @@ describe('fetchPrompts', () => {
       expect.objectContaining({
         take: 20,
         skip: 0,
-      })
+      }),
     );
     expect(result.totalPages).toBe(3);
   });
@@ -39,7 +39,7 @@ describe('fetchPrompts', () => {
         where: expect.objectContaining({
           tags: { some: { tag: { in: ['motivation', 'workflow'] } } },
         }),
-      })
+      }),
     );
   });
 
@@ -51,7 +51,7 @@ describe('fetchPrompts', () => {
         where: expect.objectContaining({
           text: { contains: 'creative rut', mode: 'insensitive' },
         }),
-      })
+      }),
     );
   });
 
@@ -61,7 +61,7 @@ describe('fetchPrompts', () => {
     expect(prisma.prompt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         orderBy: [{ submittedBy: { sort: 'desc', nulls: 'last' } }, { text: 'asc' }],
-      })
+      }),
     );
   });
 });

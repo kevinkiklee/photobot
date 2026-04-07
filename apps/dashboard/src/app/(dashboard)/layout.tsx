@@ -1,30 +1,26 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { isPlAdmin, DiscordTokenExpiredError } from "@/lib/discord";
-import { MobileNav } from "@/components/MobileNav";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import Link from "next/link";
-import { LucideCamera, LucideSettings, LucideScrollText } from "lucide-react";
+import { LucideCamera, LucideScrollText, LucideSettings } from 'lucide-react';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth/next';
+import { MobileNav } from '@/components/MobileNav';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { authOptions } from '@/lib/auth';
+import { DiscordTokenExpiredError, isPlAdmin } from '@/lib/discord';
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
   if (!session?.accessToken) {
-    redirect("/");
+    redirect('/');
   }
 
   try {
     const authorized = await isPlAdmin(session.accessToken as string);
     if (!authorized) {
-      redirect("/");
+      redirect('/');
     }
   } catch (e) {
     if (e instanceof DiscordTokenExpiredError) {
-      redirect("/api/auth/signin");
+      redirect('/api/auth/signin');
     }
     throw e;
   }

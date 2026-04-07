@@ -1,7 +1,7 @@
 'use client';
 
+import { LucideThumbsDown, LucideThumbsUp } from 'lucide-react';
 import { useState } from 'react';
-import { LucideThumbsUp, LucideThumbsDown } from 'lucide-react';
 import { Spinner } from './Spinner';
 
 interface VoteButtonProps {
@@ -17,10 +17,12 @@ export function VoteButton({ promptId, direction, count, active, disabled, onVot
   const [loading, setLoading] = useState(false);
 
   const Icon = direction === 'UP' ? LucideThumbsUp : LucideThumbsDown;
-  const colorActive = direction === 'UP'
-    ? 'bg-green-500/15 border-green-500/25 text-green-400'
-    : 'bg-red-500/15 border-red-500/25 text-red-400';
-  const colorInactive = 'bg-transparent border-[var(--border-subtle)] text-muted hover:text-secondary hover:border-[var(--border-default)]';
+  const colorActive =
+    direction === 'UP'
+      ? 'bg-green-500/15 border-green-500/25 text-green-400'
+      : 'bg-red-500/15 border-red-500/25 text-red-400';
+  const colorInactive =
+    'bg-transparent border-[var(--border-subtle)] text-muted hover:text-secondary hover:border-[var(--border-default)]';
 
   const handleClick = async () => {
     if (disabled || loading) return;

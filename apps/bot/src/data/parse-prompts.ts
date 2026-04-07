@@ -3,7 +3,7 @@
 // This keeps prompt content editable as plain text without touching code.
 
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 export interface DiscussionPrompt {
@@ -13,7 +13,7 @@ export interface DiscussionPrompt {
 
 const HEADING_TO_CATEGORY: Record<string, string> = {
   'Creative Process': 'creative',
-  'Inspiration': 'inspiration',
+  Inspiration: 'inspiration',
 };
 
 export function parsePromptsMarkdown(markdown: string): DiscussionPrompt[] {

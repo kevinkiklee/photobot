@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter, usePathname } from 'next/navigation';
-import { LucideSettings, LucideScrollText } from 'lucide-react';
+import { LucideScrollText, LucideSettings } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function MobileNav() {
   const router = useRouter();
@@ -28,9 +28,7 @@ export function MobileNav() {
             >
               <Icon className="w-5 h-5" strokeWidth={1.5} />
               <span className="text-[10px] font-medium">{label}</span>
-              {isActive && (
-                <div className="absolute bottom-2 w-1 h-1 rounded-full bg-brand-primary" />
-              )}
+              {isActive && <div className="absolute bottom-2 w-1 h-1 rounded-full bg-brand-primary" />}
             </button>
           );
         })}

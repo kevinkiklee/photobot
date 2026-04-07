@@ -1,11 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
 import { prisma } from '@photobot/db';
+import { type NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/session';
 
 const ALLOWED_TAGS = new Set([
-  'motivation', 'workflow', 'style', 'editing', 'portfolio', 'storytelling',
-  'collaboration', 'social-media', 'gear', 'ethics', 'business', 'influences',
-  'learning', 'projects', 'self-reflection', 'community', 'technique',
+  'motivation',
+  'workflow',
+  'style',
+  'editing',
+  'portfolio',
+  'storytelling',
+  'collaboration',
+  'social-media',
+  'gear',
+  'ethics',
+  'business',
+  'influences',
+  'learning',
+  'projects',
+  'self-reflection',
+  'community',
+  'technique',
 ]);
 
 const rateLimits = new Map<string, { count: number; resetAt: number }>();

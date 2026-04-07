@@ -9,9 +9,7 @@ interface PromptResult {
   category: string;
 }
 
-export async function selectPrompt(
-  category: string | null,
-): Promise<PromptResult> {
+export async function selectPrompt(category: string | null): Promise<PromptResult> {
   // Track prompts used in the last 30 days so we cycle through
   // the full pool before repeating.
   const thirtyDaysAgo = new Date();
@@ -22,14 +20,14 @@ export async function selectPrompt(
     select: { promptText: true },
   });
 
-  const recentTexts = new Set(recentLogs.map(l => l.promptText));
+  const recentTexts = new Set(recentLogs.map((l) => l.promptText));
 
   let candidates = DISCUSSION_PROMPTS;
   if (category) {
-    candidates = candidates.filter(p => p.category === category);
+    candidates = candidates.filter((p) => p.category === category);
   }
 
-  let available = candidates.filter(p => !recentTexts.has(p.text));
+  let available = candidates.filter((p) => !recentTexts.has(p.text));
 
   // If every prompt was used in the last 30 days, reset the pool and
   // start fresh rather than skipping the post entirely.

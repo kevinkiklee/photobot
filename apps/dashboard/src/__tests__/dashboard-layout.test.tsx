@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-auth/next', () => ({
   getServerSession: vi.fn(),
@@ -12,20 +12,24 @@ vi.mock('../lib/auth', () => ({
 vi.mock('../lib/discord', () => ({
   isPlAdmin: vi.fn(),
   DiscordTokenExpiredError: class extends Error {
-    constructor() { super('Discord access token expired'); }
+    constructor() {
+      super('Discord access token expired');
+    }
   },
 }));
 
 vi.mock('next/navigation', () => ({
-  redirect: vi.fn((url: string) => { throw new Error(`NEXT_REDIRECT:${url}`); }),
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  }),
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => '/settings',
 }));
 
-import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
-import { isPlAdmin } from '../lib/discord';
+import { getServerSession } from 'next-auth/next';
 import DashboardLayout from '../app/(dashboard)/layout';
+import { isPlAdmin } from '../lib/discord';
 
 describe('DashboardLayout', () => {
   beforeEach(() => {

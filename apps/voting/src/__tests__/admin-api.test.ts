@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
@@ -18,10 +18,10 @@ vi.mock('@/lib/session', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { getSession } from '@/lib/session';
-import { GET } from '@/app/api/admin/voters/route';
 import { NextRequest } from 'next/server';
+import { GET } from '@/app/api/admin/voters/route';
 import { getAdminStats, getVotersForPrompt } from '@/lib/admin';
+import { getSession } from '@/lib/session';
 
 describe('GET /api/admin/voters', () => {
   const adminSession = {
@@ -103,9 +103,7 @@ describe('getAdminStats', () => {
 
   it('handles zero state', async () => {
     (prisma.promptVote.count as any).mockResolvedValue(0);
-    (prisma.promptVote.groupBy as any)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
+    (prisma.promptVote.groupBy as any).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
     (prisma.prompt.count as any).mockResolvedValue(5);
 
     const stats = await getAdminStats();

@@ -48,10 +48,7 @@ function buildTagVotes(
   return result;
 }
 
-function buildSuggestedTags(
-  existingTags: string[],
-  suggestions: Array<{ tag: string; action: string }>,
-): string[] {
+function buildSuggestedTags(existingTags: string[], suggestions: Array<{ tag: string; action: string }>): string[] {
   const existing = new Set(existingTags);
   const suggested = new Set<string>();
   for (const s of suggestions) {
@@ -120,19 +117,24 @@ export async function fetchPrompts(
       upvotes,
       downvotes,
       approvalPct,
-      submittedBy: isAdmin ? (p.submittedBy || null) : (p.submittedBy ? 'community' : null),
-      submittedByUsername: isAdmin ? (p.submittedByUsername || null) : null,
+      submittedBy: isAdmin ? p.submittedBy || null : p.submittedBy ? 'community' : null,
+      submittedByUsername: isAdmin ? p.submittedByUsername || null : null,
       duplicateCount: p.duplicateFlags.length,
-      userFlaggedDuplicate: discordUserId ? p.duplicateFlags.some((f: any) => f.discordUserId === discordUserId) : false,
+      userFlaggedDuplicate: discordUserId
+        ? p.duplicateFlags.some((f: any) => f.discordUserId === discordUserId)
+        : false,
       tagVotes: buildTagVotes(p.tagSuggestions, discordUserId),
-      suggestedTags: buildSuggestedTags(p.tags.map((t: any) => t.tag), p.tagSuggestions),
+      suggestedTags: buildSuggestedTags(
+        p.tags.map((t: any) => t.tag),
+        p.tagSuggestions,
+      ),
     };
   });
 
   if (params.sort === 'approval') {
     mapped.sort((a, b) => b.approvalPct - a.approvalPct);
   } else if (params.sort === 'votes') {
-    mapped.sort((a, b) => (b.upvotes + b.downvotes) - (a.upvotes + a.downvotes));
+    mapped.sort((a, b) => b.upvotes + b.downvotes - (a.upvotes + a.downvotes));
   }
 
   return {

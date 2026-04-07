@@ -1,18 +1,24 @@
-import { NextAuthOptions } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@photobot/db";
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import { prisma } from '@photobot/db';
+import type { NextAuthOptions } from 'next-auth';
+import DiscordProvider from 'next-auth/providers/discord';
 
 if (!process.env.VOTING_NEXTAUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
   throw new Error('Missing VOTING_NEXTAUTH_SECRET or NEXTAUTH_SECRET environment variable');
 }
 
 const ADMIN_USER_IDS = new Set(
-  (process.env.VOTING_ADMIN_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
+  (process.env.VOTING_ADMIN_USER_IDS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
 );
 
 const ADMIN_ROLE_IDS = new Set(
-  (process.env.VOTING_ADMIN_ROLE_IDS || '').split(',').map(s => s.trim()).filter(Boolean)
+  (process.env.VOTING_ADMIN_ROLE_IDS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
 );
 
 const GUILD_ID = process.env.PL_GUILD_ID || '';
@@ -33,10 +39,9 @@ async function hasAdminRole(discordUserId: string): Promise<boolean> {
   }
 
   try {
-    const res = await fetch(
-      `https://discord.com/api/guilds/${GUILD_ID}/members/${discordUserId}`,
-      { headers: { Authorization: `Bot ${botToken}` } }
-    );
+    const res = await fetch(`https://discord.com/api/guilds/${GUILD_ID}/members/${discordUserId}`, {
+      headers: { Authorization: `Bot ${botToken}` },
+    });
     if (!res.ok) {
       // On API error, return stale cache if available
       if (cached) return cached.result;
@@ -56,16 +61,16 @@ async function hasAdminRole(discordUserId: string): Promise<boolean> {
 export const authOptions: NextAuthOptions = {
   providers: [
     DiscordProvider({
-      clientId: process.env.DISCORD_CLIENT_ID ?? "",
-      clientSecret: process.env.DISCORD_CLIENT_SECRET ?? "",
-      authorization: { params: { scope: "identify email" } },
+      clientId: process.env.DISCORD_CLIENT_ID ?? '',
+      clientSecret: process.env.DISCORD_CLIENT_SECRET ?? '',
+      authorization: { params: { scope: 'identify email' } },
     }),
   ],
   adapter: PrismaAdapter(prisma),
   callbacks: {
     async session({ session, user }) {
       const account = await prisma.account.findFirst({
-        where: { userId: user.id, provider: "discord" },
+        where: { userId: user.id, provider: 'discord' },
       });
 
       if (account) {
@@ -84,10 +89,10 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'database',
     maxAge: 7 * 24 * 60 * 60, // 7 days
-    updateAge: 24 * 60 * 60,  // refresh daily
+    updateAge: 24 * 60 * 60, // refresh daily
   },
   pages: {
-    signIn: "/",
+    signIn: '/',
   },
   secret: process.env.VOTING_NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET,
 };

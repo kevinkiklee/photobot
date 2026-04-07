@@ -30,8 +30,8 @@ export async function getAdminGuilds(accessToken: string): Promise<DiscordGuild[
   if (!response.ok) return [];
 
   const guilds: DiscordGuild[] = await response.json();
-  return guilds.filter(guild =>
-    (BigInt(guild.permissions) & BigInt(ADMINISTRATOR_PERMISSION)) === BigInt(ADMINISTRATOR_PERMISSION)
+  return guilds.filter(
+    (guild) => (BigInt(guild.permissions) & BigInt(ADMINISTRATOR_PERMISSION)) === BigInt(ADMINISTRATOR_PERMISSION),
   );
 }
 
@@ -40,5 +40,5 @@ export async function getAdminGuilds(accessToken: string): Promise<DiscordGuild[
  */
 export async function isPlAdmin(accessToken: string): Promise<boolean> {
   const guilds = await getAdminGuilds(accessToken);
-  return guilds.some(g => g.id === process.env.PL_GUILD_ID);
+  return guilds.some((g) => g.id === process.env.PL_GUILD_ID);
 }

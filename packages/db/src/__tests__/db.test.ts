@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest'
-import { prisma, TargetType } from '../index'
+import { describe, expect, it } from 'vitest';
+import { prisma, TargetType } from '../index';
 
 describe('Prisma Client', () => {
   it('should be initialized and exported', () => {
-    expect(prisma).toBeDefined()
-    expect(typeof prisma.$connect).toBe('function')
-  })
+    expect(prisma).toBeDefined();
+    expect(typeof prisma.$connect).toBe('function');
+  });
 
   it('returns the same singleton instance', async () => {
     const { prisma: prisma2 } = await import('../index');
@@ -18,4 +18,4 @@ describe('Prisma Client', () => {
     expect(TargetType.ROLE).toBe('ROLE');
     expect(TargetType.CHANNEL).toBe('CHANNEL');
   });
-})
+});

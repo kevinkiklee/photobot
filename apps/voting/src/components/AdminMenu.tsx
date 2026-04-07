@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
 import { LucideShield } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 export function AdminMenu({ username }: { username: string }) {
   const [open, setOpen] = useState(false);
@@ -18,7 +18,7 @@ export function AdminMenu({ username }: { username: string }) {
   return (
     <div ref={ref} className="relative sm:hidden">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         className="p-1.5 rounded-md text-brand-accent hover:bg-brand-accent/10 transition-colors"
         title="Staff menu"
       >

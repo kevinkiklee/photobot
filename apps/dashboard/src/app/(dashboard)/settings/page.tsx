@@ -1,6 +1,6 @@
 import { prisma } from '@photobot/db';
+import { LucideMessageSquare, LucideSettings } from 'lucide-react';
 import { FeatureToggle } from '@/components/feature-toggle';
-import { LucideSettings, LucideMessageSquare } from 'lucide-react';
 
 const featureMeta: Record<string, { icon: typeof LucideSettings; description: string }> = {
   settings: {
@@ -30,7 +30,7 @@ export default async function SettingsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
         {availableFeatures.map((key) => {
-          const config = features.find(f => f.featureKey === key);
+          const config = features.find((f) => f.featureKey === key);
           const meta = featureMeta[key];
           const Icon = meta?.icon || LucideSettings;
           const isEnabled = config?.isEnabled !== false;
@@ -42,20 +42,21 @@ export default async function SettingsPage() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg transition-colors ${isEnabled ? 'bg-brand-primary/10 text-brand-primary' : 'bg-[var(--border-subtle)] text-muted'}`}>
+                  <div
+                    className={`p-2 rounded-lg transition-colors ${isEnabled ? 'bg-brand-primary/10 text-brand-primary' : 'bg-[var(--border-subtle)] text-muted'}`}
+                  >
                     <Icon className="w-4 h-4" strokeWidth={1.5} />
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold capitalize text-primary">{key}</h3>
-                    <span className={`text-[10px] uppercase tracking-wider font-medium ${isEnabled ? 'text-brand-primary' : 'text-muted'}`}>
+                    <span
+                      className={`text-[10px] uppercase tracking-wider font-medium ${isEnabled ? 'text-brand-primary' : 'text-muted'}`}
+                    >
                       {isEnabled ? 'Active' : 'Disabled'}
                     </span>
                   </div>
                 </div>
-                <FeatureToggle
-                  featureKey={key}
-                  initialEnabled={config?.isEnabled ?? true}
-                />
+                <FeatureToggle featureKey={key} initialEnabled={config?.isEnabled ?? true} />
               </div>
               <p className="text-xs text-secondary leading-relaxed">
                 {meta?.description || `Configure the ${key} feature.`}

@@ -1,7 +1,7 @@
 import { prisma } from '@photobot/db';
-import { RelativeTime } from '@/components/relative-time';
 import { LucideChevronLeft, LucideChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { RelativeTime } from '@/components/relative-time';
 
 const actionStyles: Record<string, string> = {
   UPDATE: 'bg-brand-primary/15 text-brand-primary',
@@ -10,11 +10,7 @@ const actionStyles: Record<string, string> = {
   DISABLE_SCHEDULE: 'bg-brand-highlight/20 text-brand-dark',
 };
 
-export default async function AuditPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
+export default async function AuditPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const { page: pageParam } = await searchParams;
 
   const page = parseInt(pageParam || '1', 10);
@@ -42,40 +38,57 @@ export default async function AuditPage({
         </div>
       </div>
 
-      <div id="audit-table" className="rounded-xl border border-subtle bg-card/50 backdrop-blur-sm overflow-hidden animate-fade-up">
+      <div
+        id="audit-table"
+        className="rounded-xl border border-subtle bg-card/50 backdrop-blur-sm overflow-hidden animate-fade-up"
+      >
         <div className="overflow-x-auto -mx-px">
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-subtle bg-card/80 sticky top-0 z-10">
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">Timestamp</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">User</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">Action</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">Feature</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">Details</th>
+                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  Timestamp
+                </th>
+                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  Action
+                </th>
+                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  Feature
+                </th>
+                <th className="px-5 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-wider">
+                  Details
+                </th>
               </tr>
             </thead>
             <tbody>
               {logs.map((log) => (
-                <tr key={log.id} className="border-b border-subtle last:border-0 hover:bg-brand-primary/5 transition-colors">
+                <tr
+                  key={log.id}
+                  className="border-b border-subtle last:border-0 hover:bg-brand-primary/5 transition-colors"
+                >
                   <td className="px-5 py-3.5 whitespace-nowrap text-xs font-mono text-muted">
                     <RelativeTime date={log.createdAt} />
                   </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-sm text-primary font-medium">
-                    {log.userId}
-                  </td>
+                  <td className="px-5 py-3.5 whitespace-nowrap text-sm text-primary font-medium">{log.userId}</td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${actionStyles[log.action] || 'bg-brand-secondary/10 text-secondary'}`}>
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${actionStyles[log.action] || 'bg-brand-secondary/10 text-secondary'}`}
+                    >
                       {log.action}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-sm text-secondary capitalize">
-                    {log.featureKey}
-                  </td>
+                  <td className="px-5 py-3.5 whitespace-nowrap text-sm text-secondary capitalize">{log.featureKey}</td>
                   <td className="px-5 py-3.5 text-xs text-muted">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] text-muted">{log.targetType} / {log.targetId}</span>
+                      <span className="text-[10px] text-muted">
+                        {log.targetType} / {log.targetId}
+                      </span>
                       <span className="font-mono">
-                        {JSON.stringify(log.oldValue)} <span className="text-brand-primary mx-1">&rarr;</span> {JSON.stringify(log.newValue)}
+                        {JSON.stringify(log.oldValue)} <span className="text-brand-primary mx-1">&rarr;</span>{' '}
+                        {JSON.stringify(log.newValue)}
                       </span>
                     </div>
                   </td>

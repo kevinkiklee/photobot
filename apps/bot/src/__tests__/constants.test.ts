@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { DISCUSSION_PROMPTS, DISCUSSION_CATEGORIES } from '../constants';
+import { describe, expect, it } from 'vitest';
+import { DISCUSSION_CATEGORIES, DISCUSSION_PROMPTS } from '../constants';
 
 describe('Curated Prompt Bank', () => {
   it('has prompts for every category', () => {
     const categories = Object.keys(DISCUSSION_CATEGORIES);
     for (const cat of categories) {
-      const prompts = DISCUSSION_PROMPTS.filter(p => p.category === cat);
+      const prompts = DISCUSSION_PROMPTS.filter((p) => p.category === cat);
       expect(prompts.length).toBeGreaterThanOrEqual(10);
     }
   });

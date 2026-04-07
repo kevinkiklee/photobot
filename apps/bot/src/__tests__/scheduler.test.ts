@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
@@ -21,8 +21,8 @@ vi.mock('../services/prompts', () => ({
   selectPrompt: vi.fn(),
 }));
 
-import { TextChannel } from 'discord.js';
 import { prisma } from '@photobot/db';
+import { TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
 import { selectPrompt } from '../services/prompts';
 import { startScheduler, stopScheduler } from '../services/scheduler';
@@ -56,7 +56,8 @@ describe('Scheduler', () => {
     (prisma.discussionSchedule.findFirst as any).mockResolvedValue(null);
     (canUseFeature as any).mockResolvedValue(true);
     (selectPrompt as any).mockResolvedValue({
-      text: 'Test prompt', category: 'creative',
+      text: 'Test prompt',
+      category: 'creative',
     });
     (prisma.discussionPromptLog.create as any).mockResolvedValue({});
     (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
@@ -88,7 +89,7 @@ describe('Scheduler', () => {
             }),
           }),
         ]),
-      })
+      }),
     );
   });
 

@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
@@ -16,9 +16,9 @@ vi.mock('@/lib/session', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { getSession } from '@/lib/session';
-import { POST } from '@/app/api/flag/route';
 import { NextRequest } from 'next/server';
+import { POST } from '@/app/api/flag/route';
+import { getSession } from '@/lib/session';
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest('http://localhost/api/flag', {

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { LucidePlus, LucideX, LucideSend } from 'lucide-react';
-import { Spinner } from './Spinner';
-import { ALL_TAGS, TAG_COLORS } from '@/lib/constants';
+import { LucidePlus, LucideSend, LucideX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { ALL_TAGS, TAG_COLORS } from '@/lib/constants';
+import { Spinner } from './Spinner';
 
 export function SubmitPrompt({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [open, setOpen] = useState(false);
@@ -34,9 +34,7 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
 
   const toggleTag = (tag: string) => {
-    setTags(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : prev.length < 3 ? [...prev, tag] : prev
-    );
+    setTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : prev.length < 3 ? [...prev, tag] : prev));
   };
 
   const handleSubmit = async () => {
@@ -78,14 +76,20 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
     <div className="p-4 rounded-xl border border-brand-accent/20 bg-brand-accent/5 backdrop-blur-sm space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-primary">Submit a Discussion Prompt</p>
-        <button onClick={() => { onClose(); setError(''); }} className="p-1 text-muted hover:text-primary transition-colors">
+        <button
+          onClick={() => {
+            onClose();
+            setError('');
+          }}
+          className="p-1 text-muted hover:text-primary transition-colors"
+        >
           <LucideX className="w-4 h-4" />
         </button>
       </div>
 
       <textarea
         value={text}
-        onChange={e => setText(e.target.value)}
+        onChange={(e) => setText(e.target.value)}
         placeholder="Write a thought-provoking question for the community..."
         maxLength={150}
         rows={3}
@@ -96,7 +100,7 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
       <div>
         <p className="text-[11px] text-muted mb-1.5">Tags (up to 3):</p>
         <div className="flex flex-wrap gap-1">
-          {ALL_TAGS.map(tag => (
+          {ALL_TAGS.map((tag) => (
             <button
               key={tag}
               onClick={() => toggleTag(tag)}
@@ -116,7 +120,8 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
 
       <div className="flex items-center justify-between">
         <span className="text-[11px] text-muted">
-          {text.length}/150{text.trim().length > 0 && text.trim().length < 10 && ` · ${10 - text.trim().length} more characters needed`}
+          {text.length}/150
+          {text.trim().length > 0 && text.trim().length < 10 && ` · ${10 - text.trim().length} more characters needed`}
         </span>
         <button
           onClick={handleSubmit}

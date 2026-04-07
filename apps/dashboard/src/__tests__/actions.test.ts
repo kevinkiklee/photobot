@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubEnv('PL_GUILD_ID', 'pl-guild-id');
 
@@ -31,10 +31,10 @@ vi.mock('next/cache', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { getServerSession } from 'next-auth/next';
-import { isPlAdmin } from '../lib/discord';
 import { revalidatePath } from 'next/cache';
+import { getServerSession } from 'next-auth/next';
 import { updateFeatureAction } from '../lib/actions';
+import { isPlAdmin } from '../lib/discord';
 
 describe('updateFeatureAction', () => {
   beforeEach(() => {
@@ -66,18 +66,31 @@ describe('updateFeatureAction', () => {
 
     await updateFeatureAction('discuss', true);
 
-    expect(prisma.featureConfig.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: { targetType_targetId_featureKey: {
-        targetType: 'SERVER', targetId: 'pl-guild-id', featureKey: 'discuss',
-      }},
-      create: expect.objectContaining({ targetType: 'SERVER', targetId: 'pl-guild-id', featureKey: 'discuss', isEnabled: true }),
-    }));
-    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        oldValue: { isEnabled: true },
-        newValue: { isEnabled: true },
+    expect(prisma.featureConfig.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          targetType_targetId_featureKey: {
+            targetType: 'SERVER',
+            targetId: 'pl-guild-id',
+            featureKey: 'discuss',
+          },
+        },
+        create: expect.objectContaining({
+          targetType: 'SERVER',
+          targetId: 'pl-guild-id',
+          featureKey: 'discuss',
+          isEnabled: true,
+        }),
       }),
-    }));
+    );
+    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          oldValue: { isEnabled: true },
+          newValue: { isEnabled: true },
+        }),
+      }),
+    );
   });
 
   it('updates existing config and records old value', async () => {
@@ -89,12 +102,14 @@ describe('updateFeatureAction', () => {
 
     await updateFeatureAction('discuss', false);
 
-    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        oldValue: { isEnabled: true },
-        newValue: { isEnabled: false },
+    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          oldValue: { isEnabled: true },
+          newValue: { isEnabled: false },
+        }),
       }),
-    }));
+    );
   });
 
   it('revalidates settings and audit paths', async () => {

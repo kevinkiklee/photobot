@@ -5,10 +5,10 @@
 'use server';
 
 import { prisma } from '@photobot/db';
+import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth';
 import { isPlAdmin } from './discord';
-import { revalidatePath } from 'next/cache';
 
 async function requirePlAdmin(): Promise<string> {
   const session = await getServerSession(authOptions);
@@ -18,10 +18,7 @@ async function requirePlAdmin(): Promise<string> {
   return (session.user as any)?.id || 'unknown';
 }
 
-export async function updateFeatureAction(
-  featureKey: string,
-  isEnabled: boolean
-) {
+export async function updateFeatureAction(featureKey: string, isEnabled: boolean) {
   const userId = await requirePlAdmin();
 
   const oldConfig = await prisma.featureConfig.findFirst({

@@ -1,5 +1,5 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { prisma } from '@photobot/db';
+import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
   .setName('settings')
@@ -21,7 +21,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const embed = new EmbedBuilder()
     .setTitle('Feature Toggles')
     .setDescription('Current feature configuration for this server:')
-    .setColor(0x00AE86);
+    .setColor(0x00ae86);
 
   if (configs.length === 0) {
     embed.addFields({ name: 'No configurations found', value: 'All features are at their default settings.' });

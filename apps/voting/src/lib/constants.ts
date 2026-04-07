@@ -1,7 +1,21 @@
 export const ALL_TAGS = [
-  'motivation', 'workflow', 'style', 'editing', 'portfolio', 'storytelling',
-  'collaboration', 'social-media', 'gear', 'ethics', 'business', 'influences',
-  'learning', 'projects', 'self-reflection', 'community', 'technique',
+  'motivation',
+  'workflow',
+  'style',
+  'editing',
+  'portfolio',
+  'storytelling',
+  'collaboration',
+  'social-media',
+  'gear',
+  'ethics',
+  'business',
+  'influences',
+  'learning',
+  'projects',
+  'self-reflection',
+  'community',
+  'technique',
 ];
 
 export const TAG_COLORS: Record<string, string> = {

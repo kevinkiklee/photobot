@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
@@ -54,9 +54,7 @@ describe('fetchPrompts - privacy', () => {
   });
 
   it('shows null submittedBy for curated prompts (non-admin)', async () => {
-    (prisma.prompt.findMany as any).mockResolvedValue([
-      makePrompt({ submittedBy: null }),
-    ]);
+    (prisma.prompt.findMany as any).mockResolvedValue([makePrompt({ submittedBy: null })]);
 
     const result = await fetchPrompts({}, 'viewer-1', false);
     expect(result.prompts[0].submittedBy).toBeNull();
@@ -88,9 +86,7 @@ describe('fetchPrompts - vote calculations', () => {
   });
 
   it('returns 0% approval when no votes', async () => {
-    (prisma.prompt.findMany as any).mockResolvedValue([
-      makePrompt({ votes: [] }),
-    ]);
+    (prisma.prompt.findMany as any).mockResolvedValue([makePrompt({ votes: [] })]);
 
     const result = await fetchPrompts({});
     expect(result.prompts[0].approvalPct).toBe(0);
@@ -130,7 +126,13 @@ describe('fetchPrompts - sorting', () => {
 
   it('sorts by approval percentage descending', async () => {
     (prisma.prompt.findMany as any).mockResolvedValue([
-      makePrompt({ id: 'p1', votes: [{ vote: 'UP', discordUserId: 'u1' }, { vote: 'DOWN', discordUserId: 'u2' }] }), // 50%
+      makePrompt({
+        id: 'p1',
+        votes: [
+          { vote: 'UP', discordUserId: 'u1' },
+          { vote: 'DOWN', discordUserId: 'u2' },
+        ],
+      }), // 50%
       makePrompt({ id: 'p2', votes: [{ vote: 'UP', discordUserId: 'u1' }] }), // 100%
       makePrompt({ id: 'p3', votes: [] }), // 0%
     ]);
@@ -144,7 +146,14 @@ describe('fetchPrompts - sorting', () => {
   it('sorts by total votes descending', async () => {
     (prisma.prompt.findMany as any).mockResolvedValue([
       makePrompt({ id: 'p1', votes: [{ vote: 'UP', discordUserId: 'u1' }] }), // 1 vote
-      makePrompt({ id: 'p2', votes: [{ vote: 'UP', discordUserId: 'u1' }, { vote: 'DOWN', discordUserId: 'u2' }, { vote: 'UP', discordUserId: 'u3' }] }), // 3 votes
+      makePrompt({
+        id: 'p2',
+        votes: [
+          { vote: 'UP', discordUserId: 'u1' },
+          { vote: 'DOWN', discordUserId: 'u2' },
+          { vote: 'UP', discordUserId: 'u3' },
+        ],
+      }), // 3 votes
       makePrompt({ id: 'p3', votes: [] }), // 0 votes
     ]);
 
@@ -164,11 +173,7 @@ describe('fetchPrompts - duplicate flags', () => {
   it('counts duplicate flags correctly', async () => {
     (prisma.prompt.findMany as any).mockResolvedValue([
       makePrompt({
-        duplicateFlags: [
-          { discordUserId: 'u1' },
-          { discordUserId: 'u2' },
-          { discordUserId: 'u3' },
-        ],
+        duplicateFlags: [{ discordUserId: 'u1' }, { discordUserId: 'u2' }, { discordUserId: 'u3' }],
       }),
     ]);
 
@@ -179,10 +184,7 @@ describe('fetchPrompts - duplicate flags', () => {
   it('detects current user has flagged duplicate', async () => {
     (prisma.prompt.findMany as any).mockResolvedValue([
       makePrompt({
-        duplicateFlags: [
-          { discordUserId: 'current-user' },
-          { discordUserId: 'other-user' },
-        ],
+        duplicateFlags: [{ discordUserId: 'current-user' }, { discordUserId: 'other-user' }],
       }),
     ]);
 
@@ -225,9 +227,7 @@ describe('fetchPrompts - pagination', () => {
     (prisma.prompt.count as any).mockResolvedValue(100);
     await fetchPrompts({ page: 3 });
 
-    expect(prisma.prompt.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 40 })
-    );
+    expect(prisma.prompt.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 40 }));
   });
 
   it('ignores search queries over 200 characters', async () => {
@@ -237,7 +237,7 @@ describe('fetchPrompts - pagination', () => {
     expect(prisma.prompt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {},
-      })
+      }),
     );
   });
 });

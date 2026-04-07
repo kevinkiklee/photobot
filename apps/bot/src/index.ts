@@ -3,11 +3,12 @@ import { resolve } from 'path';
 
 // Load .env from monorepo root
 config({ path: resolve(__dirname, '../../../.env') });
-import { Client, Events, GatewayIntentBits, Collection, REST, Routes } from 'discord.js';
-import * as settingsCommand from './commands/settings';
-import * as discussCommand from './commands/discuss';
-import { startScheduler, stopScheduler } from './services/scheduler';
+
 import { prisma } from '@photobot/db';
+import { Client, Collection, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
+import * as discussCommand from './commands/discuss';
+import * as settingsCommand from './commands/settings';
+import { startScheduler, stopScheduler } from './services/scheduler';
 
 // Extend Client type to include commands
 declare module 'discord.js' {
@@ -44,13 +45,9 @@ const rest = new REST({ version: '10' }).setToken(token);
   try {
     console.log('Started refreshing application (/) commands.');
 
-    await rest.put(
-      Routes.applicationCommands(clientId),
-      { body: [
-        settingsCommand.data.toJSON(),
-        discussCommand.data.toJSON(),
-      ] },
-    );
+    await rest.put(Routes.applicationCommands(clientId), {
+      body: [settingsCommand.data.toJSON(), discussCommand.data.toJSON()],
+    });
 
     console.log('Successfully reloaded application (/) commands.');
   } catch (error) {
@@ -59,21 +56,21 @@ const rest = new REST({ version: '10' }).setToken(token);
 })();
 
 // Event Handlers
-client.once(Events.ClientReady, async readyClient => {
+client.once(Events.ClientReady, async (readyClient) => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
   await startScheduler(readyClient);
   console.log('Discussion scheduler started.');
 });
 
 // Auto-leave any server that isn't Photography Lounge
-client.on(Events.GuildCreate, async guild => {
+client.on(Events.GuildCreate, async (guild) => {
   if (guild.id !== plGuildId) {
     console.log(`Leaving non-PL server: ${guild.name} (${guild.id})`);
     await guild.leave();
   }
 });
 
-client.on(Events.InteractionCreate, async interaction => {
+client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   // Only respond to commands in Photography Lounge

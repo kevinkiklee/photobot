@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { handleVote } from '@/lib/vote';
 
@@ -39,12 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await handleVote(
-      promptId,
-      session.discordUserId,
-      session.discordUsername || 'Unknown',
-      direction,
-    );
+    const result = await handleVote(promptId, session.discordUserId, session.discordUsername || 'Unknown', direction);
 
     return NextResponse.json(result);
   } catch {

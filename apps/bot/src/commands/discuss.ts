@@ -1,53 +1,49 @@
-import {
-  SlashCommandBuilder,
-  ChatInputCommandInteraction,
-  PermissionFlagsBits,
-  EmbedBuilder,
-  ChannelType,
-} from 'discord.js';
 import { prisma } from '@photobot/db';
+import {
+  ChannelType,
+  type ChatInputCommandInteraction,
+  EmbedBuilder,
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+} from 'discord.js';
 import { BRAND_COLOR } from '../constants';
-import { selectPrompt } from '../services/prompts';
 import { canUseFeature } from '../middleware/permissions';
+import { selectPrompt } from '../services/prompts';
 
 export const data = new SlashCommandBuilder()
   .setName('discuss')
   .setDescription('Photography discussion prompts for community engagement')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-  .addSubcommand(sub =>
-    sub.setName('prompt')
+  .addSubcommand((sub) =>
+    sub
+      .setName('prompt')
       .setDescription('Post a discussion prompt')
-      .addStringOption(opt =>
-        opt.setName('category')
+      .addStringOption((opt) =>
+        opt
+          .setName('category')
           .setDescription('Prompt category')
-          .addChoices(
-            { name: 'Creative Process', value: 'creative' },
-            { name: 'Inspiration', value: 'inspiration' },
-          )
-      )
+          .addChoices({ name: 'Creative Process', value: 'creative' }, { name: 'Inspiration', value: 'inspiration' }),
+      ),
   )
-  .addSubcommand(sub =>
-    sub.setName('schedule')
+  .addSubcommand((sub) =>
+    sub
+      .setName('schedule')
       .setDescription('Set up automatic discussion prompts (posts every 6 hours)')
-      .addChannelOption(opt =>
-        opt.setName('channel')
+      .addChannelOption((opt) =>
+        opt
+          .setName('channel')
           .setDescription('Channel for auto-posts')
           .addChannelTypes(ChannelType.GuildText)
-          .setRequired(true)
+          .setRequired(true),
       )
-      .addStringOption(opt =>
-        opt.setName('category')
+      .addStringOption((opt) =>
+        opt
+          .setName('category')
           .setDescription('Limit to a category')
-          .addChoices(
-            { name: 'Creative Process', value: 'creative' },
-            { name: 'Inspiration', value: 'inspiration' },
-          )
-      )
+          .addChoices({ name: 'Creative Process', value: 'creative' }, { name: 'Inspiration', value: 'inspiration' }),
+      ),
   )
-  .addSubcommand(sub =>
-    sub.setName('list')
-      .setDescription('List discussion schedules')
-  ) as SlashCommandBuilder;
+  .addSubcommand((sub) => sub.setName('list').setDescription('List discussion schedules')) as SlashCommandBuilder;
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   if (!interaction.guildId) {
@@ -71,9 +67,12 @@ async function handlePrompt(interaction: ChatInputCommandInteraction) {
   // Extract role IDs — discord.js gives GuildMemberRoleManager (with .cache)
   // for full members, but a plain string[] for interactions from REST.
   const member = interaction.member;
-  const roleIds = member && 'cache' in (member.roles ?? {})
-    ? [...(member.roles as any).cache.keys()]
-    : Array.isArray(member?.roles) ? member.roles : [];
+  const roleIds =
+    member && 'cache' in (member.roles ?? {})
+      ? [...(member.roles as any).cache.keys()]
+      : Array.isArray(member?.roles)
+        ? member.roles
+        : [];
 
   const allowed = await canUseFeature(interaction.channelId, roleIds, 'discuss');
   if (!allowed) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 function getRelativeTime(date: Date): string {
   const now = new Date();
@@ -20,7 +20,9 @@ function getRelativeTime(date: Date): string {
 
 export function RelativeTime({ date }: { date: string | Date }) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const d = new Date(date);
   const full = d.toLocaleString();

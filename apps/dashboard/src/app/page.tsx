@@ -1,14 +1,14 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../lib/auth";
-import { redirect } from "next/navigation";
-import { LoginButton } from "../components/LoginButton";
-import { LucideCamera } from "lucide-react";
+import { LucideCamera } from 'lucide-react';
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth/next';
+import { LoginButton } from '../components/LoginButton';
+import { authOptions } from '../lib/auth';
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
 
   if (session) {
-    redirect("/settings");
+    redirect('/settings');
   }
 
   return (
@@ -16,7 +16,10 @@ export default async function Home() {
       {/* Ambient glow orbs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-primary/5 blur-[120px] animate-glow-pulse" />
-        <div className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full bg-brand-accent/[0.03] blur-[100px] animate-glow-pulse" style={{ animationDelay: '1.5s' }} />
+        <div
+          className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full bg-brand-accent/[0.03] blur-[100px] animate-glow-pulse"
+          style={{ animationDelay: '1.5s' }}
+        />
       </div>
 
       <div className="relative z-10 flex flex-col items-center px-4 sm:px-6 pt-16 sm:pt-20 pb-16">

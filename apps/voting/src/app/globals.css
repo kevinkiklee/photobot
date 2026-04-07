@@ -5,11 +5,11 @@
 /* ─── Elevated Dark ─── */
 
 :root {
-  --brand-primary: #74D7EC;
-  --brand-accent: #FF85C8;
-  --brand-secondary: #A8EDEA;
-  --brand-highlight: #FFF176;
-  --brand-dark: #1E3A5F;
+  --brand-primary: #74d7ec;
+  --brand-accent: #ff85c8;
+  --brand-secondary: #a8edea;
+  --brand-highlight: #fff176;
+  --brand-dark: #1e3a5f;
 
   --bg-page: #f8fffe;
   --bg-card: #ffffff;
@@ -17,8 +17,8 @@
   --text-primary: #0f2a40;
   --text-secondary: #3a5a72;
   --text-muted: #6b8a9e;
-  --border-default: #A8EDEA;
-  --border-subtle: #A8EDEA40;
+  --border-default: #a8edea;
+  --border-subtle: #a8edea40;
   --surface-elevated: rgba(255, 255, 255, 0.7);
 }
 
@@ -34,9 +34,10 @@
   --surface-elevated: rgba(255, 255, 255, 0.03);
 }
 
-
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -65,7 +66,9 @@ body {
 
 /* ─── Glow ─── */
 .glow-logo {
-  box-shadow: 0 0 20px rgba(116, 215, 236, 0.25), 0 0 40px rgba(116, 215, 236, 0.1);
+  box-shadow:
+    0 0 20px rgba(116, 215, 236, 0.25),
+    0 0 40px rgba(116, 215, 236, 0.1);
 }
 
 /* ─── Glass ─── */
@@ -77,24 +80,48 @@ body {
 
 /* ─── Animations ─── */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes vote-pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes slide-down-in {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -119,22 +146,40 @@ body {
 }
 
 /* ─── Native select ─── */
-select { color-scheme: light; }
-.dark select { color-scheme: dark; }
+select {
+  color-scheme: light;
+}
+.dark select {
+  color-scheme: dark;
+}
 select option {
   background: var(--bg-page);
   color: var(--text-primary);
 }
 
 /* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-default);
+}
 
 /* ─── Hide scrollbar ─── */
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
 
 /* ─── Selection ─── */
 ::selection {

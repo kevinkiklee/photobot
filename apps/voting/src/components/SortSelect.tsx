@@ -1,7 +1,7 @@
 'use client';
 
-import { useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTransition } from 'react';
 
 export function SortSelect() {
   const router = useRouter();

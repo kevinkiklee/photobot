@@ -5,10 +5,31 @@ import { resolve } from 'path';
 const prisma = new PrismaClient();
 
 const KEYWORD_TAGS: Record<string, string[]> = {
-  motivation: ['rut', 'burnout', 'motivated', 'motivation', 'creative block', 'push through', 'uninspired', 'energy', 'drive', 'stuck'],
+  motivation: [
+    'rut',
+    'burnout',
+    'motivated',
+    'motivation',
+    'creative block',
+    'push through',
+    'uninspired',
+    'energy',
+    'drive',
+    'stuck',
+  ],
   workflow: ['process', 'routine', 'habit', 'workflow', 'warm up', 'ritual', 'daily', 'weekly', 'schedule', 'practice'],
   style: ['style', 'voice', 'aesthetic', 'identity', 'signature', 'evolving', 'personal look', 'visual language'],
-  editing: ['edit', 'post-processing', 'post processing', 'lightroom', 'color grade', 'color palette', 'crop', 'black-and-white', 'retouch'],
+  editing: [
+    'edit',
+    'post-processing',
+    'post processing',
+    'lightroom',
+    'color grade',
+    'color palette',
+    'crop',
+    'black-and-white',
+    'retouch',
+  ],
   portfolio: ['portfolio', 'curate', 'share publicly', 'present', 'gallery', 'showcase', 'body of work'],
   storytelling: ['story', 'narrative', 'emotion', 'feeling', 'evoke', 'meaning', 'message', 'convey', 'document'],
   collaboration: ['collaborat', 'partner', 'model', 'team', 'together', 'co-create'],
@@ -16,12 +37,42 @@ const KEYWORD_TAGS: Record<string, string[]> = {
   gear: ['gear', 'lens', 'camera', 'focal length', 'equipment', 'limitations'],
   ethics: ['ethics', 'consent', 'strangers', 'public space', 'respectful', 'vulnerable', 'exploit', 'responsible'],
   business: ['client', 'commercial', 'career', 'paid work', 'side hustle', 'professional', 'commission'],
-  influences: ['influence', 'inspired by', 'painting', 'film', 'music', 'book', 'documentary', 'photographer.*impact', 'art form'],
+  influences: [
+    'influence',
+    'inspired by',
+    'painting',
+    'film',
+    'music',
+    'book',
+    'documentary',
+    'photographer.*impact',
+    'art form',
+  ],
   learning: ['lesson', 'learn', 'advice', 'mistake', 'failure', 'growth', 'improve', 'taught'],
   projects: ['project', 'series', 'long-term', 'multi-month', 'body of work', 'archive'],
-  'self-reflection': ['why', 'identity', 'yourself', 'personal', 'emotion', 'meaning', 'memoir', 'introspect', 'changed'],
+  'self-reflection': [
+    'why',
+    'identity',
+    'yourself',
+    'personal',
+    'emotion',
+    'meaning',
+    'memoir',
+    'introspect',
+    'changed',
+  ],
   community: ['community', 'connect', 'teach', 'mentor', 'share knowledge', 'workshop', 'group'],
-  technique: ['composition', 'light', 'lighting', 'exposure', 'focus', 'depth of field', 'shutter', 'aperture', 'color'],
+  technique: [
+    'composition',
+    'light',
+    'lighting',
+    'exposure',
+    'focus',
+    'depth of field',
+    'shutter',
+    'aperture',
+    'color',
+  ],
 };
 
 function assignTags(text: string): string[] {
@@ -52,7 +103,7 @@ interface ParsedPrompt {
 function parseMarkdown(content: string): ParsedPrompt[] {
   const HEADING_TO_CATEGORY: Record<string, string> = {
     'Creative Process': 'creative',
-    'Inspiration': 'inspiration',
+    Inspiration: 'inspiration',
   };
 
   const prompts: ParsedPrompt[] = [];
@@ -99,7 +150,7 @@ async function main() {
         text: p.text,
         originalCategory: p.category,
         tags: {
-          create: tags.map(tag => ({ tag })),
+          create: tags.map((tag) => ({ tag })),
         },
       },
     });

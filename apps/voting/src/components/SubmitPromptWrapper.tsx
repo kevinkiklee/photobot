@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, type ReactNode, useContext, useState } from 'react';
 import { SubmitPromptButton, SubmitPromptPanel } from './SubmitPrompt';
 
 const SubmitContext = createContext<{ open: boolean; toggle: () => void }>({ open: false, toggle: () => {} });
@@ -10,11 +10,7 @@ export function SubmitPromptProvider({ isAuthenticated, children }: { isAuthenti
 
   if (!isAuthenticated) return <>{children}</>;
 
-  return (
-    <SubmitContext.Provider value={{ open, toggle: () => setOpen(o => !o) }}>
-      {children}
-    </SubmitContext.Provider>
-  );
+  return <SubmitContext.Provider value={{ open, toggle: () => setOpen((o) => !o) }}>{children}</SubmitContext.Provider>;
 }
 
 export function SubmitButton() {
