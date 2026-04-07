@@ -1,19 +1,7 @@
 import { prisma } from '@photobot/db';
 import { type NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { getSession } from '@/lib/session';
-
-const promptRateLimits = new Map<string, { count: number; resetAt: number }>();
-
-function checkPromptRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = promptRateLimits.get(userId);
-  if (!entry || now > entry.resetAt) {
-    promptRateLimits.set(userId, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-  entry.count++;
-  return entry.count <= 20;
-}
 
 function isValidId(id: unknown): id is string {
   return typeof id === 'string' && id.length > 0 && id.length <= 50;
@@ -45,7 +33,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!checkPromptRateLimit(session.discordUserId)) {
+  if (!checkRateLimit('prompt', session.discordUserId)) {
     return NextResponse.json({ error: 'Too many submissions. Try again shortly.' }, { status: 429 });
   }
 
@@ -85,7 +73,8 @@ export async function POST(request: NextRequest) {
       submittedBy: prompt.submittedBy,
       submittedByUsername: prompt.submittedByUsername,
     });
-  } catch {
+  } catch (err) {
+    console.error('[POST /api/prompt]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -96,7 +85,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!checkPromptRateLimit(session.discordUserId)) {
+  if (!checkRateLimit('prompt', session.discordUserId)) {
     return NextResponse.json({ error: 'Too many edits. Try again shortly.' }, { status: 429 });
   }
 
@@ -144,7 +133,8 @@ export async function PATCH(request: NextRequest) {
     });
 
     return NextResponse.json({ id: updated.id, text: updated.text });
-  } catch {
+  } catch (err) {
+    console.error('[PATCH /api/prompt]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -155,7 +145,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!checkPromptRateLimit(session.discordUserId)) {
+  if (!checkRateLimit('prompt', session.discordUserId)) {
     return NextResponse.json({ error: 'Too many requests. Try again shortly.' }, { status: 429 });
   }
 
@@ -183,7 +173,8 @@ export async function DELETE(request: NextRequest) {
     await prisma.prompt.delete({ where: { id: body.id } });
 
     return NextResponse.json({ deleted: true });
-  } catch {
+  } catch (err) {
+    console.error('[DELETE /api/prompt]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

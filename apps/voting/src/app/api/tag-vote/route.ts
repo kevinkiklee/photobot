@@ -22,21 +22,7 @@ const ALLOWED_TAGS = new Set([
   'technique',
 ]);
 
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 20;
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimits.get(userId);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimits.set(userId, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-
-  entry.count++;
-  return entry.count <= RATE_LIMIT;
-}
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -44,7 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!checkRateLimit(session.discordUserId)) {
+  if (!checkRateLimit('tag-vote', session.discordUserId)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
@@ -96,7 +82,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ tagVotes });
-  } catch {
+  } catch (err) {
+    console.error('[POST /api/tag-vote]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,19 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getVotersForPrompt } from '@/lib/admin';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { getSession } from '@/lib/session';
-
-const adminRateLimits = new Map<string, { count: number; resetAt: number }>();
-
-function checkAdminRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = adminRateLimits.get(userId);
-  if (!entry || now > entry.resetAt) {
-    adminRateLimits.set(userId, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-  entry.count++;
-  return entry.count <= 30;
-}
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -21,7 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  if (!checkAdminRateLimit(session.discordUserId!)) {
+  if (!checkRateLimit('admin-voters', session.discordUserId!, 30)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
@@ -33,7 +21,8 @@ export async function GET(request: NextRequest) {
   try {
     const voters = await getVotersForPrompt(promptId);
     return NextResponse.json({ voters });
-  } catch {
+  } catch (err) {
+    console.error('[GET /api/admin/voters]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

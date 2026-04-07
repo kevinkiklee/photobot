@@ -1,22 +1,7 @@
 import { prisma } from '@photobot/db';
 import { type NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { getSession } from '@/lib/session';
-
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 20;
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimits.get(userId);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimits.set(userId, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-
-  entry.count++;
-  return entry.count <= RATE_LIMIT;
-}
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -24,7 +9,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!checkRateLimit(session.discordUserId)) {
+  if (!checkRateLimit('flag', session.discordUserId)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
@@ -54,7 +39,8 @@ export async function POST(request: NextRequest) {
     const count = await prisma.promptDuplicateFlag.count({ where: { promptId } });
 
     return NextResponse.json({ flagged: !existing, duplicateCount: count });
-  } catch {
+  } catch (err) {
+    console.error('[POST /api/flag]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

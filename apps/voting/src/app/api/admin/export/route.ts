@@ -1,22 +1,7 @@
 import { prisma } from '@photobot/db';
 import { NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { getSession } from '@/lib/session';
-
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10;
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimits.get(userId);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimits.set(userId, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-
-  entry.count++;
-  return entry.count <= RATE_LIMIT;
-}
 
 export async function GET() {
   const session = await getSession();
@@ -24,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  if (!checkRateLimit(session.discordUserId!)) {
+  if (!checkRateLimit('admin-export', session.discordUserId!, 10)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
@@ -84,7 +69,8 @@ export async function GET() {
         'Content-Disposition': `attachment; filename="photobot-prompts-export-${new Date().toISOString().slice(0, 10)}.json"`,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error('[GET /api/admin/export]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
