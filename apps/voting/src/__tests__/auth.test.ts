@@ -12,7 +12,7 @@ vi.mock('next-auth/providers/discord', () => ({
   default: vi.fn(() => ({ id: 'discord', name: 'Discord' })),
 }));
 
-vi.mock('@next-auth/prisma-adapter', () => ({
+vi.mock('@auth/prisma-adapter', () => ({
   PrismaAdapter: vi.fn(() => ({})),
 }));
 
