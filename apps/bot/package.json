@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && cp src/data/discussion-prompts.md dist/data/",
+    "start": "node dist/index.js",
     "test": "vitest run"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@photobot/db";
 
 if (!process.env.VOTING_NEXTAUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
@@ -61,8 +61,7 @@ export const authOptions: NextAuthOptions = {
       authorization: { params: { scope: "identify email" } },
     }),
   ],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  adapter: PrismaAdapter(prisma as any),
+  adapter: PrismaAdapter(prisma),
   callbacks: {
     async session({ session, user }) {
       const account = await prisma.account.findFirst({

@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@photobot/db";
 
 export const authOptions: NextAuthOptions = {
@@ -13,8 +13,7 @@ export const authOptions: NextAuthOptions = {
       authorization: { params: { scope: "identify guilds" } },
     }),
   ],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  adapter: PrismaAdapter(prisma as any),
+  adapter: PrismaAdapter(prisma),
   callbacks: {
     // Attach the Discord access token to the session so server actions can
     // call the Discord API on behalf of the user (see lib/discord.ts).
