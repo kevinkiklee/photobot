@@ -9,6 +9,7 @@ import {
 import { BRAND_COLOR } from '../constants';
 import { canUseFeature } from '../middleware/permissions';
 import { selectPrompt } from '../services/prompts';
+import { createPromptEmbed } from '../utils/embed';
 
 export const data = new SlashCommandBuilder()
   .setName('discuss')
@@ -86,56 +87,63 @@ async function handlePrompt(interaction: ChatInputCommandInteraction) {
 
   const prompt = await selectPrompt(category);
 
-  const embed = new EmbedBuilder()
-    .setColor(BRAND_COLOR)
-    .setTitle('Discussion Prompt')
-    .setDescription(prompt.text)
-    .setFooter({ text: `Photobot • ${prompt.category}` })
-    .setTimestamp();
+  const embed = createPromptEmbed(prompt.text, prompt.category);
 
   await interaction.reply({ embeds: [embed] });
 
-  // Log to database
-  await prisma.discussionPromptLog.create({
-    data: {
-      channelId: interaction.channelId,
-      promptText: prompt.text,
-      category: prompt.category,
-    },
-  });
+  // Log to database — failure here shouldn't block the user response
+  try {
+    await prisma.discussionPromptLog.create({
+      data: {
+        channelId: interaction.channelId,
+        promptText: prompt.text,
+        category: prompt.category,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to log discussion prompt:', err);
+  }
 }
 
 async function handleSchedule(interaction: ChatInputCommandInteraction) {
   const channel = interaction.options.getChannel('channel', true);
   const category = interaction.options.getString('category');
 
-  // Upsert — re-running /discuss schedule on the same channel updates the
-  // config rather than creating a duplicate.
-  await prisma.discussionSchedule.upsert({
-    where: { channelId: channel.id },
-    update: { categoryFilter: category, createdBy: interaction.user.id },
-    create: {
-      channelId: channel.id,
-      categoryFilter: category,
-      createdBy: interaction.user.id,
-    },
-  });
+  try {
+    // Upsert — re-running /discuss schedule on the same channel updates the
+    // config rather than creating a duplicate.
+    await prisma.discussionSchedule.upsert({
+      where: { channelId: channel.id },
+      update: { categoryFilter: category, createdBy: interaction.user.id },
+      create: {
+        channelId: channel.id,
+        categoryFilter: category,
+        createdBy: interaction.user.id,
+      },
+    });
 
-  await prisma.configAuditLog.create({
-    data: {
-      userId: interaction.user.id,
-      action: 'SET_SCHEDULE',
-      targetType: 'CHANNEL',
-      targetId: channel.id,
-      featureKey: 'discuss',
-      newValue: { categoryFilter: category },
-    },
-  });
+    await prisma.configAuditLog.create({
+      data: {
+        userId: interaction.user.id,
+        action: 'SET_SCHEDULE',
+        targetType: 'CHANNEL',
+        targetId: channel.id,
+        featureKey: 'discuss',
+        newValue: { categoryFilter: category },
+      },
+    });
 
-  return interaction.reply({
-    content: `Discussion prompts enabled for <#${channel.id}> — posts every 6 hours, waiting for a natural pause in conversation.${category ? ` Category: ${category}.` : ''}`,
-    ephemeral: true,
-  });
+    return interaction.reply({
+      content: `Discussion prompts enabled for <#${channel.id}> — posts every 6 hours, waiting for a natural pause in conversation.${category ? ` Category: ${category}.` : ''}`,
+      ephemeral: true,
+    });
+  } catch (err) {
+    console.error('Failed to set discussion schedule:', err);
+    return interaction.reply({
+      content: 'Something went wrong saving the schedule. Please try again.',
+      ephemeral: true,
+    });
+  }
 }
 
 async function handleList(interaction: ChatInputCommandInteraction) {

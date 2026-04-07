@@ -5,9 +5,9 @@
 // If the channel stays busy for 30 min, it posts anyway to avoid skipping.
 
 import { prisma } from '@photobot/db';
-import { type Client, type Collection, EmbedBuilder, type Message, TextChannel } from 'discord.js';
-import { BRAND_COLOR } from '../constants';
+import { type Client, type Collection, type Message, TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
+import { createPromptEmbed } from '../utils/embed';
 import { selectPrompt } from './prompts';
 
 const POST_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -19,6 +19,10 @@ let postInterval: ReturnType<typeof setInterval> | null = null;
 let clientRef: Client | null = null;
 
 export async function startScheduler(client: Client): Promise<void> {
+  if (postInterval) {
+    console.warn('Scheduler already running');
+    return;
+  }
   clientRef = client;
 
   // Run immediately on startup for any overdue schedules
@@ -112,12 +116,7 @@ async function executeScheduledPrompt(scheduleId: string): Promise<void> {
 
     const prompt = await selectPrompt(s.categoryFilter);
 
-    const embed = new EmbedBuilder()
-      .setColor(BRAND_COLOR)
-      .setTitle('Discussion of the Day')
-      .setDescription(prompt.text)
-      .setFooter({ text: `Photobot • ${prompt.category}` })
-      .setTimestamp();
+    const embed = createPromptEmbed(prompt.text, prompt.category, 'Discussion of the Day');
 
     await channel.send({ embeds: [embed] });
 

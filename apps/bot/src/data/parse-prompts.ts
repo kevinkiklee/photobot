@@ -42,6 +42,11 @@ export function parsePromptsMarkdown(markdown: string): DiscussionPrompt[] {
 }
 
 export function loadPrompts(): DiscussionPrompt[] {
-  const md = readFileSync(join(__dirname, 'discussion-prompts.md'), 'utf-8');
-  return parsePromptsMarkdown(md);
+  try {
+    const md = readFileSync(join(__dirname, 'discussion-prompts.md'), 'utf-8');
+    return parsePromptsMarkdown(md);
+  } catch (err) {
+    console.error('Failed to load discussion prompts:', err);
+    return [];
+  }
 }
