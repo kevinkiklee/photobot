@@ -37,7 +37,9 @@
     "status": "./scripts/status.sh",
     "db": "./scripts/db.sh",
     "cleanup": "./scripts/cleanup.sh",
-    "seed:prompts": "tsx scripts/seed-prompts.ts"
+    "seed:prompts": "tsx scripts/seed-prompts.ts",
+    "check": "biome check --write .",
+    "ci:lint": "biome ci ."
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -49,6 +51,7 @@
     ]
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.3",

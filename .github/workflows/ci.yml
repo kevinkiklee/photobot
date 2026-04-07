@@ -22,6 +22,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm -w run ci:lint
+
       - run: pnpm -w run build
 
       - run: pnpm -w run test
