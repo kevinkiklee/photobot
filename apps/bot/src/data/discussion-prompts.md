@@ -51,7 +51,6 @@ Each section is a category. Each bullet is a prompt.
 - What would you photograph if you had unlimited time and budget?
 - Do you think limitations (gear, location, time) help or hurt creativity?
 - What is a photo you almost deleted but are glad you kept?
-- How do you decide when a creative project is truly complete?
 - What is the biggest creative lesson you learned the hard way?
 - How do you keep your photography feeling playful rather than like a chore?
 - What is the relationship between your mood and the kind of photos you make?
@@ -64,7 +63,6 @@ Each section is a category. Each bullet is a prompt.
 - How has your creative process changed as you have grown as a photographer?
 - What is the most important question you ask yourself before pressing the shutter?
 - How do you photograph a place you know intimately and still discover new perspectives?
-- What does vulnerability look like in your photography?
 - How do you use constraints like a single focal length or one location to spark ideas?
 - What is a creative experiment you tried that completely failed — and what did you learn?
 - How do you separate your identity from the reception of your work?
@@ -167,7 +165,6 @@ Each section is a category. Each bullet is a prompt.
 - What is a creative investment (workshop, trip, book, print) that paid for itself many times over?
 - How do you know when a body of work is ready to be shared with the world?
 - What is a photograph that made you reconsider your own assumptions or biases?
-- How do you photograph hope without it feeling saccharine?
 - What is the most difficult thing about maintaining a creative practice over many years?
 - How do you balance the desire for recognition with the need for creative freedom?
 - What is a lesson you learned from a creative failure that you now consider essential?
@@ -181,13 +178,11 @@ Each section is a category. Each bullet is a prompt.
 - What is a creative sacrifice you have made that you would make again?
 - How do you maintain creative integrity when a client wants something you disagree with?
 - What is the most liberating creative realization you have ever had?
-- How do you photograph grief without exploiting the people experiencing it?
 - What is a creative habit that seems unproductive but actually fuels your best work?
 - How do you approach the tension between documenting life and living it?
 - What is a creative choice you made early on that still influences your work today?
 - How do you photograph beauty in places most people overlook or find unattractive?
 - What is the most challenging aspect of developing a long-term creative vision?
-- How do you decide when to shoot in silence vs. with music or conversation?
 - What is the role of discomfort in your creative growth?
 - How do you photograph a place after it has been changed by development, disaster, or time?
 - What is a question you wish more people asked about your photography?
@@ -205,6 +200,7 @@ Each section is a category. Each bullet is a prompt.
 - What is a lesson about creativity that photography has taught you that applies to all of life?
 - How do you photograph resistance — the feeling of pushing against something?
 - What is a creative project that taught you more about process than about the final result?
+- Why does a photograph feel finished?
 
 ## Inspiration
 
@@ -213,7 +209,6 @@ Each section is a category. Each bullet is a prompt.
 - What's a photography book or documentary you'd recommend to everyone here?
 - How does the place you live shape the kind of photos you take?
 - What non-photography skill has unexpectedly improved your photos?
-- Do you look at other photographers' work for inspiration, or do you avoid it to stay original?
 - What's a genre of photography you've never tried but are curious about?
 - If you could photograph any event, place, or person — past or present — what would it be?
 - How do you use social media as inspiration without falling into comparison?
@@ -228,18 +223,15 @@ Each section is a category. Each bullet is a prompt.
 - How does the season or weather affect what you want to photograph?
 - What YouTube channel or online resource has taught you the most about photography?
 - What is a photo exhibition or gallery show that left a lasting impression on you?
-- How does cooking, gardening, or another hands-on hobby connect to your photography practice?
 - What era of photography (1920s street, 1970s color, etc.) do you find most visually compelling?
 - How do you find new locations to photograph in an area you already know well?
 - What poem, song lyric, or quote captures what photography means to you?
 - How has becoming a photographer changed the way you experience everyday life?
 - What is a photo assignment or brief you received that pushed you in an unexpected direction?
-- What children or street photographer do you admire for capturing authentic moments?
 - How do dreams, memories, or imagination feed into the images you create?
 - What is a photo from history that you wish you had taken yourself?
 - How has teaching or mentoring other photographers changed your own perspective?
 - What is a cultural tradition or festival that you would love to photograph?
-- How does typography, graphic design, or visual branding influence your compositional choices?
 - What is the most inspiring photography Instagram account you follow right now?
 - How has a personal life event changed the subjects or themes you are drawn to?
 - What wildlife or nature documentary has made you want to pick up the camera?
@@ -258,7 +250,6 @@ Each section is a category. Each bullet is a prompt.
 - How do you draw creative energy from a bad day or a difficult experience?
 - What photography podcast has given you the best creative advice?
 - What is a color that you are drawn to repeatedly in your work, and what does it mean to you?
-- How has black-and-white photography influenced the way you see light and shadow?
 - What is a film (movie) that made you think differently about framing or composition?
 - How do children or beginners inspire you to see photography differently?
 - What is a landscape or location you dream of photographing someday?
@@ -315,7 +306,6 @@ Each section is a category. Each bullet is a prompt.
 - How has the experience of being photographed by someone else changed how you photograph people?
 - What is a philosophical concept (presence, impermanence, beauty) that shapes your approach to photography?
 - What is a photo series about an ordinary place that made you see it as extraordinary?
-- How do you use photography as a form of meditation or mindfulness?
 - What is the most inspiring use of natural light you have seen in another photographer's work?
 - How has the work of a dancer, choreographer, or performer influenced how you think about movement in photos?
 - What is a self-imposed limitation that led to your most creative breakthrough?
@@ -335,7 +325,6 @@ Each section is a category. Each bullet is a prompt.
 - What is a photo zine or indie publication you discovered recently that deserves a wider audience?
 - How do you find fresh inspiration in a genre you have been shooting for years?
 - What is a photograph of a protest, march, or movement that you find especially powerful?
-- How has learning to slow down (meditation, long walks, journaling) affected the images you make?
 - What is a visual motif from cinema (Dutch angles, rack focus, lens flare) that shaped your compositions?
 - How has the work of a ceramicist, weaver, or other craft artist influenced your sense of texture?
 - What is a photograph that changed public opinion or shaped policy?
@@ -354,12 +343,10 @@ Each section is a category. Each bullet is a prompt.
 - How does the idea of "slow photography" (deliberate, unhurried shooting) appeal to you?
 - What is a visual artist working in collage, montage, or mixed media who inspires your photographic eye?
 - How has the rise of photo books and print-on-demand changed how you think about presenting your work?
-- What is a National Geographic, Magnum, or agency photograph that defined an era for you?
 - How do tides, rivers, or other bodies of water near you shape your shooting routine?
 - What is a photograph of a city at night that made you see urban landscapes differently?
 - How has the concept of "decisive gesture" differed from "decisive moment" in your practice?
 - What is a photo series about aging, elders, or generations that moved you?
-- How do you use other photographers' contact sheets or editing process videos as learning tools?
 - What is a photograph that perfectly uses leading lines to guide the viewer's eye?
 - How has the tradition of landscape painting (Hudson River School, Impressionism) influenced your nature photography?
 - What is a photograph of an animal that made you think differently about non-human consciousness?
