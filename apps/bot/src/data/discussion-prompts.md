@@ -372,7 +372,6 @@ Each section is a category. Each bullet is a prompt.
 - What is a photograph that perfectly captures the energy of a live music performance?
 - How has the tradition of documentary photography (Dorothea Lange, Walker Evans, Gordon Parks) shaped your values as a photographer?
 - What is a single frame from a film that you consider a perfect photograph?
-- How do old family photo albums inspire the way you think about legacy and memory?
 - What is a photograph of an interior space that made you feel like you were standing inside it?
 - How has the practice of sketching or drawing before shooting helped you plan your compositions?
 - What is a photograph that uses scale (tiny person, vast landscape) to create awe?
