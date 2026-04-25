@@ -1,16 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.stubEnv('PL_GUILD_ID', 'pl-guild-id');
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
-    discussionSchedule: {
-      upsert: vi.fn(),
-      findMany: vi.fn(),
+    discussionConfig: {
       findUnique: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
     },
     discussionPromptLog: {
+      findFirst: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
     configAuditLog: {
       create: vi.fn(),
@@ -18,199 +18,293 @@ vi.mock('@photobot/db', () => ({
   },
 }));
 
-vi.mock('../services/prompts', () => ({
-  selectPrompt: vi.fn(),
-}));
-
 vi.mock('../middleware/permissions', () => ({
   canUseFeature: vi.fn(),
 }));
 
+vi.mock('../services/prompts', () => ({
+  selectPrompt: vi.fn(),
+}));
+
+vi.mock('../services/discussion-cycle', () => ({
+  runDailyCycle: vi.fn(),
+  isCycleLockHeld: vi.fn(),
+  resetCycleLockForTest: vi.fn(),
+}));
+
 import { prisma } from '@photobot/db';
-import { data, execute } from '../commands/discuss';
+import { TextChannel, ChannelType } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
 import { selectPrompt } from '../services/prompts';
+import { runDailyCycle, isCycleLockHeld } from '../services/discussion-cycle';
+import { execute } from '../commands/discuss';
 
-describe('Discuss Command', () => {
-  let interaction: any;
+function makeChannel(id: string, type = ChannelType.GuildText) {
+  const ch: any = { id, type, isTextBased: () => true };
+  Object.setPrototypeOf(ch, TextChannel.prototype);
+  return ch;
+}
 
+function makeInteraction(opts: {
+  subcommand: string;
+  channelId?: string;
+  guildId?: string;
+  userId?: string;
+  options?: Record<string, unknown>;
+  channels?: Record<string, unknown>;
+}) {
+  const replies: any[] = [];
+  return {
+    replies,
+    interaction: {
+      guildId: opts.guildId ?? 'guild-1',
+      channelId: opts.channelId ?? 'ch-current',
+      user: { id: opts.userId ?? 'user-1' },
+      member: { roles: { cache: new Map() } },
+      options: {
+        getSubcommand: () => opts.subcommand,
+        getString: (name: string) => (opts.options?.[name] as string | null) ?? null,
+        getChannel: (name: string, required = false) => {
+          const value = opts.options?.[name];
+          if (!value && required) throw new Error(`Missing required option ${name}`);
+          return value ?? null;
+        },
+        getBoolean: (name: string) => (opts.options?.[name] as boolean | null) ?? null,
+      },
+      client: {
+        channels: {
+          fetch: vi.fn(async (id: string) => opts.channels?.[id] ?? null),
+        },
+      },
+      reply: vi.fn(async (payload: unknown) => replies.push(payload)),
+      deferReply: vi.fn(async () => undefined),
+      editReply: vi.fn(async (payload: unknown) => replies.push(payload)),
+    } as any,
+  };
+}
+
+describe('/discuss schedule', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    (canUseFeature as any).mockResolvedValue(true);
-    (selectPrompt as any).mockResolvedValue({
-      text: 'How do you push through a creative rut when nothing feels inspiring?',
-      category: 'creative',
-    });
-    (prisma.discussionPromptLog.create as any).mockResolvedValue({});
-    (prisma.discussionSchedule.upsert as any).mockResolvedValue({});
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([]);
+    (prisma.discussionConfig.upsert as any).mockResolvedValue({});
     (prisma.configAuditLog.create as any).mockResolvedValue({});
-
-    interaction = {
-      guildId: 'pl-guild-id',
-      channelId: 'channel-123',
-      user: { id: 'user-123' },
-      member: { roles: { cache: new Map([['role-1', { id: 'role-1' }]]) } },
-      options: {
-        getSubcommand: vi.fn(),
-        getString: vi.fn(),
-        getChannel: vi.fn(),
-        getBoolean: vi.fn(),
-      },
-      deferReply: vi.fn().mockResolvedValue(undefined),
-      editReply: vi.fn().mockResolvedValue(undefined),
-      reply: vi.fn().mockResolvedValue({ id: 'msg-123' }),
-    };
   });
 
-  it('has the correct command name', () => {
-    expect(data.name).toBe('discuss');
+  it('rejects when discussions and lounge channels are the same', async () => {
+    const sameChannel = makeChannel('same-1');
+    const { interaction, replies } = makeInteraction({
+      subcommand: 'schedule',
+      options: { discussions: sameChannel, lounge: sameChannel },
+      channels: { 'same-1': sameChannel },
+    });
+
+    await execute(interaction);
+
+    expect(prisma.discussionConfig.upsert).not.toHaveBeenCalled();
+    expect(replies[0]).toMatchObject({ ephemeral: true });
+    expect(JSON.stringify(replies[0])).toContain('different');
   });
 
-  describe('prompt subcommand', () => {
-    beforeEach(() => {
-      interaction.options.getSubcommand.mockReturnValue('prompt');
-      interaction.options.getString.mockReturnValue(null);
+  it('upserts singleton config with discussions/lounge IDs', async () => {
+    const dCh = makeChannel('d-1');
+    const lCh = makeChannel('l-1');
+    const { interaction } = makeInteraction({
+      subcommand: 'schedule',
+      options: { discussions: dCh, lounge: lCh, category: 'creative' },
+      channels: { 'd-1': dCh, 'l-1': lCh },
     });
 
-    it('posts a discussion prompt embed as a regular message', async () => {
-      await execute(interaction);
+    await execute(interaction);
 
-      expect(selectPrompt).toHaveBeenCalledWith(null);
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          embeds: expect.arrayContaining([
-            expect.objectContaining({
-              data: expect.objectContaining({
-                title: 'Discussion Prompt',
-                description: expect.stringContaining(
-                  'How do you push through a creative rut when nothing feels inspiring?',
-                ),
-              }),
-            }),
-          ]),
+    expect(prisma.discussionConfig.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'singleton' },
+        create: expect.objectContaining({
+          id: 'singleton',
+          discussionsChannelId: 'd-1',
+          loungeChannelId: 'l-1',
+          categoryFilter: 'creative',
         }),
-      );
-    });
-
-    it('does not create a thread', async () => {
-      const replyMsg = await interaction.reply.mock.results?.[0]?.value;
-      expect(replyMsg?.startThread).toBeUndefined();
-    });
-
-    it('logs the prompt to DiscussionPromptLog', async () => {
-      await execute(interaction);
-
-      expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          promptText: 'How do you push through a creative rut when nothing feels inspiring?',
-          category: 'creative',
+        update: expect.objectContaining({
+          discussionsChannelId: 'd-1',
+          loungeChannelId: 'l-1',
+          categoryFilter: 'creative',
         }),
-      });
-      // Ensure no serverId in log data
-      const callData = (prisma.discussionPromptLog.create as any).mock.calls[0][0].data;
-      expect(callData.serverId).toBeUndefined();
+      }),
+    );
+    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'SET_DISCUSSION_CONFIG', targetType: 'GLOBAL' }),
+      }),
+    );
+  });
+});
+
+describe('/discuss post-daily', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue({
+      id: 'singleton',
+      discussionsChannelId: 'd-1',
+      loungeChannelId: 'l-1',
+      categoryFilter: null,
+      isActive: true,
     });
-
-    it('blocks when feature is disabled', async () => {
-      (canUseFeature as any).mockResolvedValue(false);
-
-      await execute(interaction);
-
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.stringContaining('not enabled'),
-          ephemeral: true,
-        }),
-      );
-      expect(selectPrompt).not.toHaveBeenCalled();
-    });
-
-    it('passes category filter when provided', async () => {
-      interaction.options.getString.mockReturnValue('creative');
-
-      await execute(interaction);
-
-      expect(selectPrompt).toHaveBeenCalledWith('creative');
-    });
+    (runDailyCycle as any).mockResolvedValue({ ok: true });
+    (isCycleLockHeld as any).mockReturnValue(false);
   });
 
-  describe('schedule subcommand', () => {
-    beforeEach(() => {
-      interaction.options.getSubcommand.mockReturnValue('schedule');
-      interaction.options.getChannel.mockReturnValue({ id: 'channel-456', name: 'photo-talk' });
-      interaction.options.getString.mockReturnValue(null);
-    });
+  it('rejects when cycle lock is held', async () => {
+    (isCycleLockHeld as any).mockReturnValue(true);
+    const { interaction, replies } = makeInteraction({ subcommand: 'post-daily' });
 
-    it('creates a schedule and replies with confirmation', async () => {
-      await execute(interaction);
+    await execute(interaction);
 
-      expect(prisma.discussionSchedule.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { channelId: 'channel-456' },
-          create: expect.objectContaining({
-            channelId: 'channel-456',
-          }),
-        }),
-      );
-
-      expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ ephemeral: true }));
-    });
-
-    it('creates an audit log entry', async () => {
-      await execute(interaction);
-
-      expect(prisma.configAuditLog.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          userId: 'user-123',
-          action: 'SET_SCHEDULE',
-          featureKey: 'discuss',
-        }),
-      });
-      // Ensure no serverId in audit log
-      const callData = (prisma.configAuditLog.create as any).mock.calls[0][0].data;
-      expect(callData.serverId).toBeUndefined();
-    });
+    expect(runDailyCycle).not.toHaveBeenCalled();
+    expect(JSON.stringify(replies[0])).toContain('in progress');
   });
 
-  describe('list subcommand', () => {
-    beforeEach(() => {
-      interaction.options.getSubcommand.mockReturnValue('list');
+  it('rejects when no config exists', async () => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(null);
+    const { interaction, replies } = makeInteraction({ subcommand: 'post-daily' });
+
+    await execute(interaction);
+
+    expect(runDailyCycle).not.toHaveBeenCalled();
+    expect(JSON.stringify(replies[0])).toContain('schedule');
+  });
+
+  it('runs cycle and writes audit entry on success', async () => {
+    (runDailyCycle as any).mockResolvedValue({ ok: true });
+    const { interaction } = makeInteraction({ subcommand: 'post-daily' });
+
+    await execute(interaction);
+
+    expect(runDailyCycle).toHaveBeenCalled();
+    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'POST_DAILY_MANUAL' }),
+      }),
+    );
+  });
+});
+
+describe('/discuss post-here', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (canUseFeature as any).mockResolvedValue(true);
+    (selectPrompt as any).mockResolvedValue({ text: 'Test prompt', category: 'creative' });
+    (prisma.discussionPromptLog.create as any).mockResolvedValue({ id: 'log-1' });
+  });
+
+  it('refuses when canUseFeature returns false', async () => {
+    (canUseFeature as any).mockResolvedValue(false);
+    const { interaction, replies } = makeInteraction({ subcommand: 'post-here' });
+
+    await execute(interaction);
+
+    expect(prisma.discussionPromptLog.create).not.toHaveBeenCalled();
+    expect(JSON.stringify(replies[0])).toContain('not enabled');
+  });
+
+  it('writes log row with threadId null', async () => {
+    const { interaction } = makeInteraction({ subcommand: 'post-here' });
+
+    await execute(interaction);
+
+    expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        channelId: 'ch-current',
+        promptText: 'Test prompt',
+        category: 'creative',
+      }),
     });
+    const callData = (prisma.discussionPromptLog.create as any).mock.calls[0][0].data;
+    expect(callData.threadId).toBeUndefined();
+    expect(callData.discussionsMessageId).toBeUndefined();
+  });
+});
 
-    it('displays schedules as an embed', async () => {
-      (prisma.discussionSchedule.findMany as any).mockResolvedValue([
-        {
-          channelId: 'channel-456',
-          days: [0, 1, 2, 3, 4, 5, 6],
-          timeUtc: '00:00',
-          timezone: 'UTC',
-          categoryFilter: null,
-          isActive: true,
-        },
-      ]);
+describe('/discuss config', () => {
+  beforeEach(() => vi.clearAllMocks());
 
-      await execute(interaction);
+  it('reports no configuration when singleton missing', async () => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(null);
+    const { interaction, replies } = makeInteraction({ subcommand: 'config' });
 
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          embeds: expect.arrayContaining([
-            expect.objectContaining({
-              data: expect.objectContaining({
-                title: 'Discussion Schedules',
-              }),
-            }),
-          ]),
-          ephemeral: true,
-        }),
-      );
+    await execute(interaction);
+
+    expect(JSON.stringify(replies[0])).toContain('No configuration');
+  });
+
+  it('returns the singleton when present', async () => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue({
+      id: 'singleton',
+      discussionsChannelId: 'd-1',
+      loungeChannelId: 'l-1',
+      categoryFilter: 'creative',
+      isActive: true,
+      lastUpdatedBy: 'user-1',
+      updatedAt: new Date('2026-04-25T00:00:00Z'),
     });
+    const { interaction, replies } = makeInteraction({ subcommand: 'config' });
 
-    it('shows a message when no schedules exist', async () => {
-      await execute(interaction);
+    await execute(interaction);
 
-      expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ ephemeral: true }));
+    expect(JSON.stringify(replies[0])).toContain('d-1');
+    expect(JSON.stringify(replies[0])).toContain('l-1');
+  });
+});
+
+describe('/discuss enable / disable', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (prisma.configAuditLog.create as any).mockResolvedValue({});
+  });
+
+  it('enable: refuses when no config exists', async () => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(null);
+    const { interaction, replies } = makeInteraction({ subcommand: 'enable' });
+
+    await execute(interaction);
+
+    expect(prisma.discussionConfig.update).not.toHaveBeenCalled();
+    expect(JSON.stringify(replies[0])).toContain('schedule');
+  });
+
+  it('enable: sets isActive=true and writes audit log', async () => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue({ id: 'singleton', isActive: false });
+    (prisma.discussionConfig.update as any).mockResolvedValue({});
+    const { interaction } = makeInteraction({ subcommand: 'enable' });
+
+    await execute(interaction);
+
+    expect(prisma.discussionConfig.update).toHaveBeenCalledWith({
+      where: { id: 'singleton' },
+      data: { isActive: true, lastUpdatedBy: 'user-1' },
     });
+    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'ENABLE_DISCUSSION' }),
+      }),
+    );
+  });
+
+  it('disable: sets isActive=false and writes audit log', async () => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue({ id: 'singleton', isActive: true });
+    (prisma.discussionConfig.update as any).mockResolvedValue({});
+    const { interaction } = makeInteraction({ subcommand: 'disable' });
+
+    await execute(interaction);
+
+    expect(prisma.discussionConfig.update).toHaveBeenCalledWith({
+      where: { id: 'singleton' },
+      data: { isActive: false, lastUpdatedBy: 'user-1' },
+    });
+    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'DISABLE_DISCUSSION' }),
+      }),
+    );
   });
 });

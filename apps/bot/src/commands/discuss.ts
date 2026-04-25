@@ -5,9 +5,11 @@ import {
   EmbedBuilder,
   PermissionFlagsBits,
   SlashCommandBuilder,
+  TextChannel,
 } from 'discord.js';
 import { BRAND_COLOR } from '../constants';
 import { canUseFeature } from '../middleware/permissions';
+import { isCycleLockHeld, runDailyCycle } from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
 import { createPromptEmbed } from '../utils/embed';
 
@@ -17,50 +19,78 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addSubcommand((sub) =>
     sub
-      .setName('prompt')
-      .setDescription('Post a discussion prompt')
-      .addStringOption((opt) =>
-        opt
-          .setName('category')
-          .setDescription('Prompt category')
-          .addChoices({ name: 'Creative Process', value: 'creative' }, { name: 'Inspiration', value: 'inspiration' }),
-      ),
-  )
-  .addSubcommand((sub) =>
-    sub
       .setName('schedule')
-      .setDescription('Set up automatic discussion prompts (posts every 6 hours)')
+      .setDescription('Configure the daily discussion cycle (08:00 UTC daily, re-announces every 6 hours)')
       .addChannelOption((opt) =>
         opt
-          .setName('channel')
-          .setDescription('Channel for auto-posts')
+          .setName('discussions')
+          .setDescription('Channel where the daily prompt + thread is posted')
+          .addChannelTypes(ChannelType.GuildText)
+          .setRequired(true),
+      )
+      .addChannelOption((opt) =>
+        opt
+          .setName('lounge')
+          .setDescription('Channel where re-announcements are posted with thread links')
           .addChannelTypes(ChannelType.GuildText)
           .setRequired(true),
       )
       .addStringOption((opt) =>
         opt
           .setName('category')
-          .setDescription('Limit to a category')
-          .addChoices({ name: 'Creative Process', value: 'creative' }, { name: 'Inspiration', value: 'inspiration' }),
+          .setDescription('Limit prompts to a category')
+          .addChoices(
+            { name: 'Creative Process', value: 'creative' },
+            { name: 'Inspiration', value: 'inspiration' },
+          ),
       ),
   )
-  .addSubcommand((sub) => sub.setName('list').setDescription('List discussion schedules')) as SlashCommandBuilder;
+  .addSubcommand((sub) =>
+    sub.setName('post-daily').setDescription('Manually fire the daily discussion cycle now'),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName('post-here')
+      .setDescription('Post a one-off prompt in the current channel (no thread, no lounge)')
+      .addStringOption((opt) =>
+        opt
+          .setName('category')
+          .setDescription('Limit to a category')
+          .addChoices(
+            { name: 'Creative Process', value: 'creative' },
+            { name: 'Inspiration', value: 'inspiration' },
+          ),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub.setName('config').setDescription('Show the current discussion cycle configuration'),
+  )
+  .addSubcommand((sub) =>
+    sub.setName('enable').setDescription('Enable the daily discussion cycle'),
+  )
+  .addSubcommand((sub) =>
+    sub.setName('disable').setDescription('Disable the daily discussion cycle'),
+  ) as SlashCommandBuilder;
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   if (!interaction.guildId) {
     return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
   }
 
-  const subcommand = interaction.options.getSubcommand();
-
-  if (subcommand === 'prompt') {
-    return handlePrompt(interaction);
-  }
-  if (subcommand === 'schedule') {
-    return handleSchedule(interaction);
-  }
-  if (subcommand === 'list') {
-    return handleList(interaction);
+  const sub = interaction.options.getSubcommand();
+  switch (sub) {
+    case 'schedule':
+      return handleSchedule(interaction);
+    case 'post-daily':
+      return handlePostDaily(interaction);
+    case 'post-here':
+      return handlePostHere(interaction);
+    case 'config':
+      return handleConfig(interaction);
+    case 'enable':
+      return handleEnable(interaction);
+    case 'disable':
+      return handleDisable(interaction);
   }
 }
 
@@ -71,9 +101,130 @@ function extractRoleIds(member: ChatInputCommandInteraction['member']): string[]
   return [];
 }
 
-async function handlePrompt(interaction: ChatInputCommandInteraction) {
-  const roleIds = extractRoleIds(interaction.member);
+async function handleSchedule(interaction: ChatInputCommandInteraction) {
+  const discussions = interaction.options.getChannel('discussions', true);
+  const lounge = interaction.options.getChannel('lounge', true);
+  const category = interaction.options.getString('category');
 
+  if (discussions.id === lounge.id) {
+    return interaction.reply({
+      content: 'The discussions and lounge channels must be different.',
+      ephemeral: true,
+    });
+  }
+
+  // Verify both fetch as TextChannels via the live client.
+  let discussionsChannel: unknown;
+  let loungeChannel: unknown;
+  try {
+    discussionsChannel = await interaction.client.channels.fetch(discussions.id);
+    loungeChannel = await interaction.client.channels.fetch(lounge.id);
+  } catch (err) {
+    console.error('Failed to fetch channels during /discuss schedule:', err);
+    return interaction.reply({
+      content: 'Could not access one of the channels. Check that the bot has permission to view them.',
+      ephemeral: true,
+    });
+  }
+  if (!(discussionsChannel instanceof TextChannel) || !(loungeChannel instanceof TextChannel)) {
+    return interaction.reply({
+      content: 'Both channels must be standard text channels.',
+      ephemeral: true,
+    });
+  }
+
+  const previous = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+
+  await prisma.discussionConfig.upsert({
+    where: { id: 'singleton' },
+    create: {
+      id: 'singleton',
+      discussionsChannelId: discussions.id,
+      loungeChannelId: lounge.id,
+      categoryFilter: category,
+      lastUpdatedBy: interaction.user.id,
+    },
+    update: {
+      discussionsChannelId: discussions.id,
+      loungeChannelId: lounge.id,
+      categoryFilter: category,
+      isActive: true,
+      lastUpdatedBy: interaction.user.id,
+    },
+  });
+
+  await prisma.configAuditLog.create({
+    data: {
+      userId: interaction.user.id,
+      action: 'SET_DISCUSSION_CONFIG',
+      targetType: 'GLOBAL',
+      targetId: 'singleton',
+      featureKey: 'discuss',
+      oldValue: previous
+        ? {
+            discussionsChannelId: previous.discussionsChannelId,
+            loungeChannelId: previous.loungeChannelId,
+            categoryFilter: previous.categoryFilter,
+          }
+        : null,
+      newValue: {
+        discussionsChannelId: discussions.id,
+        loungeChannelId: lounge.id,
+        categoryFilter: category,
+      },
+    },
+  });
+
+  return interaction.reply({
+    content:
+      `Discussion cycle configured. Daily prompt in <#${discussions.id}> at 08:00 UTC; ` +
+      `announcements in <#${lounge.id}> at 08:00, 14:00, 20:00, 02:00 UTC.` +
+      (category ? ` Category: ${category}.` : ''),
+    ephemeral: true,
+  });
+}
+
+async function handlePostDaily(interaction: ChatInputCommandInteraction) {
+  if (isCycleLockHeld()) {
+    return interaction.reply({
+      content: 'A discussion cycle is already in progress, try again in a few minutes.',
+      ephemeral: true,
+    });
+  }
+
+  const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+  if (!config) {
+    return interaction.reply({
+      content: 'No configuration set. Use /discuss schedule first.',
+      ephemeral: true,
+    });
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const result = await runDailyCycle(interaction.client, config);
+
+  await prisma.configAuditLog.create({
+    data: {
+      userId: interaction.user.id,
+      action: 'POST_DAILY_MANUAL',
+      targetType: 'PROMPT_LOG',
+      targetId: 'singleton',
+      featureKey: 'discuss',
+      newValue: { result: result.ok ? 'ok' : (result as { reason: string }).reason },
+    },
+  });
+
+  if (result.ok) {
+    return interaction.editReply({ content: 'Daily cycle fired.' });
+  }
+  return interaction.editReply({
+    content: `Daily cycle failed: ${(result as { reason: string }).reason}.`,
+  });
+}
+
+async function handlePostHere(interaction: ChatInputCommandInteraction) {
+  const roleIds = extractRoleIds(interaction.member);
   const allowed = await canUseFeature(interaction.channelId, roleIds, 'discuss');
   if (!allowed) {
     return interaction.reply({
@@ -83,14 +234,11 @@ async function handlePrompt(interaction: ChatInputCommandInteraction) {
   }
 
   const category = interaction.options.getString('category');
-
   const prompt = await selectPrompt(category);
-
   const embed = createPromptEmbed(prompt.text, prompt.category);
 
   await interaction.reply({ embeds: [embed] });
 
-  // Log to database — failure here shouldn't block the user response
   try {
     await prisma.discussionPromptLog.create({
       data: {
@@ -104,68 +252,81 @@ async function handlePrompt(interaction: ChatInputCommandInteraction) {
   }
 }
 
-async function handleSchedule(interaction: ChatInputCommandInteraction) {
-  const channel = interaction.options.getChannel('channel', true);
-  const category = interaction.options.getString('category');
-
-  try {
-    // Upsert — re-running /discuss schedule on the same channel updates the
-    // config rather than creating a duplicate.
-    await prisma.discussionSchedule.upsert({
-      where: { channelId: channel.id },
-      update: { categoryFilter: category, createdBy: interaction.user.id },
-      create: {
-        channelId: channel.id,
-        categoryFilter: category,
-        createdBy: interaction.user.id,
-      },
-    });
-
-    await prisma.configAuditLog.create({
-      data: {
-        userId: interaction.user.id,
-        action: 'SET_SCHEDULE',
-        targetType: 'CHANNEL',
-        targetId: channel.id,
-        featureKey: 'discuss',
-        newValue: { categoryFilter: category },
-      },
-    });
-
-    return interaction.reply({
-      content: `Discussion prompts enabled for <#${channel.id}> — posts every 6 hours, waiting for a natural pause in conversation.${category ? ` Category: ${category}.` : ''}`,
-      ephemeral: true,
-    });
-  } catch (err) {
-    console.error('Failed to set discussion schedule:', err);
-    return interaction.reply({
-      content: 'Something went wrong saving the schedule. Please try again.',
-      ephemeral: true,
-    });
-  }
-}
-
-async function handleList(interaction: ChatInputCommandInteraction) {
-  const schedules = await prisma.discussionSchedule.findMany();
-
+async function handleConfig(interaction: ChatInputCommandInteraction) {
+  const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
   const embed = new EmbedBuilder()
     .setColor(BRAND_COLOR)
-    .setTitle('Discussion Schedules')
+    .setTitle('Discussion Cycle Configuration')
     .setFooter({ text: 'Photobot' })
     .setTimestamp();
 
-  if (schedules.length === 0) {
-    embed.setDescription('No discussion schedules configured. Use `/discuss schedule` to create one.');
+  if (!config) {
+    embed.setDescription('No configuration set. Use /discuss schedule to set up the daily cycle.');
   } else {
-    for (const s of schedules) {
-      const status = s.isActive ? 'Active' : 'Paused';
-      const cat = s.categoryFilter ? ` | ${s.categoryFilter}` : '';
-      embed.addFields({
-        name: `<#${s.channelId}>`,
-        value: `Every 6 hours — ${status}${cat}`,
-      });
-    }
+    embed.addFields(
+      { name: 'Discussions channel', value: `<#${config.discussionsChannelId}>`, inline: true },
+      { name: 'Lounge channel', value: `<#${config.loungeChannelId}>`, inline: true },
+      { name: 'Category', value: config.categoryFilter ?? 'all', inline: true },
+      { name: 'Active', value: config.isActive ? 'Yes' : 'No', inline: true },
+      { name: 'Last updated by', value: `<@${config.lastUpdatedBy}>`, inline: true },
+    );
   }
 
   return interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+async function handleEnable(interaction: ChatInputCommandInteraction) {
+  const existing = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+  if (!existing) {
+    return interaction.reply({
+      content: 'No configuration set. Use /discuss schedule first.',
+      ephemeral: true,
+    });
+  }
+
+  await prisma.discussionConfig.update({
+    where: { id: 'singleton' },
+    data: { isActive: true, lastUpdatedBy: interaction.user.id },
+  });
+
+  await prisma.configAuditLog.create({
+    data: {
+      userId: interaction.user.id,
+      action: 'ENABLE_DISCUSSION',
+      targetType: 'GLOBAL',
+      targetId: 'singleton',
+      featureKey: 'discuss',
+      newValue: { isActive: true },
+    },
+  });
+
+  return interaction.reply({ content: 'Discussion cycle enabled.', ephemeral: true });
+}
+
+async function handleDisable(interaction: ChatInputCommandInteraction) {
+  const existing = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+  if (!existing) {
+    return interaction.reply({
+      content: 'No configuration set. Use /discuss schedule first.',
+      ephemeral: true,
+    });
+  }
+
+  await prisma.discussionConfig.update({
+    where: { id: 'singleton' },
+    data: { isActive: false, lastUpdatedBy: interaction.user.id },
+  });
+
+  await prisma.configAuditLog.create({
+    data: {
+      userId: interaction.user.id,
+      action: 'DISABLE_DISCUSSION',
+      targetType: 'GLOBAL',
+      targetId: 'singleton',
+      featureKey: 'discuss',
+      newValue: { isActive: false },
+    },
+  });
+
+  return interaction.reply({ content: 'Discussion cycle disabled.', ephemeral: true });
 }
