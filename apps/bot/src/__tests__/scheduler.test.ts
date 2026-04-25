@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
-    discussionSchedule: {
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
+    discussionConfig: {
+      findUnique: vi.fn(),
     },
     discussionPromptLog: {
       findFirst: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -25,42 +25,92 @@ import { prisma } from '@photobot/db';
 import { TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
 import { selectPrompt } from '../services/prompts';
-import { startScheduler, stopScheduler } from '../services/scheduler';
+import { resetCycleLockForTest } from '../services/discussion-cycle';
+import { currentSlotStart, todaysDailySlotStart, startScheduler, stopScheduler } from '../services/scheduler';
 
-const SCHEDULE_FIXTURE = { id: 'sched-1', channelId: 'ch-1', categoryFilter: null, isActive: true };
+const CONFIG = {
+  id: 'singleton',
+  discussionsChannelId: 'd-1',
+  loungeChannelId: 'l-1',
+  categoryFilter: null,
+  isActive: true,
+  lastUpdatedBy: 'admin-1',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
 function createMockClient() {
-  const mockChannel = {
-    send: vi.fn().mockResolvedValue({ id: 'msg-1' }),
-    messages: {
-      fetch: vi.fn().mockResolvedValue(new Map()),
-    },
+  const mockThread = { id: 'thread-1' };
+  const mockDiscussionsMessage = {
+    id: 'msg-1',
+    startThread: vi.fn().mockResolvedValue(mockThread),
+    delete: vi.fn().mockResolvedValue(undefined),
   };
-  Object.setPrototypeOf(mockChannel, TextChannel.prototype);
+  const mockDiscussionsChannel = {
+    send: vi.fn().mockResolvedValue(mockDiscussionsMessage),
+    messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
+  };
+  const mockLoungeChannel = {
+    send: vi.fn().mockResolvedValue({ id: 'lounge-msg-1' }),
+    messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
+    guildId: 'guild-1',
+  };
+  Object.setPrototypeOf(mockDiscussionsChannel, TextChannel.prototype);
+  Object.setPrototypeOf(mockLoungeChannel, TextChannel.prototype);
 
+  const channelMap: Record<string, unknown> = {
+    'd-1': mockDiscussionsChannel,
+    'l-1': mockLoungeChannel,
+  };
   const mockClient = {
-    channels: {
-      fetch: vi.fn().mockResolvedValue(mockChannel),
-    },
+    channels: { fetch: vi.fn((id: string) => Promise.resolve(channelMap[id])) },
+    guilds: { cache: { first: () => ({ id: 'guild-1' }), get: () => ({ id: 'guild-1' }) } },
   };
 
-  return { mockClient, mockChannel };
+  return { mockClient, mockDiscussionsChannel, mockLoungeChannel };
 }
 
-describe('Scheduler', () => {
+describe('currentSlotStart', () => {
+  it.each([
+    ['01:59 UTC', '2026-04-25T01:59:00Z', '2026-04-24T20:00:00Z'],
+    ['02:00 UTC', '2026-04-25T02:00:00Z', '2026-04-25T02:00:00Z'],
+    ['07:59 UTC', '2026-04-25T07:59:00Z', '2026-04-25T02:00:00Z'],
+    ['08:00 UTC', '2026-04-25T08:00:00Z', '2026-04-25T08:00:00Z'],
+    ['13:59 UTC', '2026-04-25T13:59:00Z', '2026-04-25T08:00:00Z'],
+    ['14:00 UTC', '2026-04-25T14:00:00Z', '2026-04-25T14:00:00Z'],
+    ['19:59 UTC', '2026-04-25T19:59:00Z', '2026-04-25T14:00:00Z'],
+    ['20:00 UTC', '2026-04-25T20:00:00Z', '2026-04-25T20:00:00Z'],
+    ['23:59 UTC', '2026-04-25T23:59:00Z', '2026-04-25T20:00:00Z'],
+    ['00:30 UTC (rolls back)', '2026-04-25T00:30:00Z', '2026-04-24T20:00:00Z'],
+  ])('%s -> slot %s', (_, nowIso, expectedIso) => {
+    expect(currentSlotStart(new Date(nowIso)).toISOString()).toBe(new Date(expectedIso).toISOString());
+  });
+});
+
+describe('todaysDailySlotStart', () => {
+  it('returns 08:00 UTC of the same day as the slot', () => {
+    const slot = new Date('2026-04-25T14:00:00Z');
+    expect(todaysDailySlotStart(slot).toISOString()).toBe(new Date('2026-04-25T08:00:00Z').toISOString());
+  });
+
+  it('returns yesterday 08:00 for a 02:00-rollback slot', () => {
+    // 00:30 UTC -> currentSlotStart returns yesterday 20:00, todaysDailySlotStart on that returns yesterday 08:00.
+    const slot = new Date('2026-04-24T20:00:00Z');
+    expect(todaysDailySlotStart(slot).toISOString()).toBe(new Date('2026-04-24T08:00:00Z').toISOString());
+  });
+});
+
+describe('Scheduler tick behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([]);
-    (prisma.discussionSchedule.findFirst as any).mockResolvedValue(null);
+    resetCycleLockForTest();
     (canUseFeature as any).mockResolvedValue(true);
-    (selectPrompt as any).mockResolvedValue({
-      text: 'Test prompt',
-      category: 'creative',
-    });
-    (prisma.discussionPromptLog.create as any).mockResolvedValue({});
+    (selectPrompt as any).mockResolvedValue({ text: 'Test prompt', category: 'creative' });
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(CONFIG);
     (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
+    (prisma.discussionPromptLog.create as any).mockResolvedValue({ id: 'log-1' });
+    (prisma.discussionPromptLog.update as any).mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -68,153 +118,116 @@ describe('Scheduler', () => {
     vi.useRealTimers();
   });
 
-  it('posts a prompt when 6 hours have passed since last post', async () => {
-    const { mockClient, mockChannel } = createMockClient();
-    const sevenHoursAgo = new Date(Date.now() - 7 * 60 * 60 * 1000);
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
-    (prisma.discussionSchedule.findFirst as any).mockResolvedValue(SCHEDULE_FIXTURE);
+  it('skips when no config exists', async () => {
+    const { mockClient, mockDiscussionsChannel } = createMockClient();
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(null);
+    vi.setSystemTime(new Date('2026-04-25T08:30:00Z'));
+
+    await startScheduler(mockClient as any);
+
+    expect(mockDiscussionsChannel.send).not.toHaveBeenCalled();
+  });
+
+  it('skips when config.isActive is false', async () => {
+    const { mockClient, mockDiscussionsChannel } = createMockClient();
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue({ ...CONFIG, isActive: false });
+    vi.setSystemTime(new Date('2026-04-25T08:30:00Z'));
+
+    await startScheduler(mockClient as any);
+
+    expect(mockDiscussionsChannel.send).not.toHaveBeenCalled();
+  });
+
+  it('fires daily cycle at the 08:00 slot when no daily fired today', async () => {
+    const { mockClient, mockDiscussionsChannel, mockLoungeChannel } = createMockClient();
+    vi.setSystemTime(new Date('2026-04-25T08:05:00Z'));
+
+    await startScheduler(mockClient as any);
+
+    expect(mockDiscussionsChannel.send).toHaveBeenCalled();
+    expect(mockLoungeChannel.send).toHaveBeenCalled();
+  });
+
+  it('fires daily late at 13:30 (still within 6h horizon) when 08:00 was missed', async () => {
+    const { mockClient, mockDiscussionsChannel } = createMockClient();
+    // 08:00 was 5h30m ago; current slot is 08:00, within horizon. No daily fired.
+    vi.setSystemTime(new Date('2026-04-25T13:30:00Z'));
+
+    await startScheduler(mockClient as any);
+
+    expect(mockDiscussionsChannel.send).toHaveBeenCalled();
+  });
+
+  it('skips daily catch-up when today 08:00 is older than 6h horizon', async () => {
+    const { mockClient, mockDiscussionsChannel } = createMockClient();
+    // 08:00 was 8 hours ago (16:00 now).
+    vi.setSystemTime(new Date('2026-04-25T16:00:00Z'));
+
+    await startScheduler(mockClient as any);
+
+    expect(mockDiscussionsChannel.send).not.toHaveBeenCalled();
+  });
+
+  it('does not re-announce when lastAnnouncedAt is at or after current slot', async () => {
+    const { mockClient, mockLoungeChannel } = createMockClient();
+    vi.setSystemTime(new Date('2026-04-25T14:30:00Z'));
     (prisma.discussionPromptLog.findFirst as any).mockResolvedValue({
-      postedAt: sevenHoursAgo,
+      id: 'log-1',
+      threadId: 'thread-1',
+      promptText: 'Test prompt',
+      category: 'creative',
+      postedAt: new Date('2026-04-25T08:00:00Z'),
+      lastAnnouncedAt: new Date('2026-04-25T14:01:00Z'),
     });
 
     await startScheduler(mockClient as any);
 
-    expect(selectPrompt).toHaveBeenCalled();
-    expect(mockChannel.send).toHaveBeenCalledWith(
-      expect.objectContaining({
-        embeds: expect.arrayContaining([
-          expect.objectContaining({
-            data: expect.objectContaining({
-              title: 'Discussion of the Day',
-            }),
-          }),
-        ]),
-      }),
-    );
+    expect(mockLoungeChannel.send).not.toHaveBeenCalled();
   });
 
-  it('does not post when less than 6 hours since last post', async () => {
-    const { mockClient, mockChannel } = createMockClient();
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
-    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue({
-      postedAt: twoHoursAgo,
-    });
-
-    await startScheduler(mockClient as any);
-
-    expect(mockChannel.send).not.toHaveBeenCalled();
-  });
-
-  it('posts immediately when no previous post exists', async () => {
-    const { mockClient, mockChannel } = createMockClient();
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
-    (prisma.discussionSchedule.findFirst as any).mockResolvedValue(SCHEDULE_FIXTURE);
-    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
-
-    await startScheduler(mockClient as any);
-
-    expect(mockChannel.send).toHaveBeenCalled();
-  });
-
-  it('does not post when feature is disabled', async () => {
-    const { mockClient, mockChannel } = createMockClient();
-    (canUseFeature as any).mockResolvedValue(false);
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
-    (prisma.discussionSchedule.findFirst as any).mockResolvedValue(SCHEDULE_FIXTURE);
-
-    await startScheduler(mockClient as any);
-
-    expect(mockChannel.send).not.toHaveBeenCalled();
-  });
-
-  it('logs posted prompt', async () => {
-    const { mockClient } = createMockClient();
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
-    (prisma.discussionSchedule.findFirst as any).mockResolvedValue(SCHEDULE_FIXTURE);
-    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
-
-    await startScheduler(mockClient as any);
-
-    expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        channelId: 'ch-1',
+  it('re-announces in lounge at 14:00 slot when lastAnnouncedAt is from morning', async () => {
+    const { mockClient, mockLoungeChannel } = createMockClient();
+    vi.setSystemTime(new Date('2026-04-25T14:05:00Z'));
+    (prisma.discussionPromptLog.findFirst as any)
+      // Phase 1: did today's daily fire? Yes.
+      .mockResolvedValueOnce({
+        id: 'log-1',
+        threadId: 'thread-1',
         promptText: 'Test prompt',
         category: 'creative',
-      }),
+        postedAt: new Date('2026-04-25T08:00:00Z'),
+        lastAnnouncedAt: new Date('2026-04-25T08:00:00Z'),
+      })
+      // Phase 2: current daily prompt (same row).
+      .mockResolvedValueOnce({
+        id: 'log-1',
+        threadId: 'thread-1',
+        promptText: 'Test prompt',
+        category: 'creative',
+        postedAt: new Date('2026-04-25T08:00:00Z'),
+        lastAnnouncedAt: new Date('2026-04-25T08:00:00Z'),
+      });
+
+    await startScheduler(mockClient as any);
+
+    expect(mockLoungeChannel.send).toHaveBeenCalled();
+    expect(prisma.discussionPromptLog.update).toHaveBeenCalledWith({
+      where: { id: 'log-1' },
+      data: { lastAnnouncedAt: expect.any(Date) },
     });
-    // Ensure no serverId is set
-    const callData = (prisma.discussionPromptLog.create as any).mock.calls[0][0].data;
-    expect(callData.serverId).toBeUndefined();
   });
 
   it('handles channel fetch failure without crashing', async () => {
     const mockClient = {
-      channels: {
-        fetch: vi.fn().mockRejectedValue(new Error('Unknown Channel')),
-      },
+      channels: { fetch: vi.fn().mockRejectedValue(new Error('Unknown Channel')) },
+      guilds: { cache: { first: () => ({ id: 'guild-1' }), get: () => ({ id: 'guild-1' }) } },
     };
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
-    (prisma.discussionSchedule.findFirst as any).mockResolvedValue(SCHEDULE_FIXTURE);
-    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
-
+    vi.setSystemTime(new Date('2026-04-25T08:05:00Z'));
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(startScheduler(mockClient as any)).resolves.toBeUndefined();
 
-    // Channel.send should never have been called since fetch threw
     expect(prisma.discussionPromptLog.create).not.toHaveBeenCalled();
-    // The error was caught and logged
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to post scheduled prompt'),
-      expect.any(Error),
-    );
-
-    consoleSpy.mockRestore();
-  });
-
-  it('skips posting when channel is not a TextChannel', async () => {
-    // Create a mock channel that is NOT a TextChannel (e.g., a VoiceChannel)
-    const mockVoiceChannel = {
-      send: vi.fn(),
-      messages: { fetch: vi.fn() },
-    };
-    // Do NOT set its prototype to TextChannel — it's a non-text channel
-    const mockClient = {
-      channels: {
-        fetch: vi.fn().mockResolvedValue(mockVoiceChannel),
-      },
-    };
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
-    (prisma.discussionSchedule.findFirst as any).mockResolvedValue(SCHEDULE_FIXTURE);
-    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
-
-    await startScheduler(mockClient as any);
-
-    // Should not attempt to send or log since channel is not a TextChannel
-    expect(mockVoiceChannel.send).not.toHaveBeenCalled();
-    expect(prisma.discussionPromptLog.create).not.toHaveBeenCalled();
-  });
-
-  it('handles database write failure without crashing', async () => {
-    const { mockClient, mockChannel } = createMockClient();
-    (prisma.discussionSchedule.findMany as any).mockResolvedValue([SCHEDULE_FIXTURE]);
-    (prisma.discussionSchedule.findFirst as any).mockResolvedValue(SCHEDULE_FIXTURE);
-    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
-    (prisma.discussionPromptLog.create as any).mockRejectedValue(new Error('Database connection lost'));
-
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    await expect(startScheduler(mockClient as any)).resolves.toBeUndefined();
-
-    // The prompt was still sent to the channel before the DB write failed
-    expect(mockChannel.send).toHaveBeenCalled();
-    // The error was caught and logged, not thrown
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to post scheduled prompt'),
-      expect.any(Error),
-    );
-
     consoleSpy.mockRestore();
   });
 });

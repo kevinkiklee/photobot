@@ -1,134 +1,153 @@
-// The scheduler posts discussion prompts on a fixed interval per channel.
-// Instead of rigid cron times, it checks every 60s whether any channel is
-// due (6+ hours since last post). Before posting, it waits for a conversation
-// lull (2 min of silence) so prompts don't interrupt active discussions.
-// If the channel stays busy for 30 min, it posts anyway to avoid skipping.
+// Single anchored slot scheduler. Four UTC slots per day:
+//   08:00 — daily prompt + thread + first lounge announcement
+//   14:00 / 20:00 / 02:00 — re-announce in lounge only
+//
+// On each 60s tick, computes the most recent slot and decides what to do.
+// Two-phase catch-up handles bot restarts: fire today's daily if missed,
+// then re-announce if the current slot's announcement hasn't happened yet.
 
 import { prisma } from '@photobot/db';
-import { type Client, type Collection, type Message, TextChannel } from 'discord.js';
-import { canUseFeature } from '../middleware/permissions';
-import { createPromptEmbed } from '../utils/embed';
-import { selectPrompt } from './prompts';
+import type { Client, TextChannel } from 'discord.js';
+import { TextChannel as TextChannelClass } from 'discord.js';
+import {
+  releaseCycleLock,
+  runDailyCycle,
+  runLoungeAnnounce,
+  tryAcquireCycleLock,
+} from './discussion-cycle';
 
-const POST_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
-const QUIET_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes of silence = safe to post
-const MAX_DEFER_MS = 30 * 60 * 1000; // give up waiting after 30 minutes
-const DEFER_CHECK_MS = 60 * 1000; // re-check every 60 seconds while waiting
+const SLOT_HOURS_UTC = [2, 8, 14, 20] as const;
+const DAILY_SLOT_HOUR_UTC = 8;
+const TICK_INTERVAL_MS = 60 * 1000;
+const CATCHUP_HORIZON_MS = 6 * 60 * 60 * 1000;
 
-let postInterval: ReturnType<typeof setInterval> | null = null;
+let tickInterval: ReturnType<typeof setInterval> | null = null;
 let clientRef: Client | null = null;
+let isTickRunning = false;
+
+export function currentSlotStart(now: Date): Date {
+  const utcDateMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const hour = now.getUTCHours();
+  const slotHour = [...SLOT_HOURS_UTC].reverse().find((h) => h <= hour);
+  if (slotHour !== undefined) {
+    return new Date(utcDateMs + slotHour * 60 * 60 * 1000);
+  }
+  return new Date(utcDateMs - 24 * 60 * 60 * 1000 + 20 * 60 * 60 * 1000);
+}
+
+export function todaysDailySlotStart(slotStart: Date): Date {
+  const utcDateMs = Date.UTC(
+    slotStart.getUTCFullYear(),
+    slotStart.getUTCMonth(),
+    slotStart.getUTCDate(),
+  );
+  return new Date(utcDateMs + DAILY_SLOT_HOUR_UTC * 60 * 60 * 1000);
+}
 
 export async function startScheduler(client: Client): Promise<void> {
-  if (postInterval) {
+  if (tickInterval) {
     console.warn('Scheduler already running');
     return;
   }
   clientRef = client;
 
-  // Run immediately on startup for any overdue schedules
-  await runScheduledPosts();
-
-  // Check every 60 seconds for schedules that are due
-  postInterval = setInterval(async () => {
-    try {
-      await runScheduledPosts();
-    } catch (err) {
-      console.error('Schedule check error:', err);
-    }
-  }, DEFER_CHECK_MS);
+  await onTick();
+  tickInterval = setInterval(() => {
+    onTick().catch((err) => console.error('Scheduler tick error:', err));
+  }, TICK_INTERVAL_MS);
 }
 
 export function stopScheduler(): void {
-  if (postInterval) {
-    clearInterval(postInterval);
-    postInterval = null;
+  if (tickInterval) {
+    clearInterval(tickInterval);
+    tickInterval = null;
   }
+  isTickRunning = false;
+  clientRef = null;
 }
 
-async function runScheduledPosts(): Promise<void> {
-  const schedules = await prisma.discussionSchedule.findMany({
-    where: { isActive: true },
-  });
-
-  const now = new Date();
-
-  for (const s of schedules) {
-    const lastLog = await prisma.discussionPromptLog.findFirst({
-      where: { channelId: s.channelId },
-      orderBy: { postedAt: 'desc' },
-    });
-
-    // Infinity for first-ever post ensures new schedules fire immediately
-    const timeSinceLastPost = lastLog ? now.getTime() - lastLog.postedAt.getTime() : Infinity;
-    if (timeSinceLastPost < POST_INTERVAL_MS) continue;
-
-    await executeScheduledPrompt(s.id);
-  }
-}
-
-async function isChannelQuiet(channel: TextChannel): Promise<boolean> {
-  try {
-    const messages: Collection<string, Message> = await channel.messages.fetch({ limit: 1 });
-    if (messages.size === 0) return true;
-
-    const lastMessage = messages.first()!;
-    const timeSinceLastMessage = Date.now() - lastMessage.createdTimestamp;
-    return timeSinceLastMessage >= QUIET_THRESHOLD_MS;
-  } catch {
-    // If we can't fetch messages, assume quiet and post anyway
-    return true;
-  }
-}
-
-async function waitForQuiet(channel: TextChannel): Promise<boolean> {
-  const deadline = Date.now() + MAX_DEFER_MS;
-
-  while (Date.now() < deadline) {
-    if (await isChannelQuiet(channel)) return true;
-
-    // Wait before checking again
-    await new Promise((resolve) => setTimeout(resolve, DEFER_CHECK_MS));
-  }
-
-  // Timed out waiting — post anyway rather than skipping entirely
-  return true;
-}
-
-async function executeScheduledPrompt(scheduleId: string): Promise<void> {
+async function onTick(): Promise<void> {
+  if (isTickRunning) return;
   if (!clientRef) return;
-
-  const s = await prisma.discussionSchedule.findFirst({
-    where: { id: scheduleId, isActive: true },
-  });
-  if (!s) return;
-
-  // Re-check permission at execution time — admins may have disabled the feature
-  // via the dashboard since the schedule was created.
-  const allowed = await canUseFeature(s.channelId, [], 'discuss');
-  if (!allowed) return;
+  isTickRunning = true;
 
   try {
-    const channel = await clientRef.channels.fetch(s.channelId);
-    if (!channel || !(channel instanceof TextChannel)) return;
+    const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+    if (!config || !config.isActive) return;
 
-    // Wait for a natural pause in conversation before posting
-    await waitForQuiet(channel);
+    const now = new Date();
+    const slotStart = currentSlotStart(now);
 
-    const prompt = await selectPrompt(s.categoryFilter);
+    if (now.getTime() - slotStart.getTime() > CATCHUP_HORIZON_MS) return;
 
-    const embed = createPromptEmbed(prompt.text, prompt.category, 'Discussion of the Day');
-
-    await channel.send({ embeds: [embed] });
-
-    // Log
-    await prisma.discussionPromptLog.create({
-      data: {
-        channelId: s.channelId,
-        promptText: prompt.text,
-        category: prompt.category,
-      },
-    });
+    await runSlot(clientRef, config, slotStart);
   } catch (err) {
-    console.error(`Failed to post scheduled prompt to ${s.channelId}:`, err);
+    console.error('Scheduler tick error:', err);
+  } finally {
+    isTickRunning = false;
+  }
+}
+
+async function runSlot(
+  client: Client,
+  config: Awaited<ReturnType<typeof prisma.discussionConfig.findUnique>>,
+  slotStart: Date,
+): Promise<void> {
+  if (!config) return;
+
+  const isDailySlot = slotStart.getUTCHours() === DAILY_SLOT_HOUR_UTC;
+  const dailyAnchor = todaysDailySlotStart(slotStart);
+
+  // Phase 1: daily catch-up.
+  const dailyFired = await prisma.discussionPromptLog.findFirst({
+    where: { threadId: { not: null }, postedAt: { gte: dailyAnchor } },
+  });
+
+  if (!dailyFired) {
+    if (Date.now() - dailyAnchor.getTime() > CATCHUP_HORIZON_MS) return;
+    await runDailyCycle(client, config);
+    // The cycle also fired the lounge announcement; Phase 2 will skip.
+  }
+
+  if (isDailySlot) return;
+
+  // Phase 2: re-announce.
+  const current = await prisma.discussionPromptLog.findFirst({
+    where: {
+      threadId: { not: null },
+      postedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    },
+    orderBy: { postedAt: 'desc' },
+  });
+  if (!current || !current.threadId) return;
+  if (current.lastAnnouncedAt && current.lastAnnouncedAt >= slotStart) return;
+
+  const loungeChannel = await fetchTextChannel(client, config.loungeChannelId);
+  if (!loungeChannel) return;
+
+  // Acquire the cycle lock so Phase 2 cannot race with /discuss post-daily.
+  if (!tryAcquireCycleLock()) return;
+  try {
+    await runLoungeAnnounce(
+      client,
+      current.id,
+      current.promptText,
+      current.category,
+      current.threadId,
+      loungeChannel,
+    );
+  } finally {
+    releaseCycleLock();
+  }
+}
+
+async function fetchTextChannel(client: Client, channelId: string): Promise<TextChannel | null> {
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !(channel instanceof TextChannelClass)) return null;
+    return channel;
+  } catch (err) {
+    console.error(`Failed to fetch channel ${channelId}:`, err);
+    return null;
   }
 }
