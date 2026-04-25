@@ -95,24 +95,35 @@ model ConfigAuditLog {
   @@map("config_audit_logs")
 }
 
-model DiscussionSchedule {
-  id             String   @id @default(cuid())
-  channelId      String   @unique @map("channel_id")
-  categoryFilter String?  @map("category_filter")
-  isActive       Boolean  @default(true) @map("is_active")
-  createdBy      String   @map("created_by")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+model DiscussionConfig {
+  /// Always upserted with id = "singleton". DB does not enforce — single upsert
+  /// path in /discuss schedule is the only writer (code-review responsibility).
+  id                    String   @id
+  discussionsChannelId  String   @map("discussions_channel_id")
+  loungeChannelId       String   @map("lounge_channel_id")
+  categoryFilter        String?  @map("category_filter")
+  isActive              Boolean  @default(true) @map("is_active")
+  lastUpdatedBy         String   @map("last_updated_by")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
-  @@map("discussion_schedules")
+  @@map("discussion_config")
 }
 
 model DiscussionPromptLog {
-  id         String   @id @default(cuid())
-  channelId  String   @map("channel_id")
-  promptText String   @map("prompt_text")
-  category   String
-  postedAt   DateTime @default(now()) @map("posted_at")
+  id                   String    @id @default(cuid())
+  /// The discussions channel (where the thread lives). Historical rows from the
+  /// old DiscussionSchedule model used this as "the only channel."
+  channelId            String    @map("channel_id")
+  promptText           String    @map("prompt_text")
+  category             String
+  threadId             String?   @map("thread_id")
+  discussionsMessageId String?   @map("discussions_message_id")
+  /// Last time this prompt was announced in #lounge. Set after every successful
+  /// lounge post (including the initial 08:00 announcement). NOT updated on
+  /// Discord API failure — failed announcements are retried at the next slot.
+  lastAnnouncedAt      DateTime? @map("last_announced_at")
+  postedAt             DateTime  @default(now()) @map("posted_at")
 
   @@index([postedAt])
   @@index([channelId])
