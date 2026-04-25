@@ -102,14 +102,16 @@ function extractRoleIds(member: ChatInputCommandInteraction['member']): string[]
 }
 
 async function handleSchedule(interaction: ChatInputCommandInteraction) {
+  // Defer immediately — channel fetches + DB queries can exceed Discord's 3s window.
+  await interaction.deferReply({ ephemeral: true });
+
   const discussions = interaction.options.getChannel('discussions', true);
   const lounge = interaction.options.getChannel('lounge', true);
   const category = interaction.options.getString('category');
 
   if (discussions.id === lounge.id) {
-    return interaction.reply({
+    return interaction.editReply({
       content: 'The discussions and lounge channels must be different.',
-      ephemeral: true,
     });
   }
 
@@ -121,15 +123,13 @@ async function handleSchedule(interaction: ChatInputCommandInteraction) {
     loungeChannel = await interaction.client.channels.fetch(lounge.id);
   } catch (err) {
     console.error('Failed to fetch channels during /discuss schedule:', err);
-    return interaction.reply({
+    return interaction.editReply({
       content: 'Could not access one of the channels. Check that the bot has permission to view them.',
-      ephemeral: true,
     });
   }
   if (!(discussionsChannel instanceof TextChannel) || !(loungeChannel instanceof TextChannel)) {
-    return interaction.reply({
+    return interaction.editReply({
       content: 'Both channels must be standard text channels.',
-      ephemeral: true,
     });
   }
 
@@ -175,12 +175,11 @@ async function handleSchedule(interaction: ChatInputCommandInteraction) {
     },
   });
 
-  return interaction.reply({
+  return interaction.editReply({
     content:
       `Discussion cycle configured. Daily prompt in <#${discussions.id}> at 08:00 UTC; ` +
       `announcements in <#${lounge.id}> at 08:00, 14:00, 20:00, 02:00 UTC.` +
       (category ? ` Category: ${category}.` : ''),
-    ephemeral: true,
   });
 }
 

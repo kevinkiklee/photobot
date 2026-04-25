@@ -100,8 +100,8 @@ describe('/discuss schedule', () => {
 
     await execute(interaction);
 
+    expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
     expect(prisma.discussionConfig.upsert).not.toHaveBeenCalled();
-    expect(replies[0]).toMatchObject({ ephemeral: true });
     expect(JSON.stringify(replies[0])).toContain('different');
   });
 
