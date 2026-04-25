@@ -208,10 +208,10 @@ async function handlePostDaily(interaction: ChatInputCommandInteraction) {
     data: {
       userId: interaction.user.id,
       action: 'POST_DAILY_MANUAL',
-      targetType: 'PROMPT_LOG',
+      targetType: 'GLOBAL',
       targetId: 'singleton',
       featureKey: 'discuss',
-      newValue: { result: result.ok ? 'ok' : (result as { reason: string }).reason },
+      newValue: { result: result.ok ? 'ok' : result.reason },
     },
   });
 
@@ -219,7 +219,7 @@ async function handlePostDaily(interaction: ChatInputCommandInteraction) {
     return interaction.editReply({ content: 'Daily cycle fired.' });
   }
   return interaction.editReply({
-    content: `Daily cycle failed: ${(result as { reason: string }).reason}.`,
+    content: `Daily cycle failed: ${result.reason}.`,
   });
 }
 

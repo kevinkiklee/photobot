@@ -183,9 +183,34 @@ describe('/discuss post-daily', () => {
     expect(runDailyCycle).toHaveBeenCalled();
     expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ action: 'POST_DAILY_MANUAL' }),
+        data: expect.objectContaining({
+          action: 'POST_DAILY_MANUAL',
+          targetType: 'GLOBAL',
+          newValue: { result: 'ok' },
+        }),
       }),
     );
+  });
+
+  it('reports failure reason and writes audit entry when runDailyCycle fails', async () => {
+    (runDailyCycle as any).mockResolvedValue({ ok: false, reason: 'discord_error' });
+    const { interaction, replies } = makeInteraction({ subcommand: 'post-daily' });
+
+    await execute(interaction);
+
+    expect(runDailyCycle).toHaveBeenCalled();
+    expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'POST_DAILY_MANUAL',
+          targetType: 'GLOBAL',
+          newValue: { result: 'discord_error' },
+        }),
+      }),
+    );
+    // editReply receives the failure message.
+    const failureReply = replies[replies.length - 1];
+    expect(JSON.stringify(failureReply)).toContain('discord_error');
   });
 });
 
