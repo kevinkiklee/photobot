@@ -46,18 +46,28 @@ function isAllowedGuild(guildId: string | null): boolean {
   return guildId === plGuildId || (!!devGuildId && guildId === devGuildId);
 }
 
-// Register slash commands globally on startup. This uses the REST API
-// directly rather than guild-specific registration so commands are
-// available in all servers the bot joins without re-deploying.
+// Register slash commands per-guild on startup. Guild-specific registration
+// propagates instantly (vs. up to 1 hour for global commands), which matters
+// because we iterate on the slash-command schema during development. The bot
+// only serves PL_GUILD_ID and the optional DEV_GUILD_ID, so global registration
+// has no benefit. Also clears any stale global commands (one-time idempotent).
 const rest = new REST({ version: '10' }).setToken(token);
 
 (async () => {
+  const body = [settingsCommand.data.toJSON(), discussCommand.data.toJSON()];
+  const targetGuilds = [plGuildId, devGuildId].filter((id): id is string => !!id);
+
   try {
     console.log('Started refreshing application (/) commands.');
 
-    await rest.put(Routes.applicationCommands(clientId), {
-      body: [settingsCommand.data.toJSON(), discussCommand.data.toJSON()],
-    });
+    for (const guildId of targetGuilds) {
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
+      console.log(`Registered guild commands for ${guildId}.`);
+    }
+
+    // Clear any stale global commands left over from earlier global-registration
+    // builds. A no-op once cleared; safe to run on every boot.
+    await rest.put(Routes.applicationCommands(clientId), { body: [] });
 
     console.log('Successfully reloaded application (/) commands.');
   } catch (error) {
