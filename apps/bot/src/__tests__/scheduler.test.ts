@@ -22,7 +22,7 @@ vi.mock('../services/prompts', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { TextChannel } from 'discord.js';
+import { ForumChannel, TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
 import { selectPrompt } from '../services/prompts';
 import { resetCycleLockForTest } from '../services/discussion-cycle';
@@ -41,21 +41,15 @@ const CONFIG = {
 
 function createMockClient() {
   const mockThread = { id: 'thread-1' };
-  const mockDiscussionsMessage = {
-    id: 'msg-1',
-    startThread: vi.fn().mockResolvedValue(mockThread),
-    delete: vi.fn().mockResolvedValue(undefined),
-  };
   const mockDiscussionsChannel = {
-    send: vi.fn().mockResolvedValue(mockDiscussionsMessage),
-    messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
+    threads: { create: vi.fn().mockResolvedValue(mockThread) },
   };
   const mockLoungeChannel = {
     send: vi.fn().mockResolvedValue({ id: 'lounge-msg-1' }),
     messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
     guildId: 'guild-1',
   };
-  Object.setPrototypeOf(mockDiscussionsChannel, TextChannel.prototype);
+  Object.setPrototypeOf(mockDiscussionsChannel, ForumChannel.prototype);
   Object.setPrototypeOf(mockLoungeChannel, TextChannel.prototype);
 
   const channelMap: Record<string, unknown> = {
@@ -125,7 +119,7 @@ describe('Scheduler tick behavior', () => {
 
     await startScheduler(mockClient as any);
 
-    expect(mockDiscussionsChannel.send).not.toHaveBeenCalled();
+    expect(mockDiscussionsChannel.threads.create).not.toHaveBeenCalled();
   });
 
   it('skips when config.isActive is false', async () => {
@@ -135,7 +129,7 @@ describe('Scheduler tick behavior', () => {
 
     await startScheduler(mockClient as any);
 
-    expect(mockDiscussionsChannel.send).not.toHaveBeenCalled();
+    expect(mockDiscussionsChannel.threads.create).not.toHaveBeenCalled();
   });
 
   it('fires daily cycle at the 08:00 slot when no daily fired today', async () => {
@@ -144,7 +138,7 @@ describe('Scheduler tick behavior', () => {
 
     await startScheduler(mockClient as any);
 
-    expect(mockDiscussionsChannel.send).toHaveBeenCalled();
+    expect(mockDiscussionsChannel.threads.create).toHaveBeenCalled();
     expect(mockLoungeChannel.send).toHaveBeenCalled();
   });
 
@@ -155,7 +149,7 @@ describe('Scheduler tick behavior', () => {
 
     await startScheduler(mockClient as any);
 
-    expect(mockDiscussionsChannel.send).toHaveBeenCalled();
+    expect(mockDiscussionsChannel.threads.create).toHaveBeenCalled();
   });
 
   it('skips daily catch-up when today 08:00 is older than 6h horizon', async () => {
@@ -165,7 +159,7 @@ describe('Scheduler tick behavior', () => {
 
     await startScheduler(mockClient as any);
 
-    expect(mockDiscussionsChannel.send).not.toHaveBeenCalled();
+    expect(mockDiscussionsChannel.threads.create).not.toHaveBeenCalled();
   });
 
   it('does not re-announce when lastAnnouncedAt is at or after current slot', async () => {

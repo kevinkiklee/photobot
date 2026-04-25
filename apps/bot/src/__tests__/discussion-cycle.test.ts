@@ -22,7 +22,7 @@ vi.mock('../services/prompts', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { TextChannel } from 'discord.js';
+import { ForumChannel, TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
 import { runDailyCycle, resetCycleLockForTest } from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
@@ -40,21 +40,15 @@ const CONFIG = {
 
 function createMockClient() {
   const mockThread = { id: 'thread-1' };
-  const mockDiscussionsMessage = {
-    id: 'msg-1',
-    startThread: vi.fn().mockResolvedValue(mockThread),
-    delete: vi.fn().mockResolvedValue(undefined),
-  };
   const mockDiscussionsChannel = {
-    send: vi.fn().mockResolvedValue(mockDiscussionsMessage),
-    messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
+    threads: { create: vi.fn().mockResolvedValue(mockThread) },
   };
   const mockLoungeMessage = { id: 'lounge-msg-1' };
   const mockLoungeChannel = {
     send: vi.fn().mockResolvedValue(mockLoungeMessage),
     messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
   };
-  Object.setPrototypeOf(mockDiscussionsChannel, TextChannel.prototype);
+  Object.setPrototypeOf(mockDiscussionsChannel, ForumChannel.prototype);
   Object.setPrototypeOf(mockLoungeChannel, TextChannel.prototype);
 
   const channelMap: Record<string, unknown> = {
@@ -66,7 +60,7 @@ function createMockClient() {
     guilds: { cache: { get: () => ({ id: 'guild-1' }) } },
   };
 
-  return { mockClient, mockDiscussionsChannel, mockDiscussionsMessage, mockLoungeChannel, mockThread };
+  return { mockClient, mockDiscussionsChannel, mockLoungeChannel, mockThread };
 }
 
 describe('runDailyCycle', () => {
@@ -85,15 +79,18 @@ describe('runDailyCycle', () => {
     vi.useRealTimers();
   });
 
-  it('posts to discussions, creates thread, announces in lounge', async () => {
-    const { mockClient, mockDiscussionsChannel, mockDiscussionsMessage, mockLoungeChannel } = createMockClient();
+  it('creates a forum thread and announces in lounge', async () => {
+    const { mockClient, mockDiscussionsChannel, mockLoungeChannel } = createMockClient();
 
     const result = await runDailyCycle(mockClient as any, CONFIG);
 
     expect(result.ok).toBe(true);
-    expect(mockDiscussionsChannel.send).toHaveBeenCalled();
-    expect(mockDiscussionsMessage.startThread).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Test prompt?', autoArchiveDuration: 10080 }),
+    expect(mockDiscussionsChannel.threads.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Test prompt?',
+        autoArchiveDuration: 10080,
+        message: expect.objectContaining({ embeds: expect.any(Array) }),
+      }),
     );
     expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -101,7 +98,7 @@ describe('runDailyCycle', () => {
         promptText: 'Test prompt?',
         category: 'creative',
         threadId: 'thread-1',
-        discussionsMessageId: 'msg-1',
+        discussionsMessageId: 'thread-1',
       }),
     });
     expect(mockLoungeChannel.send).toHaveBeenCalled();
@@ -128,19 +125,19 @@ describe('runDailyCycle', () => {
 
     expect(result.ok).toBe(false);
     expect(result.reason).toBe('not_allowed');
-    expect(mockDiscussionsChannel.send).not.toHaveBeenCalled();
+    expect(mockDiscussionsChannel.threads.create).not.toHaveBeenCalled();
   });
 
-  it('deletes orphan discussions message when thread creation fails', async () => {
-    const { mockClient, mockDiscussionsMessage } = createMockClient();
-    (mockDiscussionsMessage.startThread as any).mockRejectedValueOnce(new Error('Missing Permissions'));
+  it('returns discord_error and writes no log when forum thread creation fails', async () => {
+    const { mockClient, mockDiscussionsChannel } = createMockClient();
+    (mockDiscussionsChannel.threads.create as any).mockRejectedValueOnce(new Error('Missing Permissions'));
 
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const result = await runDailyCycle(mockClient as any, CONFIG);
 
     expect(result.ok).toBe(false);
-    expect(mockDiscussionsMessage.delete).toHaveBeenCalled();
+    expect((result as { reason: string }).reason).toBe('discord_error');
     expect(prisma.discussionPromptLog.create).not.toHaveBeenCalled();
 
     consoleSpy.mockRestore();

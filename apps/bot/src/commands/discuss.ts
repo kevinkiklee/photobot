@@ -3,11 +3,11 @@ import {
   ChannelType,
   type ChatInputCommandInteraction,
   EmbedBuilder,
-  PermissionFlagsBits,
+  ForumChannel,
   SlashCommandBuilder,
   TextChannel,
 } from 'discord.js';
-import { BRAND_COLOR } from '../constants';
+import { BRAND_COLOR, STAFF_ROLE_IDS } from '../constants';
 import { canUseFeature } from '../middleware/permissions';
 import { isCycleLockHeld, runDailyCycle } from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
@@ -16,7 +16,6 @@ import { createPromptEmbed } from '../utils/embed';
 export const data = new SlashCommandBuilder()
   .setName('discuss')
   .setDescription('Photography discussion prompts for community engagement')
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addSubcommand((sub) =>
     sub
       .setName('schedule')
@@ -24,8 +23,8 @@ export const data = new SlashCommandBuilder()
       .addChannelOption((opt) =>
         opt
           .setName('discussions')
-          .setDescription('Channel where the daily prompt + thread is posted')
-          .addChannelTypes(ChannelType.GuildText)
+          .setDescription('Forum channel where each daily prompt is posted as a new forum thread')
+          .addChannelTypes(ChannelType.GuildForum)
           .setRequired(true),
       )
       .addChannelOption((opt) =>
@@ -75,6 +74,14 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction) {
   if (!interaction.guildId) {
     return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+  }
+
+  const roleIds = extractRoleIds(interaction.member);
+  if (!roleIds.some((id) => STAFF_ROLE_IDS.includes(id))) {
+    return interaction.reply({
+      content: 'Only Owners, Admins, and Mods can use this command.',
+      ephemeral: true,
+    });
   }
 
   const sub = interaction.options.getSubcommand();
@@ -127,9 +134,14 @@ async function handleSchedule(interaction: ChatInputCommandInteraction) {
       content: 'Could not access one of the channels. Check that the bot has permission to view them.',
     });
   }
-  if (!(discussionsChannel instanceof TextChannel) || !(loungeChannel instanceof TextChannel)) {
+  if (!(discussionsChannel instanceof ForumChannel)) {
     return interaction.editReply({
-      content: 'Both channels must be standard text channels.',
+      content: 'Discussions channel must be a forum channel.',
+    });
+  }
+  if (!(loungeChannel instanceof TextChannel)) {
+    return interaction.editReply({
+      content: 'Lounge channel must be a standard text channel.',
     });
   }
 
@@ -177,7 +189,7 @@ async function handleSchedule(interaction: ChatInputCommandInteraction) {
 
   return interaction.editReply({
     content:
-      `Discussion cycle configured. Daily prompt in <#${discussions.id}> at 08:00 UTC; ` +
+      `Discussion cycle configured. Daily forum post in <#${discussions.id}> at 08:00 UTC; ` +
       `announcements in <#${lounge.id}> at 08:00, 14:00, 20:00, 02:00 UTC.` +
       (category ? ` Category: ${category}.` : ''),
   });

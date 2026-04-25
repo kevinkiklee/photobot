@@ -33,7 +33,7 @@ vi.mock('../services/discussion-cycle', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { TextChannel, ChannelType } from 'discord.js';
+import { ForumChannel, TextChannel, ChannelType } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
 import { selectPrompt } from '../services/prompts';
 import { runDailyCycle, isCycleLockHeld } from '../services/discussion-cycle';
@@ -45,22 +45,32 @@ function makeChannel(id: string, type = ChannelType.GuildText) {
   return ch;
 }
 
+function makeForumChannel(id: string) {
+  const ch: any = { id, type: ChannelType.GuildForum };
+  Object.setPrototypeOf(ch, ForumChannel.prototype);
+  return ch;
+}
+
 function makeInteraction(opts: {
   subcommand: string;
   channelId?: string;
   guildId?: string;
   userId?: string;
+  roleIds?: string[];
   options?: Record<string, unknown>;
   channels?: Record<string, unknown>;
 }) {
   const replies: any[] = [];
+  // Default role: Admin (staff). Pass roleIds explicitly to override.
+  const roleIds = opts.roleIds ?? ['1152221843168698400'];
+  const roleCache = new Map(roleIds.map((id) => [id, { id }]));
   return {
     replies,
     interaction: {
       guildId: opts.guildId ?? 'guild-1',
       channelId: opts.channelId ?? 'ch-current',
       user: { id: opts.userId ?? 'user-1' },
-      member: { roles: { cache: new Map() } },
+      member: { roles: { cache: roleCache } },
       options: {
         getSubcommand: () => opts.subcommand,
         getString: (name: string) => (opts.options?.[name] as string | null) ?? null,
@@ -82,6 +92,41 @@ function makeInteraction(opts: {
     } as any,
   };
 }
+
+describe('/discuss role guard', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each([
+    ['owner', '728914549138260000'],
+    ['admin', '1152221843168698400'],
+    ['mod', '728914863480504342'],
+  ])('allows %s role through the guard', async (_label, roleId) => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(null);
+    const { interaction, replies } = makeInteraction({ subcommand: 'config', roleIds: [roleId] });
+
+    await execute(interaction);
+
+    // Reaches handleConfig, which replies with an embed (not the rejection string).
+    expect(JSON.stringify(replies[0])).not.toContain('Only Owners');
+  });
+
+  it('rejects members without a staff role', async () => {
+    const { interaction, replies } = makeInteraction({ subcommand: 'config', roleIds: ['999'] });
+
+    await execute(interaction);
+
+    expect(prisma.discussionConfig.findUnique).not.toHaveBeenCalled();
+    expect(JSON.stringify(replies[0])).toContain('Only Owners');
+  });
+
+  it('rejects members with no roles', async () => {
+    const { interaction, replies } = makeInteraction({ subcommand: 'config', roleIds: [] });
+
+    await execute(interaction);
+
+    expect(JSON.stringify(replies[0])).toContain('Only Owners');
+  });
+});
 
 describe('/discuss schedule', () => {
   beforeEach(() => {
@@ -106,7 +151,7 @@ describe('/discuss schedule', () => {
   });
 
   it('upserts singleton config with discussions/lounge IDs', async () => {
-    const dCh = makeChannel('d-1');
+    const dCh = makeForumChannel('d-1');
     const lCh = makeChannel('l-1');
     const { interaction } = makeInteraction({
       subcommand: 'schedule',

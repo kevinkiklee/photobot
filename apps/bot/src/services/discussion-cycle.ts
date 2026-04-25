@@ -2,6 +2,7 @@ import { prisma } from '@photobot/db';
 import {
   type Client,
   type Collection,
+  ForumChannel,
   type Message,
   type TextChannel,
   TextChannel as TextChannelClass,
@@ -63,7 +64,7 @@ export async function runDailyCycle(
     const allowed = await canUseFeature(config.discussionsChannelId, [], 'discuss');
     if (!allowed) return { ok: false, reason: 'not_allowed' };
 
-    const discussionsChannel = await fetchTextChannel(client, config.discussionsChannelId);
+    const discussionsChannel = await fetchForumChannel(client, config.discussionsChannelId);
     const loungeChannel = await fetchTextChannel(client, config.loungeChannelId);
     if (!discussionsChannel || !loungeChannel) {
       return { ok: false, reason: 'channel_unavailable' };
@@ -71,43 +72,32 @@ export async function runDailyCycle(
 
     const prompt = await selectPrompt(config.categoryFilter);
 
-    // Post the prompt embed in #discussions (no quiet wait).
-    let discussionsMessage: Message;
-    try {
-      const embed = createPromptEmbed(prompt.text, prompt.category, 'Discussion of the Day');
-      discussionsMessage = await discussionsChannel.send({ embeds: [embed] });
-    } catch (err) {
-      console.error('Failed to post in discussions channel:', err);
-      return { ok: false, reason: 'discord_error' };
-    }
-
-    // Create the thread.
+    // Create the forum post — this is atomic in Discord's API: post + thread
+    // are created in one call, no orphan-cleanup branch needed.
     let threadId: string;
     try {
-      const thread = await discussionsMessage.startThread({
+      const embed = createPromptEmbed(prompt.text, prompt.category, 'Discussion of the Day');
+      const thread = await discussionsChannel.threads.create({
         name: buildThreadName(prompt.text),
         autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
+        message: { embeds: [embed] },
       });
       threadId = thread.id;
     } catch (err) {
-      console.error('Failed to create discussion thread:', err);
-      // Best-effort cleanup of the orphan message.
-      try {
-        await discussionsMessage.delete();
-      } catch (delErr) {
-        console.error('Failed to delete orphan discussion message:', delErr);
-      }
+      console.error('Failed to create discussion forum post:', err);
       return { ok: false, reason: 'discord_error' };
     }
 
     // Insert the log row before attempting the lounge announcement.
+    // For forum posts, the starter-message id equals the thread id, so we
+    // store the same value in discussionsMessageId for audit/forward-compat.
     const log = await prisma.discussionPromptLog.create({
       data: {
         channelId: config.discussionsChannelId,
         promptText: prompt.text,
         category: prompt.category,
         threadId,
-        discussionsMessageId: discussionsMessage.id,
+        discussionsMessageId: threadId,
       },
     });
 
@@ -178,6 +168,17 @@ async function fetchTextChannel(client: Client, channelId: string): Promise<Text
     return channel;
   } catch (err) {
     console.error(`Failed to fetch channel ${channelId}:`, err);
+    return null;
+  }
+}
+
+async function fetchForumChannel(client: Client, channelId: string): Promise<ForumChannel | null> {
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel || !(channel instanceof ForumChannel)) return null;
+    return channel;
+  } catch (err) {
+    console.error(`Failed to fetch forum channel ${channelId}:`, err);
     return null;
   }
 }
