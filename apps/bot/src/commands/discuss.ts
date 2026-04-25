@@ -157,16 +157,16 @@ async function handleSchedule(interaction: ChatInputCommandInteraction) {
     data: {
       userId: interaction.user.id,
       action: 'SET_DISCUSSION_CONFIG',
-      targetType: 'GLOBAL',
+      targetType: 'SERVER',
       targetId: 'singleton',
       featureKey: 'discuss',
-      oldValue: previous
-        ? {
-            discussionsChannelId: previous.discussionsChannelId,
-            loungeChannelId: previous.loungeChannelId,
-            categoryFilter: previous.categoryFilter,
-          }
-        : null,
+      ...(previous && {
+        oldValue: {
+          discussionsChannelId: previous.discussionsChannelId,
+          loungeChannelId: previous.loungeChannelId,
+          categoryFilter: previous.categoryFilter,
+        },
+      }),
       newValue: {
         discussionsChannelId: discussions.id,
         loungeChannelId: lounge.id,
@@ -208,7 +208,7 @@ async function handlePostDaily(interaction: ChatInputCommandInteraction) {
     data: {
       userId: interaction.user.id,
       action: 'POST_DAILY_MANUAL',
-      targetType: 'GLOBAL',
+      targetType: 'SERVER',
       targetId: 'singleton',
       featureKey: 'discuss',
       newValue: { result: result.ok ? 'ok' : result.reason },
@@ -293,7 +293,7 @@ async function handleEnable(interaction: ChatInputCommandInteraction) {
     data: {
       userId: interaction.user.id,
       action: 'ENABLE_DISCUSSION',
-      targetType: 'GLOBAL',
+      targetType: 'SERVER',
       targetId: 'singleton',
       featureKey: 'discuss',
       newValue: { isActive: true },
@@ -321,7 +321,7 @@ async function handleDisable(interaction: ChatInputCommandInteraction) {
     data: {
       userId: interaction.user.id,
       action: 'DISABLE_DISCUSSION',
-      targetType: 'GLOBAL',
+      targetType: 'SERVER',
       targetId: 'singleton',
       featureKey: 'discuss',
       newValue: { isActive: false },

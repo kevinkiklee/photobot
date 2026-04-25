@@ -134,7 +134,7 @@ describe('/discuss schedule', () => {
     );
     expect(prisma.configAuditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ action: 'SET_DISCUSSION_CONFIG', targetType: 'GLOBAL' }),
+        data: expect.objectContaining({ action: 'SET_DISCUSSION_CONFIG', targetType: 'SERVER' }),
       }),
     );
   });
@@ -185,7 +185,7 @@ describe('/discuss post-daily', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           action: 'POST_DAILY_MANUAL',
-          targetType: 'GLOBAL',
+          targetType: 'SERVER',
           newValue: { result: 'ok' },
         }),
       }),
@@ -203,7 +203,7 @@ describe('/discuss post-daily', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           action: 'POST_DAILY_MANUAL',
-          targetType: 'GLOBAL',
+          targetType: 'SERVER',
           newValue: { result: 'discord_error' },
         }),
       }),
