@@ -1,11 +1,19 @@
 import { EmbedBuilder } from 'discord.js';
 import { BRAND_COLOR } from '../constants';
 
-export function createPromptEmbed(text: string, category: string, title = 'Discussion Prompt'): EmbedBuilder {
+export function createPromptEmbed(
+  text: string,
+  category: string,
+  title = 'Discussion Prompt',
+  threadUrl?: string,
+): EmbedBuilder {
+  const description = threadUrl
+    ? `${text}\n\n💬 [Continue in thread](${threadUrl})`
+    : text;
   return new EmbedBuilder()
     .setColor(BRAND_COLOR)
     .setTitle(title)
-    .setDescription(text)
+    .setDescription(description)
     .setFooter({ text: `Photobot • ${category}` })
     .setTimestamp();
 }
