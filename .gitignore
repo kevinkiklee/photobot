@@ -22,6 +22,7 @@ npm-debug.log*
 .idea
 .superpowers
 .todo
+.worktrees
 docs/superpowers
 
 # Build cache
