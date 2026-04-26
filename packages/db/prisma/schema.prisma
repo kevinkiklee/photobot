@@ -137,11 +137,40 @@ model DiscussionPromptLog {
   /// lounge post (including the initial 08:00 announcement). NOT updated on
   /// Discord API failure — failed announcements are retried at the next slot.
   lastAnnouncedAt       DateTime? @map("last_announced_at")
+  /// Set when mirroring should stop accepting new replies for this prompt:
+  /// the lounge prompt was deleted, the thread auto-archived, or admin
+  /// override. The active-prompt query is:
+  ///   WHERE mirrorEndedAt IS NULL AND loungePromptMessageId IS NOT NULL
+  ///   ORDER BY postedAt DESC LIMIT 1
+  mirrorEndedAt         DateTime? @map("mirror_ended_at")
   postedAt              DateTime  @default(now()) @map("posted_at")
+
+  mirroredMessages      MirroredMessage[]
 
   @@index([postedAt])
   @@index([channelId])
   @@map("discussion_prompt_logs")
+}
+
+model MirroredMessage {
+  /// Lounge channel message ID — the original message someone posted as a
+  /// reply to the prompt (or to a downstream reply already in this set).
+  /// PK because there is exactly one mirrored copy per lounge message.
+  loungeMessageId   String   @id @map("lounge_message_id")
+  /// Thread-side message ID — the bot's mirrored copy.
+  threadMessageId   String   @map("thread_message_id")
+  /// FK to the prompt log this mirror belongs to. Restrict on delete so that
+  /// deleting a prompt log fails noisily while mirrors exist (preserves audit).
+  promptLogId       String   @map("prompt_log_id")
+  promptLog         DiscussionPromptLog @relation(fields: [promptLogId], references: [id], onDelete: Restrict)
+  /// Author of the original lounge message. Snapshot at mirror time — does
+  /// NOT update if the user later renames. Documented behavior, not a bug.
+  authorId          String   @map("author_id")
+  authorDisplayName String   @map("author_display_name")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([promptLogId])
+  @@map("mirrored_messages")
 }
 
 enum VoteDirection {

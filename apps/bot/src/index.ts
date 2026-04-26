@@ -5,8 +5,22 @@ import { resolve } from 'path';
 config({ path: resolve(__dirname, '../../../.env') });
 
 import { prisma } from '@photobot/db';
-import { ChatInputCommandInteraction, Client, Collection, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  Client,
+  Collection,
+  Events,
+  GatewayIntentBits,
+  Partials,
+  REST,
+  Routes,
+} from 'discord.js';
 import * as discussCommand from './commands/discuss';
+import {
+  onLoungeMessageCreate,
+  onLoungeMessageDelete,
+  onLoungeMessageUpdate,
+} from './services/lounge-mirror';
 import { startScheduler, stopScheduler } from './services/scheduler';
 
 // Extend Client type to include commands
@@ -21,10 +35,19 @@ declare module 'discord.js' {
   }
 }
 
-// Only the Guilds intent is needed — the bot uses slash commands (not message
-// content) and fetches channel messages on-demand for conversation-pause detection.
+// Intents:
+//   Guilds          — slash commands and channel resolution.
+//   GuildMessages   — fire messageCreate/Update/Delete events for the lounge mirror.
+//   MessageContent  — privileged; required to read msg.content for mirroring.
+// Partials let edit/delete events fire for messages the bot didn't cache (e.g.,
+// edits to old messages after restart).
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+  partials: [Partials.Message, Partials.Channel],
 });
 
 client.commands = new Collection();
@@ -91,6 +114,27 @@ client.on(Events.GuildCreate, async (guild) => {
     console.log(`Leaving non-PL server: ${guild.name} (${guild.id})`);
     await guild.leave();
   }
+});
+
+// Mirror handlers — wrapped so an exception in mirror logic can never crash
+// the bot. Each handler is filtered against PL_GUILD_ID + the configured
+// lounge channel inside the service module.
+client.on(Events.MessageCreate, (msg) => {
+  onLoungeMessageCreate(msg).catch((err) =>
+    console.error('Mirror create handler error:', err),
+  );
+});
+
+client.on(Events.MessageUpdate, (_oldMsg, newMsg) => {
+  onLoungeMessageUpdate(newMsg).catch((err) =>
+    console.error('Mirror update handler error:', err),
+  );
+});
+
+client.on(Events.MessageDelete, (msg) => {
+  onLoungeMessageDelete(msg).catch((err) =>
+    console.error('Mirror delete handler error:', err),
+  );
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
