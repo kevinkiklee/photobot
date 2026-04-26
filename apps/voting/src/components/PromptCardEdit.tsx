@@ -70,6 +70,7 @@ export function PromptCardEdit({ initialText, initialTags, onSave, onCancel }: P
       </div>
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={handleSave}
           disabled={saving || editText.trim().length < 10}
           className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
@@ -78,6 +79,7 @@ export function PromptCardEdit({ initialText, initialTags, onSave, onCancel }: P
           {saving ? 'Saving...' : 'Save'}
         </button>
         <button
+          type="button"
           onClick={onCancel}
           className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-muted hover:text-primary transition-colors"
         >

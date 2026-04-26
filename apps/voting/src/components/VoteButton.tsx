@@ -36,6 +36,7 @@ export function VoteButton({ promptId, direction, count, active, disabled, onVot
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       disabled={disabled || loading}
       title={disabled ? 'Sign in to vote' : direction === 'UP' ? 'Upvote' : 'Downvote'}

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
@@ -33,11 +33,11 @@ vi.mock('../services/discussion-cycle', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { TextChannel, ChannelType } from 'discord.js';
-import { canUseFeature } from '../middleware/permissions';
-import { selectPrompt } from '../services/prompts';
-import { runDailyCycle, isCycleLockHeld } from '../services/discussion-cycle';
+import { ChannelType, TextChannel } from 'discord.js';
 import { execute } from '../commands/discuss';
+import { canUseFeature } from '../middleware/permissions';
+import { isCycleLockHeld, runDailyCycle } from '../services/discussion-cycle';
+import { selectPrompt } from '../services/prompts';
 
 function makeChannel(id: string, type = ChannelType.GuildText) {
   const ch: any = { id, type, isTextBased: () => true };

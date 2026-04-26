@@ -20,7 +20,7 @@ export function FeatureToggle({ featureKey, initialEnabled }: { featureKey: stri
           variant: 'success',
           message: `${featureKey} ${nextState ? 'enabled' : 'disabled'}`,
         });
-      } catch (error) {
+      } catch (_error) {
         setIsEnabled(!nextState);
         toast({
           variant: 'error',
@@ -32,6 +32,7 @@ export function FeatureToggle({ featureKey, initialEnabled }: { featureKey: stri
 
   return (
     <button
+      type="button"
       onClick={handleToggle}
       disabled={isPending}
       aria-pressed={isEnabled}

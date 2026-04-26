@@ -18,7 +18,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
   // Reset loading when page changes (navigation completed)
   useEffect(() => {
     setLoading(null);
-  }, [page]);
+  }, []);
 
   if (totalPages <= 1) return null;
 
@@ -42,6 +42,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
   return (
     <div className="flex items-center justify-center gap-1">
       <button
+        type="button"
         onClick={() => goTo(1)}
         disabled={page <= 1 || isLoading}
         className="p-2 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
@@ -50,6 +51,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
         <LucideChevronsLeft className="w-4 h-4" />
       </button>
       <button
+        type="button"
         onClick={() => goTo(page - 1)}
         disabled={page <= 1 || isLoading}
         className="p-2 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
@@ -60,6 +62,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
       {/* Desktop: full page range */}
       {pages.map((p) => (
         <button
+          type="button"
           key={p}
           onClick={() => goTo(p)}
           disabled={isLoading}
@@ -78,6 +81,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
         {page} / {totalPages}
       </span>
       <button
+        type="button"
         onClick={() => goTo(page + 1)}
         disabled={page >= totalPages || isLoading}
         className="p-2 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
@@ -86,6 +90,7 @@ export function Pagination({ page, totalPages }: PaginationProps) {
         <LucideChevronRight className="w-4 h-4" />
       </button>
       <button
+        type="button"
         onClick={() => goTo(totalPages)}
         disabled={page >= totalPages || isLoading}
         className="p-2 rounded-md text-muted hover:text-primary hover:bg-[var(--surface-elevated)] transition-all disabled:opacity-20 disabled:cursor-not-allowed"

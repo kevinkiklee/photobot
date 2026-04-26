@@ -20,11 +20,7 @@ vi.mock('@photobot/db', () => ({
 
 import { prisma } from '@photobot/db';
 import { MessageReferenceType } from 'discord.js';
-import {
-  onLoungeMessageCreate,
-  onLoungeMessageDelete,
-  onLoungeMessageUpdate,
-} from '../services/lounge-mirror';
+import { onLoungeMessageCreate, onLoungeMessageDelete, onLoungeMessageUpdate } from '../services/lounge-mirror';
 
 const ORIGINAL_PL_GUILD_ID = process.env.PL_GUILD_ID;
 const TEST_GUILD_ID = 'test-guild-1';

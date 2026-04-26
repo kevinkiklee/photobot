@@ -27,7 +27,7 @@ export function SearchInput() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [value]);
+  }, [value, searchParams.toString, router.replace, router.refresh]);
 
   return (
     <div className="relative">

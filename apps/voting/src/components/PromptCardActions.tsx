@@ -31,7 +31,7 @@ export function PromptCardActions({
   userVote,
   isAuthenticated,
   isOwner,
-  duplicateCount,
+  duplicateCount: _duplicateCount,
   userFlaggedDuplicate,
   tags,
   suggestedTags,
@@ -64,6 +64,7 @@ export function PromptCardActions({
       {total > 0 && <span className="text-xs text-muted font-medium tabular-nums">{approvalPct}%</span>}
       {isAuthenticated && !isOwner && (
         <button
+          type="button"
           onClick={async () => {
             setFlagging(true);
             try {

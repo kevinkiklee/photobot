@@ -1,4 +1,4 @@
-import { prisma, Prisma } from '@photobot/db';
+import { type Prisma, prisma } from '@photobot/db';
 
 type PromptWithRelations = Prisma.PromptGetPayload<{
   include: {
@@ -132,9 +132,7 @@ export async function fetchPrompts(
       submittedBy: isAdmin ? p.submittedBy || null : p.submittedBy ? 'community' : null,
       submittedByUsername: isAdmin ? p.submittedByUsername || null : null,
       duplicateCount: p.duplicateFlags.length,
-      userFlaggedDuplicate: discordUserId
-        ? p.duplicateFlags.some((f) => f.discordUserId === discordUserId)
-        : false,
+      userFlaggedDuplicate: discordUserId ? p.duplicateFlags.some((f) => f.discordUserId === discordUserId) : false,
       tagVotes: buildTagVotes(p.tagSuggestions, discordUserId),
       suggestedTags: buildSuggestedTags(
         p.tags.map((t) => t.tag),

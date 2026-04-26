@@ -39,8 +39,7 @@ export async function POST(request: NextRequest) {
     const count = await prisma.promptDuplicateFlag.count({ where: { promptId } });
 
     return NextResponse.json({ flagged: !existing, duplicateCount: count });
-  } catch (err) {
-    console.error('[POST /api/flag]', err);
+  } catch (_err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

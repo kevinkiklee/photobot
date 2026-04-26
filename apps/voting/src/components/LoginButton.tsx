@@ -32,6 +32,7 @@ export function LoginButton() {
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       disabled={loading}
       className="px-4 py-1.5 rounded-lg text-xs font-medium bg-brand-primary/15 text-brand-primary border border-brand-primary/20 hover:bg-brand-primary/25 transition-all"

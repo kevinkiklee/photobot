@@ -16,6 +16,7 @@ export function SubmitPrompt({ isAuthenticated }: { isAuthenticated: boolean }) 
 export function SubmitPromptButton({ onClick }: { onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20 hover:bg-brand-accent/25 transition-all whitespace-nowrap"
     >
@@ -77,6 +78,7 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-primary">Submit a Discussion Prompt</p>
         <button
+          type="button"
           onClick={() => {
             onClose();
             setError('');
@@ -102,6 +104,7 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
         <div className="flex flex-wrap gap-1">
           {ALL_TAGS.map((tag) => (
             <button
+              type="button"
               key={tag}
               onClick={() => toggleTag(tag)}
               className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all ${
@@ -124,6 +127,7 @@ export function SubmitPromptPanel({ onClose }: { onClose: () => void }) {
           {text.trim().length > 0 && text.trim().length < 10 && ` · ${10 - text.trim().length} more characters needed`}
         </span>
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={submitting || text.trim().length < 10}
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-brand-accent/15 text-brand-accent border border-brand-accent/20 hover:bg-brand-accent/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"

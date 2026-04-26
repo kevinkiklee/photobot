@@ -16,6 +16,7 @@ export default function AuditLoading() {
           <Skeleton className="h-3 w-32" />
         </div>
         {Array.from({ length: 8 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list never reorders
           <div key={i} className="border-b border-subtle last:border-0 px-5 py-3.5 flex gap-8">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-3 w-16" />

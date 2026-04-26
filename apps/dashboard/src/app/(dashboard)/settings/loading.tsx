@@ -9,6 +9,7 @@ export default function SettingsLoading() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
         {Array.from({ length: 4 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list never reorders
           <div key={i} className="animate-fade-up p-5 rounded-xl border border-subtle bg-card/50">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">

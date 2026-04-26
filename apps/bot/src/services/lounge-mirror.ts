@@ -10,9 +10,9 @@ import { prisma } from '@photobot/db';
 import {
   type Client,
   escapeMarkdown,
+  type Message,
   MessageFlags,
   MessageReferenceType,
-  type Message,
   type OmitPartialGroupDMChannel,
   type PartialMessage,
   type ThreadChannel,
@@ -40,37 +40,27 @@ async function getActivePromptLog() {
   });
 }
 
-async function markMirrorEnded(logId: string, reason: string): Promise<void> {
+async function markMirrorEnded(logId: string, _reason: string): Promise<void> {
   try {
     await prisma.discussionPromptLog.update({
       where: { id: logId },
       data: { mirrorEndedAt: new Date() },
     });
-    console.log(`[mirror] active prompt ended (${reason}) for ${logId}`);
-  } catch (err) {
-    console.error(`[mirror] failed to mark mirror ended for ${logId}:`, err);
-  }
+  } catch (_err) {}
 }
 
 /**
  * Build the bot-quoted mirror content. Bare placeholder when the original is
  * empty (e.g. image-only). Truncated to fit Discord's 2000-char message cap.
  */
-function buildMirrorContent(
-  authorDisplayName: string,
-  rawContent: string,
-  jumpUrl: string,
-): string {
+function buildMirrorContent(authorDisplayName: string, rawContent: string, jumpUrl: string): string {
   const escapedAuthor = escapeMarkdown(authorDisplayName);
   const trimmed = rawContent.trim();
   let quoted: string;
   if (trimmed.length === 0) {
     quoted = '*(no text — see lounge)*';
   } else {
-    const body =
-      trimmed.length > MAX_MIRRORED_BODY_LENGTH
-        ? trimmed.slice(0, MAX_MIRRORED_BODY_LENGTH) + '…'
-        : trimmed;
+    const body = trimmed.length > MAX_MIRRORED_BODY_LENGTH ? `${trimmed.slice(0, MAX_MIRRORED_BODY_LENGTH)}…` : trimmed;
     quoted = body
       .split('\n')
       .map((line) => `> ${line}`)
@@ -79,23 +69,17 @@ function buildMirrorContent(
   return `**${escapedAuthor}** [↗ jump](${jumpUrl})\n${quoted}`;
 }
 
-async function fetchActiveThread(
-  client: Client,
-  threadId: string,
-): Promise<ThreadChannel | null> {
+async function fetchActiveThread(client: Client, threadId: string): Promise<ThreadChannel | null> {
   try {
     const channel = await client.channels.fetch(threadId);
-    if (!channel || !channel.isThread()) return null;
+    if (!channel?.isThread()) return null;
     return channel as ThreadChannel;
   } catch {
     return null;
   }
 }
 
-async function shouldMirror(
-  msg: OmitPartialGroupDMChannel<Message>,
-  config: DiscussionConfigShape,
-): Promise<boolean> {
+async function shouldMirror(msg: OmitPartialGroupDMChannel<Message>, config: DiscussionConfigShape): Promise<boolean> {
   if (!msg.guild) return false;
   if (msg.guild.id !== process.env.PL_GUILD_ID) return false;
   if (msg.channel.id !== config.loungeChannelId) return false;
@@ -111,11 +95,9 @@ async function shouldMirror(
   return true;
 }
 
-export async function onLoungeMessageCreate(
-  msg: OmitPartialGroupDMChannel<Message>,
-): Promise<void> {
+export async function onLoungeMessageCreate(msg: OmitPartialGroupDMChannel<Message>): Promise<void> {
   const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
-  if (!config || !config.isActive) return;
+  if (!config?.isActive) return;
   if (!(await shouldMirror(msg, config))) return;
 
   // Idempotency: if we already mirrored this exact lounge message, no-op
@@ -126,11 +108,12 @@ export async function onLoungeMessageCreate(
   if (existing) return;
 
   const activePrompt = await getActivePromptLog();
-  if (!activePrompt || !activePrompt.threadId || !activePrompt.loungePromptMessageId) {
+  if (!activePrompt?.threadId || !activePrompt.loungePromptMessageId) {
     return;
   }
 
-  const referenceId = msg.reference!.messageId!;
+  const referenceId = msg.reference?.messageId;
+  if (!referenceId) return;
   const isReplyToPrompt = referenceId === activePrompt.loungePromptMessageId;
   if (!isReplyToPrompt) {
     const ancestor = await prisma.mirroredMessage.findUnique({
@@ -141,15 +124,12 @@ export async function onLoungeMessageCreate(
 
   const thread = await fetchActiveThread(msg.client, activePrompt.threadId);
   if (!thread || thread.archived) {
-    await markMirrorEnded(
-      activePrompt.id,
-      thread ? 'thread-archived' : 'thread-unavailable',
-    );
+    await markMirrorEnded(activePrompt.id, thread ? 'thread-archived' : 'thread-unavailable');
     return;
   }
 
   const authorName = msg.member?.displayName ?? msg.author.username;
-  const guildId = msg.guild!.id;
+  const guildId = msg.guild?.id;
   const jumpUrl = `https://discord.com/channels/${guildId}/${msg.channel.id}/${msg.id}`;
   const content = buildMirrorContent(authorName, msg.content, jumpUrl);
 
@@ -161,8 +141,7 @@ export async function onLoungeMessageCreate(
       flags: MessageFlags.SuppressNotifications,
     });
     threadMessageId = mirrored.id;
-  } catch (err) {
-    console.error(`[mirror] failed to post mirror for ${msg.id}:`, err);
+  } catch (_err) {
     return;
   }
 
@@ -176,12 +155,7 @@ export async function onLoungeMessageCreate(
         authorDisplayName: authorName,
       },
     });
-    console.log(
-      `[mirror] mirrored msg ${msg.id} → thread ${threadMessageId} for prompt ${activePrompt.id}`,
-    );
-  } catch (err) {
-    console.error(`[mirror] failed to record mirror row for ${msg.id}:`, err);
-  }
+  } catch (_err) {}
 }
 
 export async function onLoungeMessageUpdate(
@@ -202,12 +176,11 @@ export async function onLoungeMessageUpdate(
   let resolved: Message;
   try {
     resolved = newMessage.partial ? await newMessage.fetch() : (newMessage as Message);
-  } catch (err) {
-    console.error(`[mirror] failed to fetch updated message ${newMessage.id}:`, err);
+  } catch (_err) {
     return;
   }
 
-  const guildId = resolved.guild!.id;
+  const guildId = resolved.guild?.id;
   const jumpUrl = `https://discord.com/channels/${guildId}/${resolved.channel.id}/${resolved.id}`;
   const content = buildMirrorContent(row.authorDisplayName, resolved.content, jumpUrl);
 
@@ -220,10 +193,7 @@ export async function onLoungeMessageUpdate(
     if (!thread) return;
     const threadMessage = await thread.messages.fetch(row.threadMessageId);
     await threadMessage.edit({ content, allowedMentions: { parse: [] } });
-    console.log(`[mirror] edit propagated ${newMessage.id}`);
-  } catch (err) {
-    console.error(`[mirror] failed to propagate edit for ${newMessage.id}:`, err);
-  }
+  } catch (_err) {}
 }
 
 export async function onLoungeMessageDelete(
@@ -259,17 +229,9 @@ export async function onLoungeMessageDelete(
         try {
           const threadMessage = await thread.messages.fetch(row.threadMessageId);
           await threadMessage.delete();
-        } catch (err) {
-          console.error(
-            `[mirror] failed to delete thread message ${row.threadMessageId}:`,
-            err,
-          );
-        }
+        } catch (_err) {}
       }
     }
     await prisma.mirroredMessage.delete({ where: { loungeMessageId: deleted.id } });
-    console.log(`[mirror] delete propagated ${deleted.id}`);
-  } catch (err) {
-    console.error(`[mirror] failed to propagate delete for ${deleted.id}:`, err);
-  }
+  } catch (_err) {}
 }

@@ -56,6 +56,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
       {isAuthenticated && availableToSuggest.length > 0 && (
         <div className="relative" ref={suggestRef}>
           <button
+            type="button"
             onClick={() => setShowSuggest(!showSuggest)}
             className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] text-muted border border-dashed border-[var(--border-subtle)] hover:text-secondary hover:border-[var(--border-default)] transition-all"
             title="Suggest a tag"
@@ -69,6 +70,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
               <div className="flex flex-wrap gap-1">
                 {availableToSuggest.map((tag) => (
                   <button
+                    type="button"
                     key={tag}
                     onClick={() => {
                       handleVote(tag, 'ADD');
@@ -106,6 +108,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
             )}
             {isAuthenticated && (
               <button
+                type="button"
                 onClick={() => handleVote(tag, 'REMOVE')}
                 disabled={loadingTag === tag}
                 className="ml-0.5 opacity-40 hover:opacity-100 transition-opacity"
@@ -126,6 +129,7 @@ export function TagVotes({ promptId, tags, suggestedTags, tagVotes, isAuthentica
 
         return (
           <button
+            type="button"
             key={`suggest-${tag}`}
             onClick={() => handleVote(tag, 'ADD')}
             disabled={!isAuthenticated || loadingTag === tag}

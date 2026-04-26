@@ -82,8 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ tagVotes });
-  } catch (err) {
-    console.error('[POST /api/tag-vote]', err);
+  } catch (_err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

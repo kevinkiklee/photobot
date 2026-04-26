@@ -73,8 +73,7 @@ export async function POST(request: NextRequest) {
       submittedBy: prompt.submittedBy,
       submittedByUsername: prompt.submittedByUsername,
     });
-  } catch (err) {
-    console.error('[POST /api/prompt]', err);
+  } catch (_err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -133,8 +132,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     return NextResponse.json({ id: updated.id, text: updated.text });
-  } catch (err) {
-    console.error('[PATCH /api/prompt]', err);
+  } catch (_err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -173,8 +171,7 @@ export async function DELETE(request: NextRequest) {
     await prisma.prompt.delete({ where: { id: body.id } });
 
     return NextResponse.json({ deleted: true });
-  } catch (err) {
-    console.error('[DELETE /api/prompt]', err);
+  } catch (_err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

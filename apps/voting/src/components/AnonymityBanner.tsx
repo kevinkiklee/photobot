@@ -23,6 +23,7 @@ export function AnonymityBanner() {
         Your votes are anonymous to other members. Server admins can see individual votes to prevent misuse.
       </p>
       <button
+        type="button"
         onClick={() => {
           setDismissed(true);
           try {

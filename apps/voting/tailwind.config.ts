@@ -1,5 +1,5 @@
-import type { Config } from 'tailwindcss';
 import baseConfig from '@photobot/tailwind-config';
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   ...baseConfig,

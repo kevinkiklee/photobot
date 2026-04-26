@@ -2,9 +2,8 @@
 // The markdown format is: ## headings become categories, - bullets become prompts.
 // This keeps prompt content editable as plain text without touching code.
 
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export interface DiscussionPrompt {
   category: string;
@@ -45,8 +44,7 @@ export function loadPrompts(): DiscussionPrompt[] {
   try {
     const md = readFileSync(join(__dirname, 'discussion-prompts.md'), 'utf-8');
     return parsePromptsMarkdown(md);
-  } catch (err) {
-    console.error('Failed to load discussion prompts:', err);
+  } catch (_err) {
     return [];
   }
 }

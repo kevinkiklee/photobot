@@ -19,6 +19,7 @@ export function MobileNav() {
           const isActive = pathname === path;
           return (
             <button
+              type="button"
               key={path}
               onClick={() => router.push(path)}
               aria-label={label}

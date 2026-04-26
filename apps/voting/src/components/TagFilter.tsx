@@ -38,6 +38,7 @@ export function TagFilter() {
         const active = activeTags.includes(tag);
         return (
           <button
+            type="button"
             key={tag}
             onClick={() => toggle(tag)}
             className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-all whitespace-nowrap ${
@@ -52,6 +53,7 @@ export function TagFilter() {
       })}
       {!expanded && hiddenCount > 0 && (
         <button
+          type="button"
           onClick={() => setExpanded(true)}
           className="px-2 py-0.5 rounded text-[10px] font-medium text-muted border border-[var(--border-subtle)] hover:text-secondary transition-all"
         >
@@ -60,6 +62,7 @@ export function TagFilter() {
       )}
       {expanded && (
         <button
+          type="button"
           onClick={() => setExpanded(false)}
           className="px-2 py-0.5 rounded text-[10px] font-medium text-muted border border-[var(--border-subtle)] hover:text-secondary transition-all"
         >

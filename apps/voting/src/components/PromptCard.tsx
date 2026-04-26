@@ -88,6 +88,7 @@ export function PromptCard({
               <p className="text-sm text-primary leading-snug flex-1 min-w-0">{text}</p>
               {(isOwner || (isAdmin && isUserSubmitted)) && (
                 <button
+                  type="button"
                   onClick={() => setEditing(true)}
                   className="opacity-0 group-hover:opacity-100 p-0.5 text-muted hover:text-primary transition-all shrink-0 mt-0.5"
                   title="Edit prompt"
@@ -98,6 +99,7 @@ export function PromptCard({
               )}
               {canDelete && (
                 <button
+                  type="button"
                   onClick={async () => {
                     if (!confirm('Delete this prompt? This cannot be undone.')) return;
                     setDeleting(true);

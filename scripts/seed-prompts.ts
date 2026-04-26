@@ -1,6 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 
 const prisma = new PrismaClient();
 
@@ -131,15 +131,13 @@ async function main() {
   const content = readFileSync(mdPath, 'utf-8');
   const prompts = parseMarkdown(content);
 
-  console.log(`Parsed ${prompts.length} prompts. Seeding...`);
-
-  let created = 0;
-  let skipped = 0;
+  let _created = 0;
+  let _skipped = 0;
 
   for (const p of prompts) {
     const existing = await prisma.prompt.findFirst({ where: { text: p.text } });
     if (existing) {
-      skipped++;
+      _skipped++;
       continue;
     }
 
@@ -154,15 +152,12 @@ async function main() {
         },
       },
     });
-    created++;
+    _created++;
   }
-
-  console.log(`Done. Created: ${created}, Skipped (duplicates): ${skipped}`);
   await prisma.$disconnect();
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((_e) => {
   prisma.$disconnect();
   process.exit(1);
 });

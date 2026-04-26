@@ -103,7 +103,7 @@ describe('fetchPrompts - vote calculations', () => {
     ]);
 
     const result = await fetchPrompts({}, 'current-user');
-    expect(result.userVotes['p1']).toBe('DOWN');
+    expect(result.userVotes.p1).toBe('DOWN');
   });
 
   it('does not include userVotes when no discordUserId provided', async () => {

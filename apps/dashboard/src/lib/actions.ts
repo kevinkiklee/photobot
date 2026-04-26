@@ -29,14 +29,14 @@ export async function updateFeatureAction(featureKey: string, isEnabled: boolean
     where: {
       targetType_targetId_featureKey: {
         targetType: 'SERVER',
-        targetId: process.env.PL_GUILD_ID!,
+        targetId: process.env.PL_GUILD_ID ?? '',
         featureKey,
       },
     },
     update: { isEnabled },
     create: {
       targetType: 'SERVER',
-      targetId: process.env.PL_GUILD_ID!,
+      targetId: process.env.PL_GUILD_ID ?? '',
       featureKey,
       isEnabled,
     },
@@ -47,7 +47,7 @@ export async function updateFeatureAction(featureKey: string, isEnabled: boolean
       userId,
       action: 'UPDATE',
       targetType: 'SERVER',
-      targetId: process.env.PL_GUILD_ID!,
+      targetId: process.env.PL_GUILD_ID ?? '',
       featureKey,
       oldValue: { isEnabled: oldConfig?.isEnabled ?? true },
       newValue: { isEnabled },

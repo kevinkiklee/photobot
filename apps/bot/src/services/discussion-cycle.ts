@@ -78,15 +78,14 @@ export async function runDailyCycle(
 
     // Re-check isActive after the wait — admin may have disabled mid-cycle.
     const fresh = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
-    if (!fresh || !fresh.isActive) return { ok: true };
+    if (!fresh?.isActive) return { ok: true };
 
     // Post the prompt embed in lounge.
     let loungePromptMessage: Message;
     try {
       const embed = createPromptEmbed(prompt.text, 'Discussion of the Day');
       loungePromptMessage = await loungeChannel.send({ embeds: [embed] });
-    } catch (err) {
-      console.error('Failed to post lounge prompt:', err);
+    } catch (_err) {
       return { ok: false, reason: 'discord_error' };
     }
 
@@ -99,19 +98,14 @@ export async function runDailyCycle(
         autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
       });
       threadId = thread.id;
-    } catch (err) {
-      console.error('Failed to start thread on lounge prompt:', err);
+    } catch (_err) {
       try {
         await loungePromptMessage.delete();
-      } catch (deleteErr) {
-        console.error('Failed to clean up lounge prompt after thread failure:', deleteErr);
-      }
+      } catch (_deleteErr) {}
       return { ok: false, reason: 'discord_error' };
     }
 
-    const guildId =
-      loungeChannel.guildId ??
-      client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
+    const guildId = loungeChannel.guildId ?? client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
     const threadUrl = `https://discord.com/channels/${guildId}/${threadId}`;
 
     // Cross-post in #discussions. Best-effort — failure does not roll back.
@@ -120,9 +114,7 @@ export async function runDailyCycle(
       const crossPostEmbed = createPromptEmbed(prompt.text, 'Discussion of the Day', threadUrl);
       const crossPostMessage = await discussionsChannel.send({ embeds: [crossPostEmbed] });
       crossPostMessageId = crossPostMessage.id;
-    } catch (err) {
-      console.error('Failed to post cross-post in discussions channel:', err);
-    }
+    } catch (_err) {}
 
     await prisma.discussionPromptLog.create({
       data: {
@@ -164,13 +156,11 @@ export async function postBumpInLounge(
 
   // Re-check isActive after the wait — admin may have disabled mid-window.
   const fresh = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
-  if (!fresh || !fresh.isActive) return { posted: false, error: false };
+  if (!fresh?.isActive) return { posted: false, error: false };
 
   try {
     await loungeChannel.send({
-      content:
-        `💬 Today's prompt is still active — share your thoughts in the lounge ` +
-        `or [in the thread](${threadUrl}).`,
+      content: `💬 Today's prompt is still active — share your thoughts in the lounge or [in the thread](${threadUrl}).`,
       reply: { messageReference: loungePromptMessageId, failIfNotExists: false },
       allowedMentions: { repliedUser: false },
     });
@@ -179,8 +169,7 @@ export async function postBumpInLounge(
       data: { lastAnnouncedAt: new Date() },
     });
     return { posted: true, error: false };
-  } catch (err) {
-    console.error('Failed to post lounge bump:', err);
+  } catch (_err) {
     return { posted: false, error: true };
   }
 }
@@ -190,8 +179,7 @@ async function fetchTextChannel(client: Client, channelId: string): Promise<Text
     const channel = await client.channels.fetch(channelId);
     if (!channel || !(channel instanceof TextChannelClass)) return null;
     return channel;
-  } catch (err) {
-    console.error(`Failed to fetch channel ${channelId}:`, err);
+  } catch (_err) {
     return null;
   }
 }
@@ -200,7 +188,8 @@ async function isChannelQuiet(channel: TextChannel): Promise<boolean> {
   try {
     const messages: Collection<string, Message> = await channel.messages.fetch({ limit: 1 });
     if (messages.size === 0) return true;
-    const last = messages.first()!;
+    const last = messages.first();
+    if (!last) return true;
     return Date.now() - last.createdTimestamp >= QUIET_THRESHOLD_MS;
   } catch {
     return true;

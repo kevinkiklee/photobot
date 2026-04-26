@@ -34,7 +34,7 @@ describe('FeatureConfig Integration', () => {
       where: { targetId, featureKey: 'critique' },
     });
     expect(found).not.toBeNull();
-    expect(found!.id).toBe(config.id);
+    expect(found?.id).toBe(config.id);
   });
 
   it('enforces unique constraint on composite key', async () => {

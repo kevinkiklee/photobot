@@ -26,6 +26,7 @@ export function ErrorCard({ title = 'Something went wrong', message, onRetry }: 
 
       {onRetry && (
         <button
+          type="button"
           onClick={onRetry}
           className="px-5 py-2 rounded-lg text-sm font-medium bg-brand-primary/10 text-brand-primary border border-brand-primary/20 hover:bg-brand-primary/20 transition-colors"
         >

@@ -103,19 +103,26 @@ function ToasterInternal({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss
       {toasts.map((t) => {
         const { border, icon: Icon } = variantStyles[t.variant];
         return (
+          // biome-ignore lint/a11y/useSemanticElements: toast contains nested action button, cannot be a <button>
           <div
             key={t.id}
+            role="button"
+            tabIndex={0}
             className={`flex items-start gap-3 p-3 rounded-xl border ${border} bg-card/95 backdrop-blur-md shadow-lg cursor-pointer ${t.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
             onClick={() => onDismiss(t.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onDismiss(t.id);
+            }}
           >
             <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${variantIconColor[t.variant]}`} strokeWidth={2} />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-primary">{t.message}</p>
               {t.action && (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    t.action!.onClick();
+                    t.action?.onClick();
                     onDismiss(t.id);
                   }}
                   className="text-xs font-medium text-brand-primary hover:underline mt-1"

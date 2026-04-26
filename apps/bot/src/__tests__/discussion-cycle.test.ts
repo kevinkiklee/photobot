@@ -24,11 +24,7 @@ vi.mock('../services/prompts', () => ({
 import { prisma } from '@photobot/db';
 import { TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
-import {
-  postBumpInLounge,
-  resetCycleLockForTest,
-  runDailyCycle,
-} from '../services/discussion-cycle';
+import { postBumpInLounge, resetCycleLockForTest, runDailyCycle } from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
 
 const CONFIG = {
@@ -99,20 +95,13 @@ describe('runDailyCycle', () => {
   });
 
   it('posts prompt in lounge, creates thread on it, cross-posts in discussions, and writes log row', async () => {
-    const {
-      mockClient,
-      mockLoungeChannel,
-      mockDiscussionsChannel,
-      mockLoungePromptMessage,
-    } = createMockClient();
+    const { mockClient, mockLoungeChannel, mockDiscussionsChannel, mockLoungePromptMessage } = createMockClient();
 
     const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
 
     expect(result.ok).toBe(true);
     // Lounge prompt embed posted first.
-    expect(mockLoungeChannel.send).toHaveBeenCalledWith(
-      expect.objectContaining({ embeds: expect.any(Array) }),
-    );
+    expect(mockLoungeChannel.send).toHaveBeenCalledWith(expect.objectContaining({ embeds: expect.any(Array) }));
     // Thread started on the lounge prompt message.
     expect(mockLoungePromptMessage.startThread).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -121,9 +110,7 @@ describe('runDailyCycle', () => {
       }),
     );
     // Cross-post in discussions channel with thread URL embedded.
-    expect(mockDiscussionsChannel.send).toHaveBeenCalledWith(
-      expect.objectContaining({ embeds: expect.any(Array) }),
-    );
+    expect(mockDiscussionsChannel.send).toHaveBeenCalledWith(expect.objectContaining({ embeds: expect.any(Array) }));
     // Log row reflects the new schema.
     expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -190,9 +177,7 @@ describe('runDailyCycle', () => {
 
   it('rolls back the lounge prompt if startThread fails', async () => {
     const { mockClient, mockLoungePromptMessage } = createMockClient();
-    (mockLoungePromptMessage.startThread as any).mockRejectedValueOnce(
-      new Error('Missing Permissions'),
-    );
+    (mockLoungePromptMessage.startThread as any).mockRejectedValueOnce(new Error('Missing Permissions'));
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });

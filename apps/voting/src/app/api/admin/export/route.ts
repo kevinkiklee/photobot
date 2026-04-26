@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  if (!checkRateLimit('admin-export', session.discordUserId!, 10)) {
+  if (!checkRateLimit('admin-export', session.discordUserId ?? '', 10)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
@@ -69,8 +69,7 @@ export async function GET() {
         'Content-Disposition': `attachment; filename="photobot-prompts-export-${new Date().toISOString().slice(0, 10)}.json"`,
       },
     });
-  } catch (err) {
-    console.error('[GET /api/admin/export]', err);
+  } catch (_err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

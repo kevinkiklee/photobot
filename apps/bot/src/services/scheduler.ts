@@ -10,12 +10,7 @@
 import { prisma } from '@photobot/db';
 import type { Client, TextChannel } from 'discord.js';
 import { TextChannel as TextChannelClass } from 'discord.js';
-import {
-  postBumpInLounge,
-  releaseCycleLock,
-  runDailyCycle,
-  tryAcquireCycleLock,
-} from './discussion-cycle';
+import { postBumpInLounge, releaseCycleLock, runDailyCycle, tryAcquireCycleLock } from './discussion-cycle';
 
 const SLOT_HOURS_UTC = [2, 8, 14, 20] as const;
 const DAILY_SLOT_HOUR_UTC = 8;
@@ -37,24 +32,19 @@ export function currentSlotStart(now: Date): Date {
 }
 
 export function todaysDailySlotStart(slotStart: Date): Date {
-  const utcDateMs = Date.UTC(
-    slotStart.getUTCFullYear(),
-    slotStart.getUTCMonth(),
-    slotStart.getUTCDate(),
-  );
+  const utcDateMs = Date.UTC(slotStart.getUTCFullYear(), slotStart.getUTCMonth(), slotStart.getUTCDate());
   return new Date(utcDateMs + DAILY_SLOT_HOUR_UTC * 60 * 60 * 1000);
 }
 
 export async function startScheduler(client: Client): Promise<void> {
   if (tickInterval) {
-    console.warn('Scheduler already running');
     return;
   }
   clientRef = client;
 
   await onTick();
   tickInterval = setInterval(() => {
-    onTick().catch((err) => console.error('Scheduler tick error:', err));
+    onTick().catch((_err) => {});
   }, TICK_INTERVAL_MS);
 }
 
@@ -74,7 +64,7 @@ async function onTick(): Promise<void> {
 
   try {
     const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
-    if (!config || !config.isActive) return;
+    if (!config?.isActive) return;
 
     const now = new Date();
     const slotStart = currentSlotStart(now);
@@ -82,8 +72,7 @@ async function onTick(): Promise<void> {
     if (now.getTime() - slotStart.getTime() > CATCHUP_HORIZON_MS) return;
 
     await runSlot(clientRef, config, slotStart);
-  } catch (err) {
-    console.error('Scheduler tick error:', err);
+  } catch (_err) {
   } finally {
     isTickRunning = false;
   }
@@ -122,7 +111,7 @@ async function runSlot(
     },
     orderBy: { postedAt: 'desc' },
   });
-  if (!current || !current.threadId || !current.loungePromptMessageId) return;
+  if (!current?.threadId || !current.loungePromptMessageId) return;
   if (current.lastAnnouncedAt && current.lastAnnouncedAt >= slotStart) return;
 
   const loungeChannel = await fetchTextChannel(client, config.loungeChannelId);
@@ -132,16 +121,9 @@ async function runSlot(
   // /discuss post-daily call.
   if (!tryAcquireCycleLock()) return;
   try {
-    const guildId =
-      loungeChannel.guildId ??
-      client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
+    const guildId = loungeChannel.guildId ?? client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
     const threadUrl = `https://discord.com/channels/${guildId}/${current.threadId}`;
-    await postBumpInLounge(
-      current.id,
-      current.loungePromptMessageId,
-      threadUrl,
-      loungeChannel,
-    );
+    await postBumpInLounge(current.id, current.loungePromptMessageId, threadUrl, loungeChannel);
   } finally {
     releaseCycleLock();
   }
@@ -152,8 +134,7 @@ async function fetchTextChannel(client: Client, channelId: string): Promise<Text
     const channel = await client.channels.fetch(channelId);
     if (!channel || !(channel instanceof TextChannelClass)) return null;
     return channel;
-  } catch (err) {
-    console.error(`Failed to fetch channel ${channelId}:`, err);
+  } catch (_err) {
     return null;
   }
 }

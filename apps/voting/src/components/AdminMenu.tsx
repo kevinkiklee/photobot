@@ -18,6 +18,7 @@ export function AdminMenu({ username }: { username: string }) {
   return (
     <div ref={ref} className="relative sm:hidden">
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
         className="p-1.5 rounded-md text-brand-accent hover:bg-brand-accent/10 transition-colors"
         title="Staff menu"

@@ -6,8 +6,12 @@ function TestComponent() {
   const { toast } = useToast();
   return (
     <div>
-      <button onClick={() => toast({ variant: 'success', message: 'It worked!' })}>Show Success</button>
-      <button onClick={() => toast({ variant: 'error', message: 'It failed!' })}>Show Error</button>
+      <button type="button" onClick={() => toast({ variant: 'success', message: 'It worked!' })}>
+        Show Success
+      </button>
+      <button type="button" onClick={() => toast({ variant: 'error', message: 'It failed!' })}>
+        Show Error
+      </button>
     </div>
   );
 }

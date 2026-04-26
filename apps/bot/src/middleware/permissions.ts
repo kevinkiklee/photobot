@@ -18,7 +18,7 @@ export async function canUseFeature(channelId: string, roleIds: string[], featur
       OR: [
         { targetType: TargetType.CHANNEL, targetId: channelId },
         { targetType: TargetType.ROLE, targetId: { in: roleIds } },
-        { targetType: TargetType.SERVER, targetId: process.env.PL_GUILD_ID! },
+        { targetType: TargetType.SERVER, targetId: process.env.PL_GUILD_ID ?? '' },
       ],
     },
   });

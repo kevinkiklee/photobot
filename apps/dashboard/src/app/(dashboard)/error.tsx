@@ -2,7 +2,13 @@
 
 import { ErrorCard } from '@/components/ErrorCard';
 
-export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function DashboardError({
+  error: _error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
     <div className="flex items-center justify-center min-h-[60vh] p-6">
       <ErrorCard

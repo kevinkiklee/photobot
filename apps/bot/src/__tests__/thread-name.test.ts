@@ -13,7 +13,8 @@ describe('buildThreadName', () => {
 
   it('truncates at last space before 100 chars and appends ellipsis', () => {
     // 131 chars with spaces
-    const text = 'What does negative space mean to you in your photography practice and how do you use it on a daily basis to make compelling images?';
+    const text =
+      'What does negative space mean to you in your photography practice and how do you use it on a daily basis to make compelling images?';
     const result = buildThreadName(text);
     expect(result.length).toBeLessThanOrEqual(101); // <=100 + ellipsis
     expect(result.endsWith('…')).toBe(true);
@@ -23,7 +24,7 @@ describe('buildThreadName', () => {
   it('hard-cuts at 100 chars when no space exists', () => {
     const text = 'a'.repeat(150);
     const result = buildThreadName(text);
-    expect(result).toBe('a'.repeat(100) + '…');
+    expect(result).toBe(`${'a'.repeat(100)}…`);
   });
 
   it('handles empty string', () => {

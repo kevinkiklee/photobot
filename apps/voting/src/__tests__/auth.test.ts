@@ -31,7 +31,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
-    const sessionCallback = authOptions.callbacks!.session!;
+    const sessionCallback = authOptions.callbacks?.session;
 
     (prisma.account.findFirst as any).mockResolvedValue({
       providerAccountId: 'admin-1',
@@ -54,7 +54,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
-    const sessionCallback = authOptions.callbacks!.session!;
+    const sessionCallback = authOptions.callbacks?.session;
 
     (prisma.account.findFirst as any).mockResolvedValue({
       providerAccountId: 'regular-user',
@@ -77,7 +77,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
-    const sessionCallback = authOptions.callbacks!.session!;
+    const sessionCallback = authOptions.callbacks?.session;
 
     (prisma.account.findFirst as any).mockResolvedValue({
       providerAccountId: 'any-user',
@@ -99,7 +99,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
-    const sessionCallback = authOptions.callbacks!.session!;
+    const sessionCallback = authOptions.callbacks?.session;
 
     (prisma.account.findFirst as any).mockResolvedValue({
       providerAccountId: 'admin-2',
@@ -121,7 +121,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
-    const sessionCallback = authOptions.callbacks!.session!;
+    const sessionCallback = authOptions.callbacks?.session;
 
     (prisma.account.findFirst as any).mockResolvedValue({
       providerAccountId: 'user-5',
@@ -143,7 +143,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
-    const sessionCallback = authOptions.callbacks!.session!;
+    const sessionCallback = authOptions.callbacks?.session;
 
     (prisma.account.findFirst as any).mockResolvedValue({
       providerAccountId: 'user-6',
@@ -165,7 +165,7 @@ describe('auth - admin detection from VOTING_ADMIN_USER_IDS', () => {
     vi.stubEnv('PL_GUILD_ID', '');
 
     const { authOptions } = await import('@/lib/auth');
-    const sessionCallback = authOptions.callbacks!.session!;
+    const sessionCallback = authOptions.callbacks?.session;
 
     (prisma.account.findFirst as any).mockResolvedValue(null);
 

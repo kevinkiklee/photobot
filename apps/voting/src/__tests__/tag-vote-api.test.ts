@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/session', () => ({
   getSession: vi.fn(),
@@ -20,11 +20,11 @@ vi.mock('@photobot/db', () => ({
   },
 }));
 
+import { prisma } from '@photobot/db';
 import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/tag-vote/route';
-import { getSession } from '@/lib/session';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { prisma } from '@photobot/db';
+import { getSession } from '@/lib/session';
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest('http://localhost/api/tag-vote', {
@@ -145,10 +145,23 @@ describe('POST /api/tag-vote', () => {
 
   it('accepts all 17 valid tags', async () => {
     const validTags = [
-      'motivation', 'workflow', 'style', 'editing', 'portfolio',
-      'storytelling', 'collaboration', 'social-media', 'gear', 'ethics',
-      'business', 'influences', 'learning', 'projects', 'self-reflection',
-      'community', 'technique',
+      'motivation',
+      'workflow',
+      'style',
+      'editing',
+      'portfolio',
+      'storytelling',
+      'collaboration',
+      'social-media',
+      'gear',
+      'ethics',
+      'business',
+      'influences',
+      'learning',
+      'projects',
+      'self-reflection',
+      'community',
+      'technique',
     ];
 
     for (const tag of validTags) {

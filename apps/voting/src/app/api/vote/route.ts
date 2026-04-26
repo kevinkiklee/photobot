@@ -27,8 +27,7 @@ export async function POST(request: NextRequest) {
     const result = await handleVote(promptId, session.discordUserId, session.discordUsername || 'Unknown', direction);
 
     return NextResponse.json(result);
-  } catch (err) {
-    console.error('[POST /api/vote]', err);
+  } catch (_err) {
     return NextResponse.json({ error: 'Vote failed' }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@ import { signOut } from 'next-auth/react';
 export function SignOutButton() {
   return (
     <button
+      type="button"
       onClick={() => signOut()}
       title="Sign out"
       aria-label="Sign out"

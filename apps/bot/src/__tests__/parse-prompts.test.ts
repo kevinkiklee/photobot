@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePromptsMarkdown, loadPrompts } from '../data/parse-prompts';
+import { loadPrompts, parsePromptsMarkdown } from '../data/parse-prompts';
 
 describe('parsePromptsMarkdown', () => {
   it('parses multiple categories with their prompts', () => {

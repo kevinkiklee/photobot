@@ -24,9 +24,9 @@ vi.mock('../services/prompts', () => ({
 import { prisma } from '@photobot/db';
 import { TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
-import { selectPrompt } from '../services/prompts';
 import { resetCycleLockForTest } from '../services/discussion-cycle';
-import { currentSlotStart, todaysDailySlotStart, startScheduler, stopScheduler } from '../services/scheduler';
+import { selectPrompt } from '../services/prompts';
+import { currentSlotStart, startScheduler, stopScheduler, todaysDailySlotStart } from '../services/scheduler';
 
 const CONFIG = {
   id: 'singleton',
@@ -139,8 +139,7 @@ describe('Scheduler tick behavior', () => {
   });
 
   it('fires daily cycle at the 08:00 slot when no daily fired today', async () => {
-    const { mockClient, mockLoungeChannel, mockLoungePromptMessage, mockDiscussionsChannel } =
-      createMockClient();
+    const { mockClient, mockLoungeChannel, mockLoungePromptMessage, mockDiscussionsChannel } = createMockClient();
     vi.setSystemTime(new Date('2026-04-25T08:05:00Z'));
 
     await startScheduler(mockClient as any);
@@ -229,9 +228,7 @@ describe('Scheduler tick behavior', () => {
       postedAt: new Date('2026-04-25T08:00:00Z'),
       lastAnnouncedAt: new Date('2026-04-25T08:00:00Z'),
     };
-    (prisma.discussionPromptLog.findFirst as any)
-      .mockResolvedValueOnce(legacyRow)
-      .mockResolvedValueOnce(legacyRow);
+    (prisma.discussionPromptLog.findFirst as any).mockResolvedValueOnce(legacyRow).mockResolvedValueOnce(legacyRow);
 
     await startScheduler(mockClient as any);
 

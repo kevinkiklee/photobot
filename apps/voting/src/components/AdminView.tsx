@@ -1,6 +1,6 @@
 'use client';
 
-import { LucideChevronDown, LucideChevronRight, LucideThumbsDown, LucideThumbsUp, LucideX } from 'lucide-react';
+import { LucideChevronRight, LucideThumbsDown, LucideThumbsUp, LucideX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { AdminStats } from '@/lib/admin';
 import { Spinner } from './Spinner';
@@ -97,6 +97,7 @@ export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
   return (
     <div className="relative" ref={popoverRef}>
       <button
+        type="button"
         onClick={toggle}
         aria-expanded={open}
         className="flex items-center gap-1 text-[11px] text-muted hover:text-secondary transition-colors"
@@ -112,6 +113,7 @@ export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
               {voters.length} voter{voters.length !== 1 ? 's' : ''}
             </span>
             <button
+              type="button"
               onClick={() => setOpen(false)}
               className="p-0.5 text-muted hover:text-primary transition-colors"
               aria-label="Close voters"
@@ -122,9 +124,9 @@ export function VoterDetail({ promptId, voteVersion = 0 }: VoterDetailProps) {
 
           <div className="max-h-48 overflow-y-auto py-1">
             {voters.length === 0 && <p className="text-[11px] text-muted px-3 py-2">No votes yet</p>}
-            {voters.map((v, i) => (
+            {voters.map((v) => (
               <div
-                key={i}
+                key={`${v.discordUsername}-${v.createdAt}`}
                 className="flex items-center gap-2 px-3 py-1 text-[11px] hover:bg-[var(--surface-elevated)] transition-colors"
               >
                 {v.vote === 'UP' ? (

@@ -37,15 +37,10 @@ export const data = new SlashCommandBuilder()
         opt
           .setName('category')
           .setDescription('Limit prompts to a category')
-          .addChoices(
-            { name: 'Creative Process', value: 'creative' },
-            { name: 'Inspiration', value: 'inspiration' },
-          ),
+          .addChoices({ name: 'Creative Process', value: 'creative' }, { name: 'Inspiration', value: 'inspiration' }),
       ),
   )
-  .addSubcommand((sub) =>
-    sub.setName('post-daily').setDescription('Manually fire the daily discussion cycle now'),
-  )
+  .addSubcommand((sub) => sub.setName('post-daily').setDescription('Manually fire the daily discussion cycle now'))
   .addSubcommand((sub) =>
     sub
       .setName('post-here')
@@ -54,18 +49,11 @@ export const data = new SlashCommandBuilder()
         opt
           .setName('category')
           .setDescription('Limit to a category')
-          .addChoices(
-            { name: 'Creative Process', value: 'creative' },
-            { name: 'Inspiration', value: 'inspiration' },
-          ),
+          .addChoices({ name: 'Creative Process', value: 'creative' }, { name: 'Inspiration', value: 'inspiration' }),
       ),
   )
-  .addSubcommand((sub) =>
-    sub.setName('config').setDescription('Show the current discussion cycle configuration'),
-  )
-  .addSubcommand((sub) =>
-    sub.setName('enable').setDescription('Enable the daily discussion cycle'),
-  )
+  .addSubcommand((sub) => sub.setName('config').setDescription('Show the current discussion cycle configuration'))
+  .addSubcommand((sub) => sub.setName('enable').setDescription('Enable the daily discussion cycle'))
   .addSubcommand((sub) =>
     sub.setName('disable').setDescription('Disable the daily discussion cycle'),
   ) as SlashCommandBuilder;
@@ -127,8 +115,7 @@ async function handleSchedule(interaction: ChatInputCommandInteraction) {
   try {
     discussionsChannel = await interaction.client.channels.fetch(discussions.id);
     loungeChannel = await interaction.client.channels.fetch(lounge.id);
-  } catch (err) {
-    console.error('Failed to fetch channels during /discuss schedule:', err);
+  } catch (_err) {
     return interaction.editReply({
       content: 'Could not access one of the channels. Check that the bot has permission to view them.',
     });
@@ -257,9 +244,7 @@ async function handlePostHere(interaction: ChatInputCommandInteraction) {
         category: prompt.category,
       },
     });
-  } catch (err) {
-    console.error('Failed to log discussion prompt:', err);
-  }
+  } catch (_err) {}
 }
 
 async function handleConfig(interaction: ChatInputCommandInteraction) {

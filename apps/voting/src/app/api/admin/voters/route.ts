@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  if (!checkRateLimit('admin-voters', session.discordUserId!, 30)) {
+  if (!checkRateLimit('admin-voters', session.discordUserId ?? '', 30)) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
@@ -21,8 +21,7 @@ export async function GET(request: NextRequest) {
   try {
     const voters = await getVotersForPrompt(promptId);
     return NextResponse.json({ voters });
-  } catch (err) {
-    console.error('[GET /api/admin/voters]', err);
+  } catch (_err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
