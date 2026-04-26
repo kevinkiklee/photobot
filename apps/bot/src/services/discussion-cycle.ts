@@ -57,6 +57,7 @@ export function resetCycleLockForTest(): void {
 export async function runDailyCycle(
   client: Client,
   config: DiscussionConfigShape,
+  options: { skipQuietWait?: boolean } = {},
 ): Promise<CycleResult> {
   if (!tryAcquireCycleLock()) return { ok: false, reason: 'busy' };
 
@@ -109,6 +110,7 @@ export async function runDailyCycle(
       prompt.category,
       threadId,
       loungeChannel,
+      { skipQuietWait: options.skipQuietWait },
     );
 
     // A genuine Discord/DB error during the lounge phase fails the cycle.
@@ -134,8 +136,9 @@ export async function runLoungeAnnounce(
   category: string,
   threadId: string,
   loungeChannel: TextChannel,
+  options: { skipQuietWait?: boolean } = {},
 ): Promise<AnnounceResult> {
-  await waitForQuiet(loungeChannel);
+  if (!options.skipQuietWait) await waitForQuiet(loungeChannel);
 
   // Re-check isActive after the wait — admin may have disabled mid-cycle.
   const fresh = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });

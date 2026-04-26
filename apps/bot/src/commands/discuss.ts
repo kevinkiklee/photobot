@@ -213,7 +213,7 @@ async function handlePostDaily(interaction: ChatInputCommandInteraction) {
 
   await interaction.deferReply({ ephemeral: true });
 
-  const result = await runDailyCycle(interaction.client, config);
+  const result = await runDailyCycle(interaction.client, config, { skipQuietWait: true });
 
   await prisma.configAuditLog.create({
     data: {
