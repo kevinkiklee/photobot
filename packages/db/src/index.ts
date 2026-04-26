@@ -14,8 +14,22 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma || createPrismaClient();
+function getPrismaClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
+  return globalForPrisma.prisma;
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// Lazy proxy — defers client creation until first property access so that
+// process.env.DATABASE_URL is read after dotenv has loaded (ESM hoists
+// static imports above imperative code like dotenv.config()).
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_, prop) {
+    const client = getPrismaClient();
+    const value = (client as any)[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
 
 export * from './generated/prisma/client';
