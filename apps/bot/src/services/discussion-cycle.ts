@@ -77,7 +77,7 @@ export async function runDailyCycle(
     // are created in one call, no orphan-cleanup branch needed.
     let threadId: string;
     try {
-      const embed = createPromptEmbed(prompt.text, prompt.category, 'Discussion of the Day');
+      const embed = createPromptEmbed(prompt.text, 'Discussion of the Day');
       const thread = await discussionsChannel.threads.create({
         name: buildThreadName(prompt.text),
         autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
@@ -107,7 +107,6 @@ export async function runDailyCycle(
       client,
       log.id,
       prompt.text,
-      prompt.category,
       threadId,
       loungeChannel,
       { skipQuietWait: options.skipQuietWait },
@@ -133,7 +132,6 @@ export async function runLoungeAnnounce(
   client: Client,
   logId: string,
   promptText: string,
-  category: string,
   threadId: string,
   loungeChannel: TextChannel,
   options: { skipQuietWait?: boolean } = {},
@@ -148,7 +146,7 @@ export async function runLoungeAnnounce(
     loungeChannel.guildId ??
     client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
   const threadUrl = `https://discord.com/channels/${guildId}/${threadId}`;
-  const embed = createPromptEmbed(promptText, category, 'Discussion of the Day', threadUrl);
+  const embed = createPromptEmbed(promptText, 'Discussion of the Day', threadUrl);
 
   try {
     await loungeChannel.send({ embeds: [embed] });

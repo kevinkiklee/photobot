@@ -132,7 +132,6 @@ async function runSlot(
       client,
       current.id,
       current.promptText,
-      current.category,
       current.threadId,
       loungeChannel,
     );

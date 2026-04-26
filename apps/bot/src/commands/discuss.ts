@@ -246,7 +246,7 @@ async function handlePostHere(interaction: ChatInputCommandInteraction) {
 
   const category = interaction.options.getString('category');
   const prompt = await selectPrompt(category);
-  const embed = createPromptEmbed(prompt.text, prompt.category);
+  const embed = createPromptEmbed(prompt.text);
 
   await interaction.reply({ embeds: [embed] });
 

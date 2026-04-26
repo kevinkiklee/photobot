@@ -3,7 +3,6 @@ import { BRAND_COLOR } from '../constants';
 
 export function createPromptEmbed(
   text: string,
-  category: string,
   title = 'Discussion Prompt',
   threadUrl?: string,
 ): EmbedBuilder {
@@ -14,6 +13,6 @@ export function createPromptEmbed(
     .setColor(BRAND_COLOR)
     .setTitle(title)
     .setDescription(description)
-    .setFooter({ text: `Photobot • ${category}` })
+    .setFooter({ text: 'Photobot' })
     .setTimestamp();
 }
