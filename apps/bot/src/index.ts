@@ -7,7 +7,6 @@ config({ path: resolve(__dirname, '../../../.env') });
 import { prisma } from '@photobot/db';
 import { ChatInputCommandInteraction, Client, Collection, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
 import * as discussCommand from './commands/discuss';
-import * as settingsCommand from './commands/settings';
 import { startScheduler, stopScheduler } from './services/scheduler';
 
 // Extend Client type to include commands
@@ -29,7 +28,6 @@ const client = new Client({
 });
 
 client.commands = new Collection();
-client.commands.set(settingsCommand.data.name, settingsCommand);
 client.commands.set(discussCommand.data.name, discussCommand);
 
 const token = process.env.DISCORD_TOKEN;
@@ -54,24 +52,31 @@ function isAllowedGuild(guildId: string | null): boolean {
 const rest = new REST({ version: '10' }).setToken(token);
 
 (async () => {
-  const body = [settingsCommand.data.toJSON(), discussCommand.data.toJSON()];
-  const targetGuilds = [plGuildId, devGuildId].filter((id): id is string => !!id);
+  const body = [discussCommand.data.toJSON()];
+  // When DEV_GUILD_ID is set we're running the dev bot, which isn't a member
+  // of PL_GUILD_ID — registering there would 403 with Missing Access.
+  const targetGuilds = devGuildId ? [devGuildId] : [plGuildId];
 
-  try {
-    console.log('Started refreshing application (/) commands.');
+  console.log('Started refreshing application (/) commands.');
 
-    for (const guildId of targetGuilds) {
+  // Register per-guild independently — a dev bot may not be in PL_GUILD_ID
+  // (and vice versa). Failing one guild must not block the others.
+  for (const guildId of targetGuilds) {
+    try {
       await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
       console.log(`Registered guild commands for ${guildId}.`);
+    } catch (error) {
+      console.error(`Failed to register guild commands for ${guildId}:`, error);
     }
+  }
 
+  try {
     // Clear any stale global commands left over from earlier global-registration
     // builds. A no-op once cleared; safe to run on every boot.
     await rest.put(Routes.applicationCommands(clientId), { body: [] });
-
     console.log('Successfully reloaded application (/) commands.');
   } catch (error) {
-    console.error(error);
+    console.error('Failed to clear global commands:', error);
   }
 })();
 
