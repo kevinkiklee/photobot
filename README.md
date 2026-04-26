@@ -19,8 +19,8 @@ through an admin dashboard — exclusively serving Photography Lounge.
 
 ## Features
 
-- **Discussion Prompts** -- 400 curated prompts across Creative Process and Inspiration, posted on a schedule with conversation-aware timing
-- **Admin Dashboard** -- Web-based feature management with Discord OAuth, audit logging, and schedule management
+- **Daily Discussion Cycle** -- 400 curated prompts across Creative Process and Inspiration, posted at 08:00 UTC daily as a lounge thread and cross-posted to a discussions channel; lounge replies are mirrored into the thread
+- **Admin Dashboard** -- Web-based feature management with Discord OAuth, audit logging, and configuration history
 - **Hierarchical Permissions** -- Channel > Role > Server specificity with "Allow Wins" conflict resolution
 - **Prompt Voting Site** -- Community tool for members to upvote/downvote discussion prompts, submit new prompts, flag duplicates, with admin oversight and mobile-responsive design
 - **Single-Server Guard** -- Auto-leaves any server that isn't Photography Lounge
@@ -28,14 +28,15 @@ through an admin dashboard — exclusively serving Photography Lounge.
 ## Commands
 
 ```
-/discuss prompt [category]         Post a discussion prompt
-/discuss schedule                  Set up automatic discussion prompts
-/discuss list                      List all discussion schedules
-
-/settings                          View feature toggles
+/discuss schedule <discussions> <lounge> [category]   Configure the daily discussion cycle
+/discuss post-daily                                   Manually fire the daily cycle now
+/discuss post-here [category]                         Post a one-off prompt in the current channel
+/discuss config                                       Show the current cycle configuration
+/discuss enable                                       Enable the daily discussion cycle
+/discuss disable                                      Disable the daily discussion cycle
 ```
 
-All commands require Administrator permission.
+Restricted to Owner, Admin, and Mod roles (configurable via `DEV_STAFF_ROLE_IDS`).
 
 ## Quick Start
 
@@ -66,7 +67,8 @@ photobot/
 │   ├── dashboard/           Next.js 16 admin panel (NextAuth, feature toggles, audit logs)
 │   └── voting/              Next.js 16 community prompt voting site
 ├── packages/
-│   └── db/                  Prisma schema and client
+│   ├── db/                  Prisma schema and client
+│   └── tailwind-config/     Shared Tailwind preset for dashboard + voting
 ├── scripts/                 Setup, dev, status, db, and cleanup scripts
 └── docker-compose.yml       Local Postgres and Supabase Auth
 ```
@@ -80,6 +82,8 @@ photobot/
 | `pnpm build` | Build all packages and apps |
 | `pnpm test` | Run all unit tests |
 | `pnpm test:integration` | Run integration tests (requires running database) |
+| `pnpm test:all` | Run unit and integration tests |
+| `pnpm check` | Format and lint with Biome |
 | `pnpm status` | Health check for all services |
 | `pnpm db <cmd>` | Database ops: `push`, `reset`, `studio`, `seed`, `migrate` |
 | `pnpm dev:down` | Stop Docker services |
@@ -95,6 +99,7 @@ photobot/
 | Voting | Next.js 16 (App Router), NextAuth 4, Tailwind CSS |
 | Database | Prisma 7 on Supabase Postgres |
 | Testing | Vitest |
+| Tooling | Biome (format + lint), pnpm workspaces |
 | Infrastructure | Docker Compose (local), Railway (bot), Vercel (dashboard + voting) |
 
 ## Deployment
