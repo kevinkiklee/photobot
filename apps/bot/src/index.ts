@@ -53,9 +53,7 @@ const rest = new REST({ version: '10' }).setToken(token);
 
 (async () => {
   const body = [discussCommand.data.toJSON()];
-  // When DEV_GUILD_ID is set we're running the dev bot, which isn't a member
-  // of PL_GUILD_ID — registering there would 403 with Missing Access.
-  const targetGuilds = devGuildId ? [devGuildId] : [plGuildId];
+  const targetGuilds = [plGuildId, devGuildId].filter((id): id is string => !!id);
 
   console.log('Started refreshing application (/) commands.');
 
