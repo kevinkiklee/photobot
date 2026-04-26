@@ -111,19 +111,33 @@ model DiscussionConfig {
 }
 
 model DiscussionPromptLog {
-  id                   String    @id @default(cuid())
-  /// The discussions channel (where the thread lives). Historical rows from the
-  /// old DiscussionSchedule model used this as "the only channel."
-  channelId            String    @map("channel_id")
-  promptText           String    @map("prompt_text")
-  category             String
-  threadId             String?   @map("thread_id")
-  discussionsMessageId String?   @map("discussions_message_id")
+  id                    String    @id @default(cuid())
+  /// The discussions channel ID at the time the row was written. Pre-restructure
+  /// (forum-era) rows used this as the channel where the thread lived.
+  /// Post-restructure rows record the #discussions text channel where the
+  /// cross-post was published; the thread itself lives in #photo-lounge.
+  channelId             String    @map("channel_id")
+  promptText            String    @map("prompt_text")
+  category              String
+  /// Discord thread ID. Pre-restructure: thread lived under a forum post in
+  /// #discussions. Post-restructure: thread is on the lounge prompt message.
+  /// Historical rows are not migrated.
+  threadId              String?   @map("thread_id")
+  /// Pre-restructure: equal to threadId (the forum post starter == thread).
+  /// Stops being written after the channel restructure; retained for audit.
+  discussionsMessageId  String?   @map("discussions_message_id")
+  /// Post-restructure: the cross-post message ID in the #discussions text
+  /// channel (a separate message that embeds the prompt and links to the
+  /// thread). Null on pre-restructure rows.
+  crossPostMessageId    String?   @map("cross_post_message_id")
+  /// Post-restructure: the lounge prompt message ID. Acts as the reply-chain
+  /// root for the mirror service. Null on pre-restructure rows.
+  loungePromptMessageId String?   @map("lounge_prompt_message_id")
   /// Last time this prompt was announced in #lounge. Set after every successful
   /// lounge post (including the initial 08:00 announcement). NOT updated on
   /// Discord API failure — failed announcements are retried at the next slot.
-  lastAnnouncedAt      DateTime? @map("last_announced_at")
-  postedAt             DateTime  @default(now()) @map("posted_at")
+  lastAnnouncedAt       DateTime? @map("last_announced_at")
+  postedAt              DateTime  @default(now()) @map("posted_at")
 
   @@index([postedAt])
   @@index([channelId])

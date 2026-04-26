@@ -22,9 +22,13 @@ vi.mock('../services/prompts', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { ForumChannel, TextChannel } from 'discord.js';
+import { TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
-import { runDailyCycle, resetCycleLockForTest } from '../services/discussion-cycle';
+import {
+  postBumpInLounge,
+  resetCycleLockForTest,
+  runDailyCycle,
+} from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
 
 const CONFIG = {
@@ -40,16 +44,24 @@ const CONFIG = {
 
 function createMockClient() {
   const mockThread = { id: 'thread-1' };
-  const mockDiscussionsChannel = {
-    threads: { create: vi.fn().mockResolvedValue(mockThread) },
+  const mockLoungePromptMessage = {
+    id: 'lounge-prompt-1',
+    startThread: vi.fn().mockResolvedValue(mockThread),
+    delete: vi.fn().mockResolvedValue(undefined),
   };
-  const mockLoungeMessage = { id: 'lounge-msg-1' };
+  const mockCrossPostMessage = { id: 'cross-1' };
   const mockLoungeChannel = {
-    send: vi.fn().mockResolvedValue(mockLoungeMessage),
+    send: vi.fn().mockResolvedValue(mockLoungePromptMessage),
     messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
+    guildId: 'guild-1',
   };
-  Object.setPrototypeOf(mockDiscussionsChannel, ForumChannel.prototype);
+  const mockDiscussionsChannel = {
+    send: vi.fn().mockResolvedValue(mockCrossPostMessage),
+    messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
+    guildId: 'guild-1',
+  };
   Object.setPrototypeOf(mockLoungeChannel, TextChannel.prototype);
+  Object.setPrototypeOf(mockDiscussionsChannel, TextChannel.prototype);
 
   const channelMap: Record<string, unknown> = {
     'd-1': mockDiscussionsChannel,
@@ -60,7 +72,14 @@ function createMockClient() {
     guilds: { cache: { get: () => ({ id: 'guild-1' }) } },
   };
 
-  return { mockClient, mockDiscussionsChannel, mockLoungeChannel, mockThread };
+  return {
+    mockClient,
+    mockLoungeChannel,
+    mockDiscussionsChannel,
+    mockLoungePromptMessage,
+    mockCrossPostMessage,
+    mockThread,
+  };
 }
 
 describe('runDailyCycle', () => {
@@ -79,62 +98,88 @@ describe('runDailyCycle', () => {
     vi.useRealTimers();
   });
 
-  it('creates a forum thread and announces in lounge', async () => {
-    const { mockClient, mockDiscussionsChannel, mockLoungeChannel } = createMockClient();
+  it('posts prompt in lounge, creates thread on it, cross-posts in discussions, and writes log row', async () => {
+    const {
+      mockClient,
+      mockLoungeChannel,
+      mockDiscussionsChannel,
+      mockLoungePromptMessage,
+    } = createMockClient();
 
-    const result = await runDailyCycle(mockClient as any, CONFIG);
+    const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
 
     expect(result.ok).toBe(true);
-    expect(mockDiscussionsChannel.threads.create).toHaveBeenCalledWith(
+    // Lounge prompt embed posted first.
+    expect(mockLoungeChannel.send).toHaveBeenCalledWith(
+      expect.objectContaining({ embeds: expect.any(Array) }),
+    );
+    // Thread started on the lounge prompt message.
+    expect(mockLoungePromptMessage.startThread).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Test prompt?',
         autoArchiveDuration: 10080,
-        message: expect.objectContaining({ embeds: expect.any(Array) }),
       }),
     );
+    // Cross-post in discussions channel with thread URL embedded.
+    expect(mockDiscussionsChannel.send).toHaveBeenCalledWith(
+      expect.objectContaining({ embeds: expect.any(Array) }),
+    );
+    // Log row reflects the new schema.
     expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         channelId: 'd-1',
         promptText: 'Test prompt?',
         category: 'creative',
         threadId: 'thread-1',
-        discussionsMessageId: 'thread-1',
+        loungePromptMessageId: 'lounge-prompt-1',
+        crossPostMessageId: 'cross-1',
+        lastAnnouncedAt: expect.any(Date),
       }),
-    });
-    expect(mockLoungeChannel.send).toHaveBeenCalled();
-    expect(prisma.discussionPromptLog.update).toHaveBeenCalledWith({
-      where: { id: 'log-1' },
-      data: { lastAnnouncedAt: expect.any(Date) },
     });
   });
 
   it('rejects concurrent calls with ok:false reason:busy', async () => {
     const { mockClient } = createMockClient();
-    const first = runDailyCycle(mockClient as any, CONFIG);
-    const second = await runDailyCycle(mockClient as any, CONFIG);
+    const first = runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
+    const second = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
     expect(second.ok).toBe(false);
     expect(second.reason).toBe('busy');
     await first;
   });
 
   it('aborts with ok:false reason:not_allowed when canUseFeature returns false', async () => {
-    const { mockClient, mockDiscussionsChannel } = createMockClient();
+    const { mockClient, mockLoungeChannel } = createMockClient();
     (canUseFeature as any).mockResolvedValue(false);
 
-    const result = await runDailyCycle(mockClient as any, CONFIG);
+    const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
 
     expect(result.ok).toBe(false);
     expect(result.reason).toBe('not_allowed');
-    expect(mockDiscussionsChannel.threads.create).not.toHaveBeenCalled();
+    expect(mockLoungeChannel.send).not.toHaveBeenCalled();
   });
 
-  it('returns discord_error and writes no log when forum thread creation fails', async () => {
-    const { mockClient, mockDiscussionsChannel } = createMockClient();
-    (mockDiscussionsChannel.threads.create as any).mockRejectedValueOnce(new Error('Missing Permissions'));
+  it('aborts with ok:true and writes nothing if isActive flips false during quiet wait', async () => {
+    const { mockClient, mockLoungeChannel, mockDiscussionsChannel } = createMockClient();
+    // The post-quiet-wait re-check sees isActive: false.
+    (prisma.discussionConfig.findUnique as any).mockResolvedValueOnce({
+      ...CONFIG,
+      isActive: false,
+    });
 
+    const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
+
+    expect(result.ok).toBe(true);
+    expect(mockLoungeChannel.send).not.toHaveBeenCalled();
+    expect(mockDiscussionsChannel.send).not.toHaveBeenCalled();
+    expect(prisma.discussionPromptLog.create).not.toHaveBeenCalled();
+  });
+
+  it('returns discord_error if the lounge prompt post fails', async () => {
+    const { mockClient, mockLoungeChannel } = createMockClient();
+    (mockLoungeChannel.send as any).mockRejectedValueOnce(new Error('Forbidden'));
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const result = await runDailyCycle(mockClient as any, CONFIG);
+    const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
 
     expect(result.ok).toBe(false);
     expect((result as { reason: string }).reason).toBe('discord_error');
@@ -143,38 +188,146 @@ describe('runDailyCycle', () => {
     consoleSpy.mockRestore();
   });
 
-  it('keeps log row but skips lastAnnouncedAt when lounge post fails', async () => {
-    const { mockClient, mockLoungeChannel } = createMockClient();
-    (mockLoungeChannel.send as any).mockRejectedValueOnce(new Error('Forbidden'));
-
+  it('rolls back the lounge prompt if startThread fails', async () => {
+    const { mockClient, mockLoungePromptMessage } = createMockClient();
+    (mockLoungePromptMessage.startThread as any).mockRejectedValueOnce(
+      new Error('Missing Permissions'),
+    );
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const result = await runDailyCycle(mockClient as any, CONFIG);
+    const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
 
     expect(result.ok).toBe(false);
-    expect(prisma.discussionPromptLog.create).toHaveBeenCalled();
+    expect((result as { reason: string }).reason).toBe('discord_error');
+    expect(mockLoungePromptMessage.delete).toHaveBeenCalledTimes(1);
+    expect(prisma.discussionPromptLog.create).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('still inserts a log row with crossPostMessageId=null if the cross-post fails', async () => {
+    const { mockClient, mockDiscussionsChannel } = createMockClient();
+    (mockDiscussionsChannel.send as any).mockRejectedValueOnce(new Error('Forbidden'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
+
+    expect(result.ok).toBe(true);
+    expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        loungePromptMessageId: 'lounge-prompt-1',
+        threadId: 'thread-1',
+        crossPostMessageId: null,
+      }),
+    });
+
+    consoleSpy.mockRestore();
+  });
+
+  it('returns channel_unavailable when the lounge channel cannot be resolved', async () => {
+    const { mockDiscussionsChannel } = createMockClient();
+    const mockClient = {
+      channels: {
+        fetch: vi.fn((id: string) => Promise.resolve(id === 'd-1' ? mockDiscussionsChannel : null)),
+      },
+      guilds: { cache: { get: () => ({ id: 'guild-1' }) } },
+    };
+
+    const result = await runDailyCycle(mockClient as any, CONFIG, { skipQuietWait: true });
+
+    expect(result.ok).toBe(false);
+    expect((result as { reason: string }).reason).toBe('channel_unavailable');
+  });
+});
+
+describe('postBumpInLounge', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(CONFIG);
+    (prisma.discussionPromptLog.update as any).mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function makeLoungeChannel() {
+    const mockLoungeChannel: any = {
+      send: vi.fn().mockResolvedValue({ id: 'bump-1' }),
+      messages: { fetch: vi.fn().mockResolvedValue(new Map()) },
+      guildId: 'guild-1',
+    };
+    Object.setPrototypeOf(mockLoungeChannel, TextChannel.prototype);
+    return mockLoungeChannel;
+  }
+
+  it('posts as a Discord reply to the original prompt with repliedUser:false', async () => {
+    const loungeChannel = makeLoungeChannel();
+
+    const result = await postBumpInLounge(
+      'log-1',
+      'lounge-prompt-1',
+      'https://discord.com/channels/g/c/t',
+      loungeChannel,
+      { skipQuietWait: true },
+    );
+
+    expect(result.posted).toBe(true);
+    expect(loungeChannel.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.stringContaining('still active'),
+        reply: expect.objectContaining({
+          messageReference: 'lounge-prompt-1',
+          failIfNotExists: false,
+        }),
+        allowedMentions: { repliedUser: false },
+      }),
+    );
+    expect(prisma.discussionPromptLog.update).toHaveBeenCalledWith({
+      where: { id: 'log-1' },
+      data: { lastAnnouncedAt: expect.any(Date) },
+    });
+  });
+
+  it('skips silently and does not update lastAnnouncedAt if the original prompt was deleted', async () => {
+    const loungeChannel = makeLoungeChannel();
+    (loungeChannel.send as any).mockRejectedValueOnce(new Error('Unknown Message'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await postBumpInLounge(
+      'log-1',
+      'lounge-prompt-1',
+      'https://discord.com/channels/g/c/t',
+      loungeChannel,
+      { skipQuietWait: true },
+    );
+
+    expect(result.posted).toBe(false);
+    expect(result.error).toBe(true);
     expect(prisma.discussionPromptLog.update).not.toHaveBeenCalled();
 
     consoleSpy.mockRestore();
   });
 
-  it('aborts lounge post if isActive flips to false during quiet wait', async () => {
-    const { mockClient, mockLoungeChannel } = createMockClient();
-    // runDailyCycle uses the `config` parameter directly; only runLoungeAnnounce
-    // calls findUnique to re-check the singleton after the quiet wait. So this
-    // single mock controls the post-wait re-check.
+  it('skips and does not post if isActive flips false during quiet wait', async () => {
+    const loungeChannel = makeLoungeChannel();
     (prisma.discussionConfig.findUnique as any).mockResolvedValueOnce({
       ...CONFIG,
       isActive: false,
     });
 
-    const result = await runDailyCycle(mockClient as any, CONFIG);
+    const result = await postBumpInLounge(
+      'log-1',
+      'lounge-prompt-1',
+      'https://discord.com/channels/g/c/t',
+      loungeChannel,
+      { skipQuietWait: true },
+    );
 
-    // discussions post + thread + log all happened, but lounge announce was skipped.
-    expect(prisma.discussionPromptLog.create).toHaveBeenCalled();
-    expect(mockLoungeChannel.send).not.toHaveBeenCalled();
+    expect(result.posted).toBe(false);
+    expect(result.error).toBe(false);
+    expect(loungeChannel.send).not.toHaveBeenCalled();
     expect(prisma.discussionPromptLog.update).not.toHaveBeenCalled();
-    // The function still returns ok:true because the discussions side succeeded.
-    expect(result.ok).toBe(true);
   });
 });

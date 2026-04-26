@@ -3,7 +3,6 @@ import {
   ChannelType,
   type ChatInputCommandInteraction,
   EmbedBuilder,
-  ForumChannel,
   SlashCommandBuilder,
   TextChannel,
 } from 'discord.js';
@@ -23,14 +22,14 @@ export const data = new SlashCommandBuilder()
       .addChannelOption((opt) =>
         opt
           .setName('discussions')
-          .setDescription('Forum channel where each daily prompt is posted as a new forum thread')
-          .addChannelTypes(ChannelType.GuildForum)
+          .setDescription('Text channel where the daily prompt is cross-posted with a link to the lounge thread')
+          .addChannelTypes(ChannelType.GuildText)
           .setRequired(true),
       )
       .addChannelOption((opt) =>
         opt
           .setName('lounge')
-          .setDescription('Channel where re-announcements are posted with thread links')
+          .setDescription('Text channel where the prompt originates and the discussion thread is created')
           .addChannelTypes(ChannelType.GuildText)
           .setRequired(true),
       )
@@ -134,9 +133,9 @@ async function handleSchedule(interaction: ChatInputCommandInteraction) {
       content: 'Could not access one of the channels. Check that the bot has permission to view them.',
     });
   }
-  if (!(discussionsChannel instanceof ForumChannel)) {
+  if (!(discussionsChannel instanceof TextChannel)) {
     return interaction.editReply({
-      content: 'Discussions channel must be a forum channel.',
+      content: 'Discussions channel must be a standard text channel.',
     });
   }
   if (!(loungeChannel instanceof TextChannel)) {
@@ -189,8 +188,8 @@ async function handleSchedule(interaction: ChatInputCommandInteraction) {
 
   return interaction.editReply({
     content:
-      `Discussion cycle configured. Daily forum post in <#${discussions.id}> at 08:00 UTC; ` +
-      `announcements in <#${lounge.id}> at 08:00, 14:00, 20:00, 02:00 UTC.` +
+      `Discussion cycle configured. Daily prompt + thread in <#${lounge.id}> at 08:00 UTC; ` +
+      `cross-post in <#${discussions.id}>; bumps in <#${lounge.id}> at 14:00, 20:00, 02:00 UTC.` +
       (category ? ` Category: ${category}.` : ''),
   });
 }

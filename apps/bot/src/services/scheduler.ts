@@ -1,18 +1,19 @@
 // Single anchored slot scheduler. Four UTC slots per day:
-//   08:00 — daily prompt + thread + first lounge announcement
-//   14:00 / 20:00 / 02:00 — re-announce in lounge only
+//   08:00 — daily prompt + thread + cross-post (origin = #photo-lounge)
+//   14:00 / 20:00 / 02:00 — slim "bump" replies in #photo-lounge that
+//                            Discord-reply to the original prompt message.
 //
 // On each 60s tick, computes the most recent slot and decides what to do.
 // Two-phase catch-up handles bot restarts: fire today's daily if missed,
-// then re-announce if the current slot's announcement hasn't happened yet.
+// then post a bump if the current slot's bump hasn't happened yet.
 
 import { prisma } from '@photobot/db';
 import type { Client, TextChannel } from 'discord.js';
 import { TextChannel as TextChannelClass } from 'discord.js';
 import {
+  postBumpInLounge,
   releaseCycleLock,
   runDailyCycle,
-  runLoungeAnnounce,
   tryAcquireCycleLock,
 } from './discussion-cycle';
 
@@ -106,12 +107,14 @@ async function runSlot(
   if (!dailyFired) {
     if (Date.now() - dailyAnchor.getTime() > CATCHUP_HORIZON_MS) return;
     await runDailyCycle(client, config);
-    // The cycle also fired the lounge announcement; Phase 2 will skip.
+    // The daily cycle posts the prompt in lounge directly, so it counts as
+    // this slot's announcement. Phase 2 will skip via lastAnnouncedAt.
+    return;
   }
 
   if (isDailySlot) return;
 
-  // Phase 2: re-announce.
+  // Phase 2: bump.
   const current = await prisma.discussionPromptLog.findFirst({
     where: {
       threadId: { not: null },
@@ -119,20 +122,24 @@ async function runSlot(
     },
     orderBy: { postedAt: 'desc' },
   });
-  if (!current || !current.threadId) return;
+  if (!current || !current.threadId || !current.loungePromptMessageId) return;
   if (current.lastAnnouncedAt && current.lastAnnouncedAt >= slotStart) return;
 
   const loungeChannel = await fetchTextChannel(client, config.loungeChannelId);
   if (!loungeChannel) return;
 
-  // Acquire the cycle lock so Phase 2 cannot race with /discuss post-daily.
+  // Acquire the cycle lock so the bump cannot race with a manual
+  // /discuss post-daily call.
   if (!tryAcquireCycleLock()) return;
   try {
-    await runLoungeAnnounce(
-      client,
+    const guildId =
+      loungeChannel.guildId ??
+      client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
+    const threadUrl = `https://discord.com/channels/${guildId}/${current.threadId}`;
+    await postBumpInLounge(
       current.id,
-      current.promptText,
-      current.threadId,
+      current.loungePromptMessageId,
+      threadUrl,
       loungeChannel,
     );
   } finally {

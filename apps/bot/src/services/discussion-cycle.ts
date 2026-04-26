@@ -2,7 +2,6 @@ import { prisma } from '@photobot/db';
 import {
   type Client,
   type Collection,
-  ForumChannel,
   type Message,
   type TextChannel,
   TextChannel as TextChannelClass,
@@ -32,8 +31,8 @@ interface DiscussionConfigShape {
 
 /**
  * Try to acquire the cycle lock. Returns true if acquired, false if already held.
- * The lock guards both runDailyCycle (full cycle) and the scheduler's Phase 2
- * lounge re-announcements so they cannot interleave.
+ * The lock guards both runDailyCycle and the scheduler's bump phase so they
+ * cannot interleave.
  */
 export function tryAcquireCycleLock(): boolean {
   if (isCycleRunning) return false;
@@ -65,57 +64,77 @@ export async function runDailyCycle(
     const allowed = await canUseFeature(config.discussionsChannelId, [], 'discuss');
     if (!allowed) return { ok: false, reason: 'not_allowed' };
 
-    const discussionsChannel = await fetchForumChannel(client, config.discussionsChannelId);
     const loungeChannel = await fetchTextChannel(client, config.loungeChannelId);
-    if (!discussionsChannel || !loungeChannel) {
+    const discussionsChannel = await fetchTextChannel(client, config.discussionsChannelId);
+    if (!loungeChannel || !discussionsChannel) {
       return { ok: false, reason: 'channel_unavailable' };
     }
 
     const prompt = await selectPrompt(config.categoryFilter);
 
-    // Create the forum post — this is atomic in Discord's API: post + thread
-    // are created in one call, no orphan-cleanup branch needed.
-    let threadId: string;
+    // Quiet-wait before the primary post — lounge is now the origin, so we
+    // should defer if conversation is active. Skipped on /discuss post-daily.
+    if (!options.skipQuietWait) await waitForQuiet(loungeChannel);
+
+    // Re-check isActive after the wait — admin may have disabled mid-cycle.
+    const fresh = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+    if (!fresh || !fresh.isActive) return { ok: true };
+
+    // Post the prompt embed in lounge.
+    let loungePromptMessage: Message;
     try {
       const embed = createPromptEmbed(prompt.text, 'Discussion of the Day');
-      const thread = await discussionsChannel.threads.create({
-        name: buildThreadName(prompt.text),
-        autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
-        message: { embeds: [embed] },
-      });
-      threadId = thread.id;
+      loungePromptMessage = await loungeChannel.send({ embeds: [embed] });
     } catch (err) {
-      console.error('Failed to create discussion forum post:', err);
+      console.error('Failed to post lounge prompt:', err);
       return { ok: false, reason: 'discord_error' };
     }
 
-    // Insert the log row before attempting the lounge announcement.
-    // For forum posts, the starter-message id equals the thread id, so we
-    // store the same value in discussionsMessageId for audit/forward-compat.
-    const log = await prisma.discussionPromptLog.create({
+    // Start a thread on the lounge prompt. If this fails, delete the prompt
+    // message so the slot is retryable on the next tick.
+    let threadId: string;
+    try {
+      const thread = await loungePromptMessage.startThread({
+        name: buildThreadName(prompt.text),
+        autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
+      });
+      threadId = thread.id;
+    } catch (err) {
+      console.error('Failed to start thread on lounge prompt:', err);
+      try {
+        await loungePromptMessage.delete();
+      } catch (deleteErr) {
+        console.error('Failed to clean up lounge prompt after thread failure:', deleteErr);
+      }
+      return { ok: false, reason: 'discord_error' };
+    }
+
+    const guildId =
+      loungeChannel.guildId ??
+      client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
+    const threadUrl = `https://discord.com/channels/${guildId}/${threadId}`;
+
+    // Cross-post in #discussions. Best-effort — failure does not roll back.
+    let crossPostMessageId: string | null = null;
+    try {
+      const crossPostEmbed = createPromptEmbed(prompt.text, 'Discussion of the Day', threadUrl);
+      const crossPostMessage = await discussionsChannel.send({ embeds: [crossPostEmbed] });
+      crossPostMessageId = crossPostMessage.id;
+    } catch (err) {
+      console.error('Failed to post cross-post in discussions channel:', err);
+    }
+
+    await prisma.discussionPromptLog.create({
       data: {
         channelId: config.discussionsChannelId,
         promptText: prompt.text,
         category: prompt.category,
         threadId,
-        discussionsMessageId: threadId,
+        loungePromptMessageId: loungePromptMessage.id,
+        crossPostMessageId,
+        lastAnnouncedAt: new Date(),
       },
     });
-
-    // Announce in lounge with quiet wait + isActive re-check.
-    const announce = await runLoungeAnnounce(
-      client,
-      log.id,
-      prompt.text,
-      threadId,
-      loungeChannel,
-      { skipQuietWait: options.skipQuietWait },
-    );
-
-    // A genuine Discord/DB error during the lounge phase fails the cycle.
-    // An admin-driven skip (isActive flipped off) does NOT — the discussions
-    // side already succeeded, so the cycle is logically complete.
-    if (announce.error) return { ok: false, reason: 'discord_error' };
 
     return { ok: true };
   } finally {
@@ -123,41 +142,45 @@ export async function runDailyCycle(
   }
 }
 
-interface AnnounceResult {
+interface BumpResult {
   posted: boolean;
   error: boolean;
 }
 
-export async function runLoungeAnnounce(
-  client: Client,
+/**
+ * Re-announce the active prompt as a slim Discord-reply to the original lounge
+ * prompt message. Discord renders the original prompt inline above the bump,
+ * so users see it without scrolling. Replies to the bump itself are NOT mirrored
+ * (only the original prompt anchors the mirror chain).
+ */
+export async function postBumpInLounge(
   logId: string,
-  promptText: string,
-  threadId: string,
+  loungePromptMessageId: string,
+  threadUrl: string,
   loungeChannel: TextChannel,
   options: { skipQuietWait?: boolean } = {},
-): Promise<AnnounceResult> {
+): Promise<BumpResult> {
   if (!options.skipQuietWait) await waitForQuiet(loungeChannel);
 
-  // Re-check isActive after the wait — admin may have disabled mid-cycle.
+  // Re-check isActive after the wait — admin may have disabled mid-window.
   const fresh = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
   if (!fresh || !fresh.isActive) return { posted: false, error: false };
 
-  const guildId =
-    loungeChannel.guildId ??
-    client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
-  const threadUrl = `https://discord.com/channels/${guildId}/${threadId}`;
-  const embed = createPromptEmbed(promptText, 'Discussion of the Day', threadUrl);
-
   try {
-    await loungeChannel.send({ embeds: [embed] });
+    await loungeChannel.send({
+      content:
+        `💬 Today's prompt is still active — share your thoughts in the lounge ` +
+        `or [in the thread](${threadUrl}).`,
+      reply: { messageReference: loungePromptMessageId, failIfNotExists: false },
+      allowedMentions: { repliedUser: false },
+    });
     await prisma.discussionPromptLog.update({
       where: { id: logId },
       data: { lastAnnouncedAt: new Date() },
     });
     return { posted: true, error: false };
   } catch (err) {
-    console.error('Failed to post lounge announcement:', err);
-    // Do not update lastAnnouncedAt — next tick will retry.
+    console.error('Failed to post lounge bump:', err);
     return { posted: false, error: true };
   }
 }
@@ -169,17 +192,6 @@ async function fetchTextChannel(client: Client, channelId: string): Promise<Text
     return channel;
   } catch (err) {
     console.error(`Failed to fetch channel ${channelId}:`, err);
-    return null;
-  }
-}
-
-async function fetchForumChannel(client: Client, channelId: string): Promise<ForumChannel | null> {
-  try {
-    const channel = await client.channels.fetch(channelId);
-    if (!channel || !(channel instanceof ForumChannel)) return null;
-    return channel;
-  } catch (err) {
-    console.error(`Failed to fetch forum channel ${channelId}:`, err);
     return null;
   }
 }

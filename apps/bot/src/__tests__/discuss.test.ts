@@ -33,7 +33,7 @@ vi.mock('../services/discussion-cycle', () => ({
 }));
 
 import { prisma } from '@photobot/db';
-import { ForumChannel, TextChannel, ChannelType } from 'discord.js';
+import { TextChannel, ChannelType } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
 import { selectPrompt } from '../services/prompts';
 import { runDailyCycle, isCycleLockHeld } from '../services/discussion-cycle';
@@ -42,12 +42,6 @@ import { execute } from '../commands/discuss';
 function makeChannel(id: string, type = ChannelType.GuildText) {
   const ch: any = { id, type, isTextBased: () => true };
   Object.setPrototypeOf(ch, TextChannel.prototype);
-  return ch;
-}
-
-function makeForumChannel(id: string) {
-  const ch: any = { id, type: ChannelType.GuildForum };
-  Object.setPrototypeOf(ch, ForumChannel.prototype);
   return ch;
 }
 
@@ -151,7 +145,7 @@ describe('/discuss schedule', () => {
   });
 
   it('upserts singleton config with discussions/lounge IDs', async () => {
-    const dCh = makeForumChannel('d-1');
+    const dCh = makeChannel('d-1');
     const lCh = makeChannel('l-1');
     const { interaction } = makeInteraction({
       subcommand: 'schedule',
