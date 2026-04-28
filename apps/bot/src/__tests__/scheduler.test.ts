@@ -26,7 +26,7 @@ import { TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
 import { resetCycleLockForTest } from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
-import { currentSlotStart, startScheduler, stopScheduler, todaysDailySlotStart } from '../services/scheduler';
+import { currentSlotStart, dailyAnchorForSlot, startScheduler, stopScheduler } from '../services/scheduler';
 
 const CONFIG = {
   id: 'singleton',
@@ -88,15 +88,19 @@ describe('currentSlotStart', () => {
   });
 });
 
-describe('todaysDailySlotStart', () => {
-  it('returns 08:00 UTC of the same day as the slot', () => {
-    const slot = new Date('2026-04-25T14:00:00Z');
-    expect(todaysDailySlotStart(slot).toISOString()).toBe(new Date('2026-04-25T08:00:00Z').toISOString());
-  });
-
-  it('returns yesterday 08:00 for a 02:00-rollback slot', () => {
-    const slot = new Date('2026-04-24T20:00:00Z');
-    expect(todaysDailySlotStart(slot).toISOString()).toBe(new Date('2026-04-24T08:00:00Z').toISOString());
+describe('dailyAnchorForSlot', () => {
+  it.each([
+    // For slots at or after 08:00 UTC, the cycle's daily anchor is today's 08:00 UTC.
+    ['08:00 slot', '2026-04-25T08:00:00Z', '2026-04-25T08:00:00Z'],
+    ['14:00 slot', '2026-04-25T14:00:00Z', '2026-04-25T08:00:00Z'],
+    ['20:00 slot', '2026-04-25T20:00:00Z', '2026-04-25T08:00:00Z'],
+    // For the 02:00 UTC slot, the cycle's daily anchor is YESTERDAY's 08:00 UTC —
+    // the daily prompt that this 02:00 bump-slot belongs to was posted ~18h earlier.
+    // Anchoring to today's 08:00 (which is in the future at 02:00 UTC) used to make
+    // the scheduler think the daily had not yet fired and re-post it every minute.
+    ['02:00 slot anchors to yesterday', '2026-04-25T02:00:00Z', '2026-04-24T08:00:00Z'],
+  ])('%s -> %s', (_, slotIso, expectedIso) => {
+    expect(dailyAnchorForSlot(new Date(slotIso)).toISOString()).toBe(new Date(expectedIso).toISOString());
   });
 });
 
@@ -233,6 +237,47 @@ describe('Scheduler tick behavior', () => {
     await startScheduler(mockClient as any);
 
     expect(mockLoungeChannel.send).not.toHaveBeenCalled();
+  });
+
+  // Regression: at 02:00 UTC, the scheduler used to anchor the daily to today's
+  // 08:00 UTC (in the future), so dailyFired was never satisfied and a fresh
+  // daily prompt was posted every minute (paced by waitForQuiet) until 08:00.
+  // The fix anchors the 02:00 slot to yesterday's 08:00 UTC, so the previous
+  // day's daily satisfies the dailyFired query and we proceed to the bump phase.
+  it('does NOT fire a new daily at the 02:00 UTC slot when yesterday 08:00 daily already fired', async () => {
+    const { mockClient, mockLoungePromptMessage } = createMockClient();
+    vi.setSystemTime(new Date('2026-04-25T02:05:00Z'));
+    const yesterdaysDaily = {
+      id: 'log-yesterday',
+      threadId: 'thread-yesterday',
+      loungePromptMessageId: 'lounge-prompt-yesterday',
+      promptText: 'Yesterday prompt',
+      category: 'creative',
+      postedAt: new Date('2026-04-24T08:00:00Z'),
+      lastAnnouncedAt: new Date('2026-04-24T20:00:00Z'),
+    };
+    (prisma.discussionPromptLog.findFirst as any)
+      .mockResolvedValueOnce(yesterdaysDaily) // Phase 1: dailyFired lookup
+      .mockResolvedValueOnce(yesterdaysDaily); // Phase 2: current daily lookup
+
+    await startScheduler(mockClient as any);
+
+    expect(mockLoungePromptMessage.startThread).not.toHaveBeenCalled();
+    expect(prisma.discussionPromptLog.create).not.toHaveBeenCalled();
+  });
+
+  // When the 02:00 slot fires and yesterday's 08:00 daily is missing, the
+  // catchup horizon (6h) must NOT pull a stale daily out of the void —
+  // 02:00 UTC is ~18h after yesterday's 08:00 anchor.
+  it('skips daily catch-up at the 02:00 UTC slot when yesterday 08:00 was missed (>6h horizon)', async () => {
+    const { mockClient, mockLoungePromptMessage } = createMockClient();
+    vi.setSystemTime(new Date('2026-04-25T02:05:00Z'));
+    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
+
+    await startScheduler(mockClient as any);
+
+    expect(mockLoungePromptMessage.startThread).not.toHaveBeenCalled();
+    expect(prisma.discussionPromptLog.create).not.toHaveBeenCalled();
   });
 
   it('handles channel fetch failure without crashing', async () => {

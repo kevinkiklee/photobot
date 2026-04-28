@@ -31,9 +31,15 @@ export function currentSlotStart(now: Date): Date {
   return new Date(utcDateMs - 24 * 60 * 60 * 1000 + 20 * 60 * 60 * 1000);
 }
 
-export function todaysDailySlotStart(slotStart: Date): Date {
+// The 08:00 UTC anchor of the daily cycle this slot belongs to. For slots at or
+// after 08:00 UTC, that's the same calendar day's 08:00. For the pre-daily
+// 02:00 UTC slot (a bump of yesterday's daily), it's the PREVIOUS day's 08:00.
+// Anchoring 02:00 to today's (future) 08:00 used to make `dailyFired` queries
+// always return null, causing the scheduler to re-post the daily every minute.
+export function dailyAnchorForSlot(slotStart: Date): Date {
   const utcDateMs = Date.UTC(slotStart.getUTCFullYear(), slotStart.getUTCMonth(), slotStart.getUTCDate());
-  return new Date(utcDateMs + DAILY_SLOT_HOUR_UTC * 60 * 60 * 1000);
+  const dayOffsetMs = slotStart.getUTCHours() < DAILY_SLOT_HOUR_UTC ? -24 * 60 * 60 * 1000 : 0;
+  return new Date(utcDateMs + dayOffsetMs + DAILY_SLOT_HOUR_UTC * 60 * 60 * 1000);
 }
 
 export async function startScheduler(client: Client): Promise<void> {
@@ -86,7 +92,7 @@ async function runSlot(
   if (!config) return;
 
   const isDailySlot = slotStart.getUTCHours() === DAILY_SLOT_HOUR_UTC;
-  const dailyAnchor = todaysDailySlotStart(slotStart);
+  const dailyAnchor = dailyAnchorForSlot(slotStart);
 
   // Phase 1: daily catch-up.
   const dailyFired = await prisma.discussionPromptLog.findFirst({
