@@ -24,6 +24,16 @@ jobs:
 
       - run: pnpm -w run ci:lint
 
+      # Next.js builds collect page data by importing each route module, which
+      # tickles top-level env-var asserts in the dashboard and voting apps.
+      # The values are intentionally fake — production env vars live in Vercel
+      # / Railway. Real connections never happen at build time; static pages
+      # that try to call Prisma fail gracefully.
       - run: pnpm -w run build
+        env:
+          DATABASE_URL: postgresql://stub:stub@localhost:5432/stub
+          NEXTAUTH_SECRET: ci-build-stub-secret-not-used-at-runtime
+          NEXTAUTH_URL: http://localhost:3000
+          VOTING_NEXTAUTH_SECRET: ci-build-stub-secret-not-used-at-runtime
 
       - run: pnpm -w run test

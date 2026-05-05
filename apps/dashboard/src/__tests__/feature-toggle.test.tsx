@@ -55,10 +55,12 @@ describe('FeatureToggle', () => {
     (updateFeatureAction as any).mockRejectedValue(new Error('fail'));
 
     renderWithToast(<FeatureToggle featureKey="discuss" initialEnabled={false} />);
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle discuss' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
+      // Scope the query — once the error toast renders, the toast's own
+      // dismiss button is also a `button` role in the DOM.
+      expect(screen.getByRole('button', { name: 'Toggle discuss' })).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getByText(/failed to update/i)).toBeInTheDocument();
     });
   });
