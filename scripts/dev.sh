@@ -69,11 +69,14 @@ fi
 # -----------------------------------------------
 # 3. Start Docker services
 # -----------------------------------------------
+# shellcheck source=lib/docker-compose.sh
+source "$ROOT_DIR/scripts/lib/docker-compose.sh"
+
 log "Starting Docker services..."
-docker compose down --remove-orphans 2>/dev/null
+dc down --remove-orphans 2>/dev/null
 # Remove stale containers that may linger from a previous run
 docker rm -f photobot-db photobot-auth photobot-rest photobot-ollama 2>/dev/null || true
-docker compose up -d
+dc up -d
 
 # Wait for Postgres to be healthy
 log "Waiting for database..."

@@ -34,12 +34,15 @@ fi
 # 1. Stop Docker services
 # -----------------------------------------------
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  # shellcheck source=lib/docker-compose.sh
+  source "$ROOT_DIR/scripts/lib/docker-compose.sh"
+
   log "Stopping Docker services..."
   if [ "$FULL" = true ]; then
-    docker compose down -v 2>/dev/null || true
+    dc down -v 2>/dev/null || true
     ok "Containers stopped, volumes removed"
   else
-    docker compose down 2>/dev/null || true
+    dc down 2>/dev/null || true
     ok "Containers stopped (volumes preserved)"
   fi
 else

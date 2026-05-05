@@ -146,8 +146,11 @@ read -r START_DOCKER
 if [ "$START_DOCKER" != "n" ] && [ "$START_DOCKER" != "N" ]; then
   docker info >/dev/null 2>&1 || fail "Docker daemon is not running. Start Docker and re-run."
 
+  # shellcheck source=lib/docker-compose.sh
+  source "$ROOT_DIR/scripts/lib/docker-compose.sh"
+
   log "Starting Docker services..."
-  docker compose up -d
+  dc up -d
 
   log "Waiting for database..."
   MAX_RETRIES=30
