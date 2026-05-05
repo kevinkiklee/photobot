@@ -20,10 +20,17 @@ vi.mock('@photobot/db', () => ({
 
 import { prisma } from '@photobot/db';
 import { MessageReferenceType } from 'discord.js';
-import { onLoungeMessageCreate, onLoungeMessageDelete, onLoungeMessageUpdate } from '../services/lounge-mirror';
+import {
+  onLoungeMessageCreate,
+  onLoungeMessageDelete,
+  onLoungeMessageUpdate,
+  resetMirrorWebhookCacheForTest,
+} from '../services/lounge-mirror';
 
 const ORIGINAL_PL_GUILD_ID = process.env.PL_GUILD_ID;
+const ORIGINAL_DEV_GUILD_ID = process.env.DEV_GUILD_ID;
 const TEST_GUILD_ID = 'test-guild-1';
+const TEST_DEV_GUILD_ID = 'test-dev-guild-1';
 
 const CONFIG = {
   id: 'singleton',
@@ -39,6 +46,7 @@ const CONFIG = {
 const ACTIVE_PROMPT = {
   id: 'log-1',
   channelId: 'd-1',
+  promptChannelId: 'lounge-1',
   promptText: 'Test prompt?',
   category: 'creative',
   threadId: 'thread-1',
@@ -55,8 +63,16 @@ function makeMessage(overrides: Partial<any> = {}) {
     id: 'msg-1',
     content: 'I love sunsets',
     partial: false,
-    author: { id: 'user-1', username: 'kevinkik', bot: false },
-    member: { displayName: 'kevinkik' },
+    author: {
+      id: 'user-1',
+      username: 'kevinkik',
+      bot: false,
+      displayAvatarURL: () => 'https://cdn.discord/user-1.png',
+    },
+    member: {
+      displayName: 'kevinkik',
+      displayAvatarURL: () => 'https://cdn.discord/user-1.png',
+    },
     guild: { id: TEST_GUILD_ID },
     channel: { id: 'lounge-1' },
     reference: {
@@ -69,11 +85,33 @@ function makeMessage(overrides: Partial<any> = {}) {
   return { ...base, ...overrides };
 }
 
-function makeThread(opts: { archived?: boolean } = {}) {
+const BOT_CLIENT_ID = 'bot-self';
+
+function makeThread(opts: { archived?: boolean; parentless?: boolean } = {}) {
+  const webhook = {
+    id: 'wh-1',
+    name: 'Photobot Mirror',
+    owner: { id: BOT_CLIENT_ID },
+    send: vi.fn().mockResolvedValue({ id: 'thread-msg-1' }),
+    editMessage: vi.fn().mockResolvedValue({ id: 'thread-msg-1' }),
+    deleteMessage: vi.fn().mockResolvedValue(undefined),
+  };
+  const parent: any = opts.parentless
+    ? null
+    : {
+        id: 'parent-1',
+        createWebhook: vi.fn().mockResolvedValue(webhook),
+        fetchWebhooks: vi.fn().mockResolvedValue({
+          find: (fn: (w: any) => boolean) => [webhook].find(fn),
+        }),
+        client: { user: { id: BOT_CLIENT_ID } },
+      };
   const sentMessage = { id: 'thread-msg-1', edit: vi.fn().mockResolvedValue(undefined) };
   const thread: any = {
+    id: 'thread-1',
     archived: opts.archived ?? false,
     isThread: () => true,
+    parent,
     send: vi.fn().mockResolvedValue(sentMessage),
     messages: {
       fetch: vi.fn().mockResolvedValue({
@@ -83,6 +121,7 @@ function makeThread(opts: { archived?: boolean } = {}) {
       }),
     },
   };
+  thread._webhook = webhook;
   return thread;
 }
 
@@ -94,9 +133,17 @@ function makeClientWithThread(thread: any) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resetMirrorWebhookCacheForTest();
   process.env.PL_GUILD_ID = TEST_GUILD_ID;
   (prisma.discussionConfig.findUnique as any).mockResolvedValue(CONFIG);
-  (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(ACTIVE_PROMPT);
+  // Default: returns the active prompt only when the lookup is keyed to its
+  // promptChannelId. Tests that exercise other channels override or check null.
+  (prisma.discussionPromptLog.findFirst as any).mockImplementation(({ where }: any) => {
+    if (where?.promptChannelId && where.promptChannelId !== ACTIVE_PROMPT.promptChannelId) {
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(ACTIVE_PROMPT);
+  });
   (prisma.discussionPromptLog.findUnique as any).mockResolvedValue(ACTIVE_PROMPT);
   (prisma.mirroredMessage.findUnique as any).mockResolvedValue(null);
   (prisma.mirroredMessage.create as any).mockResolvedValue({});
@@ -106,26 +153,37 @@ beforeEach(() => {
 
 afterEach(() => {
   process.env.PL_GUILD_ID = ORIGINAL_PL_GUILD_ID;
+  if (ORIGINAL_DEV_GUILD_ID === undefined) {
+    delete process.env.DEV_GUILD_ID;
+  } else {
+    process.env.DEV_GUILD_ID = ORIGINAL_DEV_GUILD_ID;
+  }
 });
 
 describe('onLoungeMessageCreate', () => {
-  it('mirrors a direct reply to the active prompt with bot-quoted format', async () => {
+  it("posts the mirror via the channel webhook with the user's display name + avatar", async () => {
     const thread = makeThread();
     const client = makeClientWithThread(thread);
     const msg = makeMessage({ client });
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).toHaveBeenCalledWith(
+    expect(thread._webhook.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: expect.stringContaining('**kevinkik**'),
+        username: 'kevinkik',
+        avatarURL: 'https://cdn.discord/user-1.png',
+        threadId: 'thread-1',
         allowedMentions: { parse: [] },
         flags: expect.any(Number),
       }),
     );
-    const sentContent = (thread.send.mock.calls[0][0] as any).content as string;
-    expect(sentContent).toContain('> I love sunsets');
+    const sentContent = (thread._webhook.send.mock.calls[0][0] as any).content as string;
+    // Body is plain (no quote prefix, no inline name).
+    expect(sentContent).toMatch(/^I love sunsets\n-# \[original ↗\]/);
     expect(sentContent).toContain(`/${TEST_GUILD_ID}/lounge-1/msg-1`);
+    expect(sentContent).not.toContain('**kevinkik**');
+    // The bot's plain `thread.send` is not used in the webhook path.
+    expect(thread.send).not.toHaveBeenCalled();
     expect(prisma.mirroredMessage.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         loungeMessageId: 'msg-1',
@@ -135,6 +193,22 @@ describe('onLoungeMessageCreate', () => {
         authorDisplayName: 'kevinkik',
       }),
     });
+  });
+
+  it('falls back to a bot-authored message when no webhook is available', async () => {
+    const thread = makeThread({ parentless: true });
+    const client = makeClientWithThread(thread);
+    const msg = makeMessage({ client });
+
+    await onLoungeMessageCreate(msg as any);
+
+    expect(thread.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.stringContaining('**kevinkik**'),
+        allowedMentions: { parse: [] },
+      }),
+    );
+    expect(prisma.mirroredMessage.create).toHaveBeenCalled();
   });
 
   it('mirrors a transitive reply that targets a previously-mirrored message', async () => {
@@ -159,7 +233,7 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).toHaveBeenCalled();
+    expect(thread._webhook.send).toHaveBeenCalled();
     expect(prisma.mirroredMessage.create).toHaveBeenCalled();
   });
 
@@ -178,7 +252,7 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
     expect(prisma.mirroredMessage.create).not.toHaveBeenCalled();
   });
 
@@ -200,7 +274,7 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
   });
 
   it('no-ops on bot messages', async () => {
@@ -213,7 +287,7 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
   });
 
   it('no-ops on forwarded messages (reference.type !== Default)', async () => {
@@ -230,17 +304,85 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
   });
 
-  it('no-ops on messages outside the configured lounge channel', async () => {
+  it('no-ops in a channel that has no active prompt', async () => {
     const thread = makeThread();
     const client = makeClientWithThread(thread);
-    const msg = makeMessage({ channel: { id: 'some-other-channel' }, client });
+    const msg = makeMessage({
+      channel: { id: 'some-other-channel' },
+      reference: { messageId: 'prompt-msg-1', channelId: 'some-other-channel', type: MessageReferenceType.Default },
+      client,
+    });
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
+  });
+
+  it('mirrors a /discuss post-here reply in a non-lounge channel', async () => {
+    const thread = makeThread();
+    const client = makeClientWithThread(thread);
+    const POST_HERE_PROMPT = {
+      ...ACTIVE_PROMPT,
+      id: 'log-2',
+      promptChannelId: 'random-ch',
+      channelId: 'random-ch',
+      crossPostMessageId: null,
+      loungePromptMessageId: 'post-here-prompt-1',
+    };
+    (prisma.discussionPromptLog.findFirst as any).mockImplementation(({ where }: any) => {
+      if (where?.promptChannelId === 'random-ch') return Promise.resolve(POST_HERE_PROMPT);
+      return Promise.resolve(null);
+    });
+    const msg = makeMessage({
+      channel: { id: 'random-ch' },
+      reference: {
+        messageId: 'post-here-prompt-1',
+        channelId: 'random-ch',
+        type: MessageReferenceType.Default,
+      },
+      client,
+    });
+
+    await onLoungeMessageCreate(msg as any);
+
+    expect(thread._webhook.send).toHaveBeenCalled();
+    expect(prisma.mirroredMessage.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ promptLogId: 'log-2' }),
+    });
+  });
+
+  it('mirrors post-here replies even when the global discussion config is inactive', async () => {
+    const thread = makeThread();
+    const client = makeClientWithThread(thread);
+    const POST_HERE_PROMPT = {
+      ...ACTIVE_PROMPT,
+      id: 'log-3',
+      promptChannelId: 'random-ch',
+      channelId: 'random-ch',
+      crossPostMessageId: null,
+      loungePromptMessageId: 'post-here-prompt-3',
+    };
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue({ ...CONFIG, isActive: false });
+    (prisma.discussionPromptLog.findFirst as any).mockImplementation(({ where }: any) => {
+      if (where?.promptChannelId === 'random-ch') return Promise.resolve(POST_HERE_PROMPT);
+      return Promise.resolve(null);
+    });
+    const msg = makeMessage({
+      channel: { id: 'random-ch' },
+      reference: {
+        messageId: 'post-here-prompt-3',
+        channelId: 'random-ch',
+        type: MessageReferenceType.Default,
+      },
+      client,
+    });
+
+    await onLoungeMessageCreate(msg as any);
+
+    expect(thread._webhook.send).toHaveBeenCalled();
   });
 
   it('no-ops when there is no active prompt', async () => {
@@ -251,7 +393,7 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
   });
 
   it('no-ops on duplicate mirror (idempotency check)', async () => {
@@ -267,7 +409,7 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
     expect(prisma.mirroredMessage.create).not.toHaveBeenCalled();
   });
 
@@ -278,35 +420,36 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    const sentContent = (thread.send.mock.calls[0][0] as any).content as string;
+    const sentContent = (thread._webhook.send.mock.calls[0][0] as any).content as string;
     expect(sentContent).toContain('*(no text — see lounge)*');
   });
 
   it('truncates very long content', async () => {
     const thread = makeThread();
     const client = makeClientWithThread(thread);
-    const longBody = 'x'.repeat(2000);
+    const longBody = 'x'.repeat(2500);
     const msg = makeMessage({ content: longBody, client });
 
     await onLoungeMessageCreate(msg as any);
 
-    const sentContent = (thread.send.mock.calls[0][0] as any).content as string;
+    const sentContent = (thread._webhook.send.mock.calls[0][0] as any).content as string;
     expect(sentContent).toContain('…');
     expect(sentContent.length).toBeLessThanOrEqual(2000);
   });
 
-  it('escapes markdown in display name', async () => {
+  it('passes the display name through to the webhook username verbatim', async () => {
+    // Webhook usernames render as plain text — Discord does not interpret
+    // markdown there, so we deliberately do not escape it.
     const thread = makeThread();
     const client = makeClientWithThread(thread);
     const msg = makeMessage({
-      member: { displayName: '**Kevin**' },
+      member: { displayName: '**Kevin**', displayAvatarURL: () => 'https://cdn/x.png' },
       client,
     });
 
     await onLoungeMessageCreate(msg as any);
 
-    const sentContent = (thread.send.mock.calls[0][0] as any).content as string;
-    expect(sentContent).toContain('\\*\\*Kevin\\*\\*');
+    expect(thread._webhook.send).toHaveBeenCalledWith(expect.objectContaining({ username: '**Kevin**' }));
   });
 
   it('marks mirror ended when the active thread is archived', async () => {
@@ -321,9 +464,31 @@ describe('onLoungeMessageCreate', () => {
       where: { id: 'log-1' },
       data: { mirrorEndedAt: expect.any(Date) },
     });
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
 
     consoleSpy.mockRestore();
+  });
+
+  it('mirrors when message originates in DEV_GUILD_ID', async () => {
+    process.env.DEV_GUILD_ID = TEST_DEV_GUILD_ID;
+    const thread = makeThread();
+    const client = makeClientWithThread(thread);
+    const msg = makeMessage({ guild: { id: TEST_DEV_GUILD_ID }, client });
+
+    await onLoungeMessageCreate(msg as any);
+
+    expect(thread._webhook.send).toHaveBeenCalled();
+    expect(prisma.mirroredMessage.create).toHaveBeenCalled();
+  });
+
+  it('no-ops when message originates in an unrelated guild', async () => {
+    const thread = makeThread();
+    const client = makeClientWithThread(thread);
+    const msg = makeMessage({ guild: { id: 'some-other-guild' }, client });
+
+    await onLoungeMessageCreate(msg as any);
+
+    expect(thread._webhook.send).not.toHaveBeenCalled();
   });
 
   it('no-ops when DiscussionConfig is inactive', async () => {
@@ -337,19 +502,13 @@ describe('onLoungeMessageCreate', () => {
 
     await onLoungeMessageCreate(msg as any);
 
-    expect(thread.send).not.toHaveBeenCalled();
+    expect(thread._webhook.send).not.toHaveBeenCalled();
   });
 });
 
 describe('onLoungeMessageUpdate', () => {
-  it('edits the mirrored thread message with the new content', async () => {
-    const fetchedThreadMessage = {
-      id: 'thread-msg-1',
-      edit: vi.fn().mockResolvedValue(undefined),
-      delete: vi.fn().mockResolvedValue(undefined),
-    };
+  it('edits the mirrored thread message via the webhook', async () => {
     const thread = makeThread();
-    thread.messages.fetch = vi.fn().mockResolvedValue(fetchedThreadMessage);
     const client = makeClientWithThread(thread);
     const newMsg = makeMessage({
       content: 'edited!',
@@ -364,9 +523,11 @@ describe('onLoungeMessageUpdate', () => {
 
     await onLoungeMessageUpdate(newMsg as any);
 
-    expect(fetchedThreadMessage.edit).toHaveBeenCalledWith(
+    expect(thread._webhook.editMessage).toHaveBeenCalledWith(
+      'thread-msg-1',
       expect.objectContaining({
-        content: expect.stringContaining('> edited!'),
+        content: expect.stringContaining('edited!'),
+        threadId: 'thread-1',
         allowedMentions: { parse: [] },
       }),
     );
@@ -380,6 +541,7 @@ describe('onLoungeMessageUpdate', () => {
 
     await onLoungeMessageUpdate(newMsg as any);
 
+    expect(thread._webhook.editMessage).not.toHaveBeenCalled();
     expect(thread.messages.fetch).not.toHaveBeenCalled();
   });
 });
@@ -404,14 +566,8 @@ describe('onLoungeMessageDelete', () => {
     consoleSpy.mockRestore();
   });
 
-  it('Path B: deletes the mirrored thread message and removes the row', async () => {
-    const fetchedThreadMessage = {
-      id: 'thread-msg-1',
-      edit: vi.fn().mockResolvedValue(undefined),
-      delete: vi.fn().mockResolvedValue(undefined),
-    };
+  it('Path B: deletes the mirrored thread message via the webhook and removes the row', async () => {
     const thread = makeThread();
-    thread.messages.fetch = vi.fn().mockResolvedValue(fetchedThreadMessage);
     const client = makeClientWithThread(thread);
     const deleted = makeMessage({ id: 'msg-1', client });
     // Path A returns null (this is a reply, not the prompt).
@@ -426,7 +582,7 @@ describe('onLoungeMessageDelete', () => {
 
     await onLoungeMessageDelete(deleted as any);
 
-    expect(fetchedThreadMessage.delete).toHaveBeenCalled();
+    expect(thread._webhook.deleteMessage).toHaveBeenCalledWith('thread-msg-1', 'thread-1');
     expect(prisma.mirroredMessage.delete).toHaveBeenCalledWith({
       where: { loungeMessageId: 'msg-1' },
     });
@@ -447,7 +603,10 @@ describe('onLoungeMessageDelete', () => {
     expect(prisma.mirroredMessage.delete).not.toHaveBeenCalled();
   });
 
-  it('no-ops on deletes outside the configured lounge channel', async () => {
+  it('still ends a /discuss post-here mirror when its prompt is deleted (any channel)', async () => {
+    // Discord message IDs are globally unique; the prompt-message lookup keys
+    // off ID, not channel, so deletes from a non-lounge channel must still hit
+    // Path A.
     const deleted = makeMessage({
       id: 'prompt-msg-1',
       channel: { id: 'random-channel' },
@@ -455,7 +614,9 @@ describe('onLoungeMessageDelete', () => {
 
     await onLoungeMessageDelete(deleted as any);
 
-    expect(prisma.discussionPromptLog.findFirst).not.toHaveBeenCalled();
-    expect(prisma.mirroredMessage.findUnique).not.toHaveBeenCalled();
+    expect(prisma.discussionPromptLog.update).toHaveBeenCalledWith({
+      where: { id: 'log-1' },
+      data: { mirrorEndedAt: expect.any(Date) },
+    });
   });
 });

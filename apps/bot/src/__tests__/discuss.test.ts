@@ -28,6 +28,7 @@ vi.mock('../services/prompts', () => ({
 
 vi.mock('../services/discussion-cycle', () => ({
   runDailyCycle: vi.fn(),
+  skipCurrentDailyPrompt: vi.fn(),
   isCycleLockHeld: vi.fn(),
   resetCycleLockForTest: vi.fn(),
 }));
@@ -36,7 +37,7 @@ import { prisma } from '@photobot/db';
 import { ChannelType, TextChannel } from 'discord.js';
 import { execute } from '../commands/discuss';
 import { canUseFeature } from '../middleware/permissions';
-import { isCycleLockHeld, runDailyCycle } from '../services/discussion-cycle';
+import { isCycleLockHeld, runDailyCycle, skipCurrentDailyPrompt } from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
 
 function makeChannel(id: string, type = ChannelType.GuildText) {
@@ -253,6 +254,86 @@ describe('/discuss post-daily', () => {
   });
 });
 
+describe('/discuss skip', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue({
+      id: 'singleton',
+      discussionsChannelId: 'd-1',
+      loungeChannelId: 'l-1',
+      categoryFilter: null,
+      isActive: true,
+    });
+    (skipCurrentDailyPrompt as any).mockResolvedValue({ ok: true });
+    (isCycleLockHeld as any).mockReturnValue(false);
+    (prisma.configAuditLog.create as any).mockResolvedValue({});
+  });
+
+  it('rejects when cycle lock is held', async () => {
+    (isCycleLockHeld as any).mockReturnValue(true);
+    const { interaction, replies } = makeInteraction({ subcommand: 'skip' });
+
+    await execute(interaction);
+
+    expect(skipCurrentDailyPrompt).not.toHaveBeenCalled();
+    expect(JSON.stringify(replies[0])).toContain('already in progress');
+  });
+
+  it('rejects when no config exists', async () => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(null);
+    const { interaction, replies } = makeInteraction({ subcommand: 'skip' });
+
+    await execute(interaction);
+
+    expect(skipCurrentDailyPrompt).not.toHaveBeenCalled();
+    expect(JSON.stringify(replies[0])).toContain('No configuration');
+  });
+
+  it('rejects when daily cycle is disabled', async () => {
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue({
+      id: 'singleton',
+      discussionsChannelId: 'd-1',
+      loungeChannelId: 'l-1',
+      categoryFilter: null,
+      isActive: false,
+    });
+    const { interaction, replies } = makeInteraction({ subcommand: 'skip' });
+
+    await execute(interaction);
+
+    expect(skipCurrentDailyPrompt).not.toHaveBeenCalled();
+    expect(JSON.stringify(replies[0])).toContain('disabled');
+  });
+
+  it('calls skipCurrentDailyPrompt and writes an audit log on success', async () => {
+    const { interaction, replies } = makeInteraction({ subcommand: 'skip' });
+
+    await execute(interaction);
+
+    expect(skipCurrentDailyPrompt).toHaveBeenCalledWith(
+      interaction.client,
+      expect.objectContaining({ id: 'singleton' }),
+    );
+    expect(prisma.configAuditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'SKIP_DAILY_PROMPT',
+        targetType: 'SERVER',
+        userId: 'user-1',
+      }),
+    });
+    expect(JSON.stringify(replies[replies.length - 1])).toContain('Skipped');
+  });
+
+  it('reports the failure reason when skip fails', async () => {
+    (skipCurrentDailyPrompt as any).mockResolvedValue({ ok: false, reason: 'discord_error' });
+    const { interaction, replies } = makeInteraction({ subcommand: 'skip' });
+
+    await execute(interaction);
+
+    expect(JSON.stringify(replies[replies.length - 1])).toContain('discord_error');
+  });
+});
+
 describe('/discuss post-here', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -271,21 +352,40 @@ describe('/discuss post-here', () => {
     expect(JSON.stringify(replies[0])).toContain('not enabled');
   });
 
-  it('writes log row with threadId null', async () => {
-    const { interaction } = makeInteraction({ subcommand: 'post-here' });
+  it('opens a thread on the reply and edits the embed to link to it', async () => {
+    const startThread = vi.fn(async () => ({ id: 'thread-77' }));
+    const { interaction, replies } = makeInteraction({ subcommand: 'post-here' });
+    interaction.fetchReply = vi.fn(async () => ({ startThread }));
 
     await execute(interaction);
 
+    expect(startThread).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Test prompt', autoArchiveDuration: 10080 }),
+    );
     expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         channelId: 'ch-current',
         promptText: 'Test prompt',
         category: 'creative',
+        threadId: 'thread-77',
       }),
     });
+    // Last reply should be the editReply with the thread URL embedded.
+    const lastEmbed = (replies.at(-1) as any).embeds[0].data;
+    expect(lastEmbed.description).toContain('discord.com/channels/guild-1/thread-77');
+  });
+
+  it('still logs (with threadId null) when thread creation fails', async () => {
+    const startThread = vi.fn(async () => {
+      throw new Error('missing perms');
+    });
+    const { interaction } = makeInteraction({ subcommand: 'post-here' });
+    interaction.fetchReply = vi.fn(async () => ({ startThread }));
+
+    await execute(interaction);
+
     const callData = (prisma.discussionPromptLog.create as any).mock.calls[0][0].data;
-    expect(callData.threadId).toBeUndefined();
-    expect(callData.discussionsMessageId).toBeUndefined();
+    expect(callData.threadId).toBeNull();
   });
 });
 

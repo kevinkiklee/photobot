@@ -59,76 +59,162 @@ export async function runDailyCycle(
   options: { skipQuietWait?: boolean } = {},
 ): Promise<CycleResult> {
   if (!tryAcquireCycleLock()) return { ok: false, reason: 'busy' };
-
   try {
-    const allowed = await canUseFeature(config.discussionsChannelId, [], 'discuss');
-    if (!allowed) return { ok: false, reason: 'not_allowed' };
+    return await runDailyCycleInner(client, config, options);
+  } finally {
+    releaseCycleLock();
+  }
+}
 
-    const loungeChannel = await fetchTextChannel(client, config.loungeChannelId);
-    const discussionsChannel = await fetchTextChannel(client, config.discussionsChannelId);
-    if (!loungeChannel || !discussionsChannel) {
-      return { ok: false, reason: 'channel_unavailable' };
-    }
+/**
+ * Same logic as runDailyCycle, but assumes the cycle lock is already held.
+ * Used by both the public runDailyCycle wrapper and skipCurrentDailyPrompt
+ * (which holds the lock across delete + repost).
+ */
+async function runDailyCycleInner(
+  client: Client,
+  config: DiscussionConfigShape,
+  options: { skipQuietWait?: boolean },
+): Promise<CycleResult> {
+  const allowed = await canUseFeature(config.discussionsChannelId, [], 'discuss');
+  if (!allowed) return { ok: false, reason: 'not_allowed' };
 
-    const prompt = await selectPrompt(config.categoryFilter);
+  const loungeChannel = await fetchTextChannel(client, config.loungeChannelId);
+  const discussionsChannel = await fetchTextChannel(client, config.discussionsChannelId);
+  if (!loungeChannel || !discussionsChannel) {
+    return { ok: false, reason: 'channel_unavailable' };
+  }
 
-    // Quiet-wait before the primary post — lounge is now the origin, so we
-    // should defer if conversation is active. Skipped on /discuss post-daily.
-    if (!options.skipQuietWait) await waitForQuiet(loungeChannel);
+  const prompt = await selectPrompt(config.categoryFilter);
 
-    // Re-check isActive after the wait — admin may have disabled mid-cycle.
-    const fresh = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
-    if (!fresh?.isActive) return { ok: true };
+  // Quiet-wait before the primary post — lounge is now the origin, so we
+  // should defer if conversation is active. Skipped on /discuss post-daily.
+  if (!options.skipQuietWait) await waitForQuiet(loungeChannel);
 
-    // Post the prompt embed in lounge.
-    let loungePromptMessage: Message;
+  // Re-check isActive after the wait — admin may have disabled mid-cycle.
+  const fresh = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+  if (!fresh?.isActive) return { ok: true };
+
+  // Post the prompt embed in lounge.
+  let loungePromptMessage: Message;
+  try {
+    const embed = createPromptEmbed(prompt.text, 'Discussion of the Day');
+    loungePromptMessage = await loungeChannel.send({ embeds: [embed] });
+  } catch (_err) {
+    return { ok: false, reason: 'discord_error' };
+  }
+
+  // Start a thread on the lounge prompt. If this fails, delete the prompt
+  // message so the slot is retryable on the next tick.
+  let threadId: string;
+  try {
+    const thread = await loungePromptMessage.startThread({
+      name: buildThreadName(prompt.text),
+      autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
+    });
+    threadId = thread.id;
+  } catch (_err) {
     try {
-      const embed = createPromptEmbed(prompt.text, 'Discussion of the Day');
-      loungePromptMessage = await loungeChannel.send({ embeds: [embed] });
-    } catch (_err) {
-      return { ok: false, reason: 'discord_error' };
-    }
+      await loungePromptMessage.delete();
+    } catch (_deleteErr) {}
+    return { ok: false, reason: 'discord_error' };
+  }
 
-    // Start a thread on the lounge prompt. If this fails, delete the prompt
-    // message so the slot is retryable on the next tick.
-    let threadId: string;
-    try {
-      const thread = await loungePromptMessage.startThread({
-        name: buildThreadName(prompt.text),
-        autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
-      });
-      threadId = thread.id;
-    } catch (_err) {
-      try {
-        await loungePromptMessage.delete();
-      } catch (_deleteErr) {}
-      return { ok: false, reason: 'discord_error' };
-    }
+  const guildId = loungeChannel.guildId ?? client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
+  const threadUrl = `https://discord.com/channels/${guildId}/${threadId}`;
 
-    const guildId = loungeChannel.guildId ?? client.guilds.cache.get(process.env.PL_GUILD_ID ?? '')?.id;
-    const threadUrl = `https://discord.com/channels/${guildId}/${threadId}`;
+  // Cross-post in #discussions. Best-effort — failure does not roll back.
+  let crossPostMessageId: string | null = null;
+  try {
+    const crossPostEmbed = createPromptEmbed(prompt.text, 'Discussion of the Day', threadUrl);
+    const crossPostMessage = await discussionsChannel.send({ embeds: [crossPostEmbed] });
+    crossPostMessageId = crossPostMessage.id;
+  } catch (_err) {}
 
-    // Cross-post in #discussions. Best-effort — failure does not roll back.
-    let crossPostMessageId: string | null = null;
-    try {
-      const crossPostEmbed = createPromptEmbed(prompt.text, 'Discussion of the Day', threadUrl);
-      const crossPostMessage = await discussionsChannel.send({ embeds: [crossPostEmbed] });
-      crossPostMessageId = crossPostMessage.id;
-    } catch (_err) {}
-
-    await prisma.discussionPromptLog.create({
+  const now = new Date();
+  // Close out any prior unended prompts in this lounge before recording the
+  // new one. Without this, every cycle leaves a stale row with mirrorEndedAt
+  // null, and historical rows accumulate forever even though only the most
+  // recent one is ever consulted by the mirror service.
+  await prisma.$transaction([
+    prisma.discussionPromptLog.updateMany({
+      where: {
+        promptChannelId: config.loungeChannelId,
+        mirrorEndedAt: null,
+      },
+      data: { mirrorEndedAt: now },
+    }),
+    prisma.discussionPromptLog.create({
       data: {
         channelId: config.discussionsChannelId,
+        promptChannelId: config.loungeChannelId,
         promptText: prompt.text,
         category: prompt.category,
         threadId,
         loungePromptMessageId: loungePromptMessage.id,
         crossPostMessageId,
-        lastAnnouncedAt: new Date(),
+        lastAnnouncedAt: now,
       },
+    }),
+  ]);
+
+  return { ok: true };
+}
+
+/**
+ * Skip the currently-active daily prompt: delete the lounge prompt message
+ * (Discord auto-deletes the attached thread + its messages), delete the
+ * cross-post in #discussions, drop the DB rows, then immediately post a fresh
+ * cycle. Holds the cycle lock across both phases so the scheduler and
+ * concurrent /post-daily calls can't interleave.
+ */
+export async function skipCurrentDailyPrompt(client: Client, config: DiscussionConfigShape): Promise<CycleResult> {
+  if (!tryAcquireCycleLock()) return { ok: false, reason: 'busy' };
+  try {
+    const active = await prisma.discussionPromptLog.findFirst({
+      where: {
+        promptChannelId: config.loungeChannelId,
+        mirrorEndedAt: null,
+        loungePromptMessageId: { not: null },
+      },
+      orderBy: { postedAt: 'desc' },
     });
 
-    return { ok: true };
+    if (active) {
+      const loungeChannel = await fetchTextChannel(client, config.loungeChannelId);
+      const discussionsChannel = await fetchTextChannel(client, config.discussionsChannelId);
+
+      // Discord auto-deletes the thread (and its messages) when the message
+      // it was started from is deleted, so deleting the lounge prompt is
+      // sufficient to tear down the whole prompt + thread.
+      if (loungeChannel && active.loungePromptMessageId) {
+        try {
+          const promptMsg = await loungeChannel.messages.fetch(active.loungePromptMessageId);
+          await promptMsg.delete();
+        } catch (_err) {}
+      }
+
+      if (discussionsChannel && active.crossPostMessageId) {
+        try {
+          const crossPostMsg = await discussionsChannel.messages.fetch(active.crossPostMessageId);
+          await crossPostMsg.delete();
+        } catch (_err) {}
+      }
+
+      // Drop DB rows. MirroredMessage.promptLogId has onDelete: Restrict, so
+      // mirrors must go first.
+      try {
+        await prisma.$transaction([
+          prisma.mirroredMessage.deleteMany({ where: { promptLogId: active.id } }),
+          prisma.discussionPromptLog.delete({ where: { id: active.id } }),
+        ]);
+      } catch (_err) {
+        // Non-fatal: a leftover row will be closed by the new cycle's
+        // updateMany. Continue to the repost.
+      }
+    }
+
+    return await runDailyCycleInner(client, config, { skipQuietWait: true });
   } finally {
     releaseCycleLock();
   }

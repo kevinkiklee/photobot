@@ -8,9 +8,12 @@ import {
 } from 'discord.js';
 import { BRAND_COLOR, STAFF_ROLE_IDS } from '../constants';
 import { canUseFeature } from '../middleware/permissions';
-import { isCycleLockHeld, runDailyCycle } from '../services/discussion-cycle';
+import { isCycleLockHeld, runDailyCycle, skipCurrentDailyPrompt } from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
 import { createPromptEmbed } from '../utils/embed';
+import { buildThreadName } from '../utils/thread-name';
+
+const THREAD_AUTO_ARCHIVE_MINUTES = 10080;
 
 export const data = new SlashCommandBuilder()
   .setName('discuss')
@@ -42,9 +45,12 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand((sub) => sub.setName('post-daily').setDescription('Manually fire the daily discussion cycle now'))
   .addSubcommand((sub) =>
+    sub.setName('skip').setDescription('Delete the current daily prompt + thread and post a fresh one'),
+  )
+  .addSubcommand((sub) =>
     sub
       .setName('post-here')
-      .setDescription('Post a one-off prompt in the current channel (no thread, no lounge)')
+      .setDescription('Post a one-off prompt in the current channel and open a thread under it')
       .addStringOption((opt) =>
         opt
           .setName('category')
@@ -77,6 +83,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return handleSchedule(interaction);
     case 'post-daily':
       return handlePostDaily(interaction);
+    case 'skip':
+      return handleSkip(interaction);
     case 'post-here':
       return handlePostHere(interaction);
     case 'config':
@@ -220,6 +228,49 @@ async function handlePostDaily(interaction: ChatInputCommandInteraction) {
   });
 }
 
+async function handleSkip(interaction: ChatInputCommandInteraction) {
+  if (isCycleLockHeld()) {
+    return interaction.reply({
+      content: 'A discussion cycle is already in progress, try again in a few minutes.',
+      ephemeral: true,
+    });
+  }
+
+  const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+  if (!config) {
+    return interaction.reply({
+      content: 'No configuration set. Use /discuss schedule first.',
+      ephemeral: true,
+    });
+  }
+  if (!config.isActive) {
+    return interaction.reply({
+      content: 'The daily discussion cycle is currently disabled. Run /discuss enable first.',
+      ephemeral: true,
+    });
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const result = await skipCurrentDailyPrompt(interaction.client, config);
+
+  await prisma.configAuditLog.create({
+    data: {
+      userId: interaction.user.id,
+      action: 'SKIP_DAILY_PROMPT',
+      targetType: 'SERVER',
+      targetId: 'singleton',
+      featureKey: 'discuss',
+      newValue: { result: result.ok ? 'ok' : result.reason },
+    },
+  });
+
+  if (result.ok) {
+    return interaction.editReply({ content: 'Skipped — a new prompt has been posted.' });
+  }
+  return interaction.editReply({ content: `Skip failed: ${result.reason}.` });
+}
+
 async function handlePostHere(interaction: ChatInputCommandInteraction) {
   const roleIds = extractRoleIds(interaction.member);
   const allowed = await canUseFeature(interaction.channelId, roleIds, 'discuss');
@@ -232,16 +283,30 @@ async function handlePostHere(interaction: ChatInputCommandInteraction) {
 
   const category = interaction.options.getString('category');
   const prompt = await selectPrompt(category);
-  const embed = createPromptEmbed(prompt.text);
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({ embeds: [createPromptEmbed(prompt.text)] });
+  const promptMessage = await interaction.fetchReply();
+
+  let threadId: string | null = null;
+  try {
+    const thread = await promptMessage.startThread({
+      name: buildThreadName(prompt.text),
+      autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
+    });
+    threadId = thread.id;
+    const threadUrl = `https://discord.com/channels/${interaction.guildId}/${thread.id}`;
+    await interaction.editReply({ embeds: [createPromptEmbed(prompt.text, 'Discussion Prompt', threadUrl)] });
+  } catch (_err) {}
 
   try {
     await prisma.discussionPromptLog.create({
       data: {
         channelId: interaction.channelId,
+        promptChannelId: interaction.channelId,
+        loungePromptMessageId: promptMessage.id,
         promptText: prompt.text,
         category: prompt.category,
+        threadId,
       },
     });
   } catch (_err) {}

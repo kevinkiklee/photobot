@@ -133,6 +133,12 @@ model DiscussionPromptLog {
   /// Post-restructure: the lounge prompt message ID. Acts as the reply-chain
   /// root for the mirror service. Null on pre-restructure rows.
   loungePromptMessageId String?   @map("lounge_prompt_message_id")
+  /// Channel hosting the prompt anchor message — i.e. where replies the mirror
+  /// should pick up are posted. For daily-cycle rows this equals
+  /// `discussion_config.lounge_channel_id`. For `/discuss post-here` rows it is
+  /// whatever channel the command was run in. The mirror keys its active-prompt
+  /// lookup off this column.
+  promptChannelId       String?   @map("prompt_channel_id")
   /// Last time this prompt was announced in #lounge. Set after every successful
   /// lounge post (including the initial 08:00 announcement). NOT updated on
   /// Discord API failure — failed announcements are retried at the next slot.

@@ -1,40 +1,51 @@
 // Mirror service. Listens for replies to the active discussion prompt in
-// #photo-lounge (and downstream replies in the same chain) and mirrors a
-// bot-quoted copy into the discussion thread.
+// #photo-lounge (and downstream replies in the same chain) and re-posts them
+// into the discussion thread via a per-channel webhook so the message renders
+// with the original user's display name and avatar (still tagged "APP").
 //
-// State lives entirely in the DB — restart-safe, no in-memory caches.
+// Persistent state (which lounge messages have been mirrored) lives in the DB.
+// The webhook lookup is cached in-process and re-resolved on cold start.
 //
 // See docs/superpowers/specs/2026-04-26-lounge-prompt-mirror-design.md.
 
 import { prisma } from '@photobot/db';
 import {
   type Client,
-  escapeMarkdown,
   type Message,
   MessageFlags,
   MessageReferenceType,
   type OmitPartialGroupDMChannel,
   type PartialMessage,
+  type TextChannel,
   type ThreadChannel,
+  type Webhook,
 } from 'discord.js';
+import { isAllowedGuild } from '../utils/guilds';
 
-const MAX_MIRRORED_BODY_LENGTH = 1700; // Leave headroom for prefix + jump link.
+const MAX_MIRRORED_BODY_LENGTH = 1900; // Leave headroom for the jump-link subtext.
+const MIRROR_WEBHOOK_NAME = 'Photobot Mirror';
 
-interface DiscussionConfigShape {
-  loungeChannelId: string;
+// Parent-channel ID -> Webhook instance. Cleared on cold start; we then
+// re-discover by name via fetchWebhooks().
+const webhookCache = new Map<string, Webhook>();
+
+/** Test-only: clears the in-process webhook cache. */
+export function resetMirrorWebhookCacheForTest(): void {
+  webhookCache.clear();
 }
 
 /**
- * Resolve the active prompt for mirroring. There is at most one: the most
- * recently posted prompt log row whose `mirrorEndedAt` is still null and that
- * was posted under the new channel-restructure flow (so `loungePromptMessageId`
- * is non-null).
+ * Resolve the active prompt for mirroring in `channelId`. Both the daily cycle
+ * (in #photo-lounge) and `/discuss post-here` (in any channel) can hold an
+ * active prompt; we key the lookup off `promptChannelId` so each channel has
+ * its own active prompt independently. Returns the most recent if multiple.
  */
-async function getActivePromptLog() {
+async function getActivePromptLog(channelId: string) {
   return prisma.discussionPromptLog.findFirst({
     where: {
       loungePromptMessageId: { not: null },
       mirrorEndedAt: null,
+      promptChannelId: channelId,
     },
     orderBy: { postedAt: 'desc' },
   });
@@ -50,23 +61,20 @@ async function markMirrorEnded(logId: string, _reason: string): Promise<void> {
 }
 
 /**
- * Build the bot-quoted mirror content. Bare placeholder when the original is
- * empty (e.g. image-only). Truncated to fit Discord's 2000-char message cap.
+ * Build the mirror content. Webhook posting carries the user's display name
+ * and avatar, so the body is plain text plus a small subtext link back to the
+ * original message. Bare placeholder when the original is empty (e.g.
+ * image-only). Truncated to fit Discord's 2000-char message cap.
  */
-function buildMirrorContent(authorDisplayName: string, rawContent: string, jumpUrl: string): string {
-  const escapedAuthor = escapeMarkdown(authorDisplayName);
+function buildMirrorContent(rawContent: string, jumpUrl: string): string {
   const trimmed = rawContent.trim();
-  let quoted: string;
-  if (trimmed.length === 0) {
-    quoted = '*(no text — see lounge)*';
-  } else {
-    const body = trimmed.length > MAX_MIRRORED_BODY_LENGTH ? `${trimmed.slice(0, MAX_MIRRORED_BODY_LENGTH)}…` : trimmed;
-    quoted = body
-      .split('\n')
-      .map((line) => `> ${line}`)
-      .join('\n');
-  }
-  return `**${escapedAuthor}** [↗ jump](${jumpUrl})\n${quoted}`;
+  const body =
+    trimmed.length === 0
+      ? '*(no text — see lounge)*'
+      : trimmed.length > MAX_MIRRORED_BODY_LENGTH
+        ? `${trimmed.slice(0, MAX_MIRRORED_BODY_LENGTH)}…`
+        : trimmed;
+  return `${body}\n-# [original ↗](${jumpUrl})`;
 }
 
 async function fetchActiveThread(client: Client, threadId: string): Promise<ThreadChannel | null> {
@@ -79,10 +87,53 @@ async function fetchActiveThread(client: Client, threadId: string): Promise<Thre
   }
 }
 
-async function shouldMirror(msg: OmitPartialGroupDMChannel<Message>, config: DiscussionConfigShape): Promise<boolean> {
+/**
+ * Get (or create) the dedicated mirror webhook on `parentChannel`. We reuse
+ * one webhook per channel so threads under it can all share it via threadId.
+ * Returns null if the bot lacks Manage Webhooks or the API call fails.
+ */
+async function getOrCreateMirrorWebhook(parentChannel: TextChannel): Promise<Webhook | null> {
+  const cached = webhookCache.get(parentChannel.id);
+  if (cached) return cached;
+
+  const clientId = parentChannel.client.user?.id;
+  if (!clientId) return null;
+
+  try {
+    const existing = await parentChannel.fetchWebhooks();
+    const mine = existing.find((w) => w.owner?.id === clientId && w.name === MIRROR_WEBHOOK_NAME);
+    if (mine) {
+      webhookCache.set(parentChannel.id, mine);
+      return mine;
+    }
+    const created = await parentChannel.createWebhook({
+      name: MIRROR_WEBHOOK_NAME,
+      reason: 'Mirror discussion replies into the prompt thread',
+    });
+    webhookCache.set(parentChannel.id, created);
+    return created;
+  } catch (_err) {
+    return null;
+  }
+}
+
+function resolveParentChannel(thread: ThreadChannel): TextChannel | null {
+  const parent = thread.parent;
+  if (!parent || !('createWebhook' in parent)) return null;
+  return parent as TextChannel;
+}
+
+function resolveAvatarUrl(msg: OmitPartialGroupDMChannel<Message>): string | undefined {
+  const member = msg.member;
+  if (member && typeof member.displayAvatarURL === 'function') {
+    return member.displayAvatarURL() ?? undefined;
+  }
+  return msg.author.displayAvatarURL?.() ?? undefined;
+}
+
+function isReplyCandidate(msg: OmitPartialGroupDMChannel<Message>): boolean {
   if (!msg.guild) return false;
-  if (msg.guild.id !== process.env.PL_GUILD_ID) return false;
-  if (msg.channel.id !== config.loungeChannelId) return false;
+  if (!isAllowedGuild(msg.guild.id)) return false;
   if (msg.author?.bot) return false;
   const ref = msg.reference;
   if (!ref?.messageId) return false;
@@ -91,14 +142,12 @@ async function shouldMirror(msg: OmitPartialGroupDMChannel<Message>, config: Dis
   if (ref.type !== undefined && ref.type !== MessageReferenceType.Default) {
     return false;
   }
-  if (ref.channelId && ref.channelId !== config.loungeChannelId) return false;
+  if (ref.channelId && ref.channelId !== msg.channel.id) return false;
   return true;
 }
 
 export async function onLoungeMessageCreate(msg: OmitPartialGroupDMChannel<Message>): Promise<void> {
-  const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
-  if (!config?.isActive) return;
-  if (!(await shouldMirror(msg, config))) return;
+  if (!isReplyCandidate(msg)) return;
 
   // Idempotency: if we already mirrored this exact lounge message, no-op
   // (defends against gateway event re-delivery).
@@ -107,8 +156,15 @@ export async function onLoungeMessageCreate(msg: OmitPartialGroupDMChannel<Messa
   });
   if (existing) return;
 
-  const activePrompt = await getActivePromptLog();
+  const activePrompt = await getActivePromptLog(msg.channel.id);
   if (!activePrompt?.threadId || !activePrompt.loungePromptMessageId) {
+    return;
+  }
+
+  // Daily-cycle prompts respect the global on/off toggle; one-off post-here
+  // prompts are user-initiated and ignore it.
+  const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
+  if (config && activePrompt.promptChannelId === config.loungeChannelId && !config.isActive) {
     return;
   }
 
@@ -131,16 +187,33 @@ export async function onLoungeMessageCreate(msg: OmitPartialGroupDMChannel<Messa
   const authorName = msg.member?.displayName ?? msg.author.username;
   const guildId = msg.guild?.id;
   const jumpUrl = `https://discord.com/channels/${guildId}/${msg.channel.id}/${msg.id}`;
-  const content = buildMirrorContent(authorName, msg.content, jumpUrl);
+  const content = buildMirrorContent(msg.content, jumpUrl);
+
+  const parentChannel = resolveParentChannel(thread);
+  const webhook = parentChannel ? await getOrCreateMirrorWebhook(parentChannel) : null;
 
   let threadMessageId: string;
   try {
-    const mirrored = await thread.send({
-      content,
-      allowedMentions: { parse: [] },
-      flags: MessageFlags.SuppressNotifications,
-    });
-    threadMessageId = mirrored.id;
+    if (webhook) {
+      const mirrored = await webhook.send({
+        content,
+        username: authorName,
+        avatarURL: resolveAvatarUrl(msg),
+        threadId: thread.id,
+        allowedMentions: { parse: [] },
+        flags: MessageFlags.SuppressNotifications,
+      });
+      threadMessageId = mirrored.id;
+    } else {
+      // Fallback when we can't (or aren't allowed to) use a webhook: post as
+      // the bot with an inline attribution header.
+      const mirrored = await thread.send({
+        content: `**${authorName}**\n${content}`,
+        allowedMentions: { parse: [] },
+        flags: MessageFlags.SuppressNotifications,
+      });
+      threadMessageId = mirrored.id;
+    }
   } catch (_err) {
     return;
   }
@@ -161,10 +234,7 @@ export async function onLoungeMessageCreate(msg: OmitPartialGroupDMChannel<Messa
 export async function onLoungeMessageUpdate(
   newMessage: OmitPartialGroupDMChannel<Message | PartialMessage>,
 ): Promise<void> {
-  const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
-  if (!config) return;
-  if (newMessage.channel.id !== config.loungeChannelId) return;
-  if (newMessage.guild?.id !== process.env.PL_GUILD_ID) return;
+  if (!isAllowedGuild(newMessage.guild?.id)) return;
   if (newMessage.author?.bot) return;
 
   const row = await prisma.mirroredMessage.findUnique({
@@ -182,7 +252,7 @@ export async function onLoungeMessageUpdate(
 
   const guildId = resolved.guild?.id;
   const jumpUrl = `https://discord.com/channels/${guildId}/${resolved.channel.id}/${resolved.id}`;
-  const content = buildMirrorContent(row.authorDisplayName, resolved.content, jumpUrl);
+  const content = buildMirrorContent(resolved.content, jumpUrl);
 
   try {
     const log = await prisma.discussionPromptLog.findUnique({
@@ -191,18 +261,30 @@ export async function onLoungeMessageUpdate(
     if (!log?.threadId) return;
     const thread = await fetchActiveThread(resolved.client, log.threadId);
     if (!thread) return;
-    const threadMessage = await thread.messages.fetch(row.threadMessageId);
-    await threadMessage.edit({ content, allowedMentions: { parse: [] } });
+    const parentChannel = resolveParentChannel(thread);
+    const webhook = parentChannel ? await getOrCreateMirrorWebhook(parentChannel) : null;
+    if (webhook) {
+      await webhook.editMessage(row.threadMessageId, {
+        content,
+        threadId: thread.id,
+        allowedMentions: { parse: [] },
+      });
+    } else {
+      // Fallback: edit as the bot. Re-prepend the attribution header used in
+      // the create-time fallback so the message stays self-describing.
+      const threadMessage = await thread.messages.fetch(row.threadMessageId);
+      await threadMessage.edit({
+        content: `**${row.authorDisplayName}**\n${content}`,
+        allowedMentions: { parse: [] },
+      });
+    }
   } catch (_err) {}
 }
 
 export async function onLoungeMessageDelete(
   deleted: OmitPartialGroupDMChannel<Message | PartialMessage>,
 ): Promise<void> {
-  const config = await prisma.discussionConfig.findUnique({ where: { id: 'singleton' } });
-  if (!config) return;
-  if (deleted.channel.id !== config.loungeChannelId) return;
-  if (deleted.guild && deleted.guild.id !== process.env.PL_GUILD_ID) return;
+  if (deleted.guild && !isAllowedGuild(deleted.guild.id)) return;
 
   // Path A: was this the lounge prompt itself?
   const promptLog = await prisma.discussionPromptLog.findFirst({
@@ -226,9 +308,15 @@ export async function onLoungeMessageDelete(
     if (log?.threadId) {
       const thread = await fetchActiveThread(deleted.client, log.threadId);
       if (thread) {
+        const parentChannel = resolveParentChannel(thread);
+        const webhook = parentChannel ? await getOrCreateMirrorWebhook(parentChannel) : null;
         try {
-          const threadMessage = await thread.messages.fetch(row.threadMessageId);
-          await threadMessage.delete();
+          if (webhook) {
+            await webhook.deleteMessage(row.threadMessageId, thread.id);
+          } else {
+            const threadMessage = await thread.messages.fetch(row.threadMessageId);
+            await threadMessage.delete();
+          }
         } catch (_err) {}
       }
     }

@@ -2,13 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@photobot/db', () => ({
   prisma: {
+    $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
     discussionConfig: {
       findUnique: vi.fn(),
     },
     discussionPromptLog: {
       findFirst: vi.fn(),
       create: vi.fn(),
+      delete: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    mirroredMessage: {
+      deleteMany: vi.fn(),
     },
   },
 }));
@@ -24,7 +30,12 @@ vi.mock('../services/prompts', () => ({
 import { prisma } from '@photobot/db';
 import { TextChannel } from 'discord.js';
 import { canUseFeature } from '../middleware/permissions';
-import { postBumpInLounge, resetCycleLockForTest, runDailyCycle } from '../services/discussion-cycle';
+import {
+  postBumpInLounge,
+  resetCycleLockForTest,
+  runDailyCycle,
+  skipCurrentDailyPrompt,
+} from '../services/discussion-cycle';
 import { selectPrompt } from '../services/prompts';
 
 const CONFIG = {
@@ -87,6 +98,7 @@ describe('runDailyCycle', () => {
     (selectPrompt as any).mockResolvedValue({ text: 'Test prompt?', category: 'creative' });
     (prisma.discussionConfig.findUnique as any).mockResolvedValue(CONFIG);
     (prisma.discussionPromptLog.create as any).mockResolvedValue({ id: 'log-1' });
+    (prisma.discussionPromptLog.updateMany as any).mockResolvedValue({ count: 0 });
     (prisma.discussionPromptLog.update as any).mockResolvedValue({});
   });
 
@@ -122,6 +134,11 @@ describe('runDailyCycle', () => {
         crossPostMessageId: 'cross-1',
         lastAnnouncedAt: expect.any(Date),
       }),
+    });
+    // Prior unended rows in the same lounge are closed in the same transaction.
+    expect(prisma.discussionPromptLog.updateMany).toHaveBeenCalledWith({
+      where: { promptChannelId: 'l-1', mirrorEndedAt: null },
+      data: { mirrorEndedAt: expect.any(Date) },
     });
   });
 
@@ -314,5 +331,95 @@ describe('postBumpInLounge', () => {
     expect(result.error).toBe(false);
     expect(loungeChannel.send).not.toHaveBeenCalled();
     expect(prisma.discussionPromptLog.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('skipCurrentDailyPrompt', () => {
+  function makeActiveRow(overrides: Partial<any> = {}) {
+    return {
+      id: 'log-old',
+      promptChannelId: 'l-1',
+      loungePromptMessageId: 'old-prompt-msg-1',
+      crossPostMessageId: 'old-cross-1',
+      threadId: 'old-thread-1',
+      mirrorEndedAt: null,
+      ...overrides,
+    };
+  }
+
+  function makeFetchableMessage() {
+    return {
+      delete: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetCycleLockForTest();
+    (canUseFeature as any).mockResolvedValue(true);
+    (selectPrompt as any).mockResolvedValue({ text: 'Replacement prompt?', category: 'creative' });
+    (prisma.discussionConfig.findUnique as any).mockResolvedValue(CONFIG);
+    (prisma.discussionPromptLog.create as any).mockResolvedValue({ id: 'log-new' });
+    (prisma.discussionPromptLog.updateMany as any).mockResolvedValue({ count: 0 });
+    (prisma.discussionPromptLog.delete as any).mockResolvedValue({});
+    (prisma.mirroredMessage.deleteMany as any).mockResolvedValue({ count: 0 });
+  });
+
+  it('deletes lounge prompt message + cross-post + DB rows, then posts a fresh cycle', async () => {
+    const { mockClient, mockLoungeChannel, mockDiscussionsChannel, mockLoungePromptMessage } = createMockClient();
+    const oldLoungeMsg = makeFetchableMessage();
+    const oldCrossPostMsg = makeFetchableMessage();
+    mockLoungeChannel.messages.fetch = vi.fn().mockResolvedValue(oldLoungeMsg);
+    mockDiscussionsChannel.messages.fetch = vi.fn().mockResolvedValue(oldCrossPostMsg);
+    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(makeActiveRow());
+
+    const result = await skipCurrentDailyPrompt(mockClient as any, CONFIG);
+
+    expect(result.ok).toBe(true);
+    // Old prompt + cross-post deleted on Discord.
+    expect(mockLoungeChannel.messages.fetch).toHaveBeenCalledWith('old-prompt-msg-1');
+    expect(oldLoungeMsg.delete).toHaveBeenCalled();
+    expect(mockDiscussionsChannel.messages.fetch).toHaveBeenCalledWith('old-cross-1');
+    expect(oldCrossPostMsg.delete).toHaveBeenCalled();
+    // Old DB rows deleted (mirrors first because of FK Restrict).
+    expect(prisma.mirroredMessage.deleteMany).toHaveBeenCalledWith({ where: { promptLogId: 'log-old' } });
+    expect(prisma.discussionPromptLog.delete).toHaveBeenCalledWith({ where: { id: 'log-old' } });
+    // Fresh cycle posted.
+    expect(mockLoungePromptMessage.startThread).toHaveBeenCalled();
+    expect(prisma.discussionPromptLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ promptText: 'Replacement prompt?' }),
+    });
+  });
+
+  it('still posts a fresh cycle when there is no active prompt to skip', async () => {
+    const { mockClient, mockLoungeChannel, mockLoungePromptMessage } = createMockClient();
+    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(null);
+
+    const result = await skipCurrentDailyPrompt(mockClient as any, CONFIG);
+
+    expect(result.ok).toBe(true);
+    expect(mockLoungeChannel.messages.fetch).not.toHaveBeenCalled();
+    expect(prisma.mirroredMessage.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.discussionPromptLog.delete).not.toHaveBeenCalled();
+    expect(mockLoungePromptMessage.startThread).toHaveBeenCalled();
+  });
+
+  it('still proceeds to repost when DB delete throws (e.g. FK conflict)', async () => {
+    const { mockClient, mockLoungePromptMessage } = createMockClient();
+    (prisma.discussionPromptLog.findFirst as any).mockResolvedValue(makeActiveRow());
+    (prisma.$transaction as any).mockRejectedValueOnce(new Error('FK Restrict'));
+
+    const result = await skipCurrentDailyPrompt(mockClient as any, CONFIG);
+
+    expect(result.ok).toBe(true);
+    expect(mockLoungePromptMessage.startThread).toHaveBeenCalled();
+  });
+
+  it('rejects with reason:busy when a cycle is already running', async () => {
+    const { mockClient } = createMockClient();
+    const inFlight = skipCurrentDailyPrompt(mockClient as any, CONFIG);
+    const second = await skipCurrentDailyPrompt(mockClient as any, CONFIG);
+    expect(second).toEqual({ ok: false, reason: 'busy' });
+    await inFlight;
   });
 });
