@@ -18,6 +18,7 @@ import {
 import * as discussCommand from './commands/discuss';
 import { onLoungeMessageCreate, onLoungeMessageDelete, onLoungeMessageUpdate } from './services/lounge-mirror';
 import { startScheduler, stopScheduler } from './services/scheduler';
+import { isAllowedGuild } from './utils/guilds';
 
 // Extend Client type to include commands
 interface BotCommand {
@@ -52,10 +53,6 @@ const devGuildId = process.env.DEV_GUILD_ID;
 
 if (!token || !clientId || !plGuildId) {
   process.exit(1);
-}
-
-function isAllowedGuild(guildId: string | null): boolean {
-  return guildId === plGuildId || (!!devGuildId && guildId === devGuildId);
 }
 
 // Register slash commands per-guild on startup. Guild-specific registration
